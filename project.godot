@@ -11,5 +11,6 @@ config_version=5
 [application]
 
 config/name="Pokemon Fangame"
+run/main_scene="uid://bewxb3o6i8lh5"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"

@@ -1,0 +1,126 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/characters/red_walk.png" id="2_sprite"]
+
+[sub_resource type="AtlasTexture" id="AT_d0"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_d1"]
+atlas = ExtResource("2_sprite")
+region = Rect2(16, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_d2"]
+atlas = ExtResource("2_sprite")
+region = Rect2(32, 0, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_u0"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 32, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_u1"]
+atlas = ExtResource("2_sprite")
+region = Rect2(16, 32, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_u2"]
+atlas = ExtResource("2_sprite")
+region = Rect2(32, 32, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_l0"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 64, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_l1"]
+atlas = ExtResource("2_sprite")
+region = Rect2(16, 64, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_l2"]
+atlas = ExtResource("2_sprite")
+region = Rect2(32, 64, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_r0"]
+atlas = ExtResource("2_sprite")
+region = Rect2(0, 96, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_r1"]
+atlas = ExtResource("2_sprite")
+region = Rect2(16, 96, 16, 32)
+
+[sub_resource type="AtlasTexture" id="AT_r2"]
+atlas = ExtResource("2_sprite")
+region = Rect2(32, 96, 16, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_1"]
+animations = [{
+"frames": [{"duration": 1.0, "texture": SubResource("AT_d0")}],
+"loop": true,
+"name": &"idle_down",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("AT_u0")}],
+"loop": true,
+"name": &"idle_up",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("AT_l0")}],
+"loop": true,
+"name": &"idle_left",
+"speed": 5.0
+}, {
+"frames": [{"duration": 1.0, "texture": SubResource("AT_r0")}],
+"loop": true,
+"name": &"idle_right",
+"speed": 5.0
+}, {
+"frames": [
+{"duration": 1.0, "texture": SubResource("AT_d1")},
+{"duration": 1.0, "texture": SubResource("AT_d0")},
+{"duration": 1.0, "texture": SubResource("AT_d2")}
+],
+"loop": true,
+"name": &"walk_down",
+"speed": 8.0
+}, {
+"frames": [
+{"duration": 1.0, "texture": SubResource("AT_u1")},
+{"duration": 1.0, "texture": SubResource("AT_u0")},
+{"duration": 1.0, "texture": SubResource("AT_u2")}
+],
+"loop": true,
+"name": &"walk_up",
+"speed": 8.0
+}, {
+"frames": [
+{"duration": 1.0, "texture": SubResource("AT_l1")},
+{"duration": 1.0, "texture": SubResource("AT_l0")},
+{"duration": 1.0, "texture": SubResource("AT_l2")}
+],
+"loop": true,
+"name": &"walk_left",
+"speed": 8.0
+}, {
+"frames": [
+{"duration": 1.0, "texture": SubResource("AT_r1")},
+{"duration": 1.0, "texture": SubResource("AT_r0")},
+{"duration": 1.0, "texture": SubResource("AT_r2")}
+],
+"loop": true,
+"name": &"walk_right",
+"speed": 8.0
+}]
+
+[sub_resource type="RectangleShape2D" id="Shape_1"]
+size = Vector2(12, 10)
+
+[node name="Player" type="CharacterBody2D"]
+script = ExtResource("1_player")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+position = Vector2(8, 0)
+sprite_frames = SubResource("SpriteFrames_1")
+animation = &"idle_down"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(8, 26)
+shape = SubResource("Shape_1")
