@@ -6,7 +6,17 @@ extends EditorScript
 # et en métadonnées de la racine : taille de map + connexions (pour les transitions).
 
 const TILE := 16
-const MAPS := ["pallet_town", "route1"]
+const MAPS := [
+	"celadon_city", "cerulean_city", "cinnabar_island", "fuchsia_city",
+	"indigo_plateau_exterior", "lavender_town", "pallet_town", "pewter_city",
+	"route1", "route10", "route11", "route12", "route13", "route14", "route15",
+	"route16", "route17", "route18", "route19", "route2", "route20",
+	"route21_north", "route21_south", "route22", "route23", "route24", "route25",
+	"route3", "route4", "route5", "route6", "route7", "route8", "route9",
+	"safari_zone_center", "safari_zone_east", "safari_zone_north", "safari_zone_west",
+	"saffron_city", "saffron_city_connection", "vermilion_city", "viridian_city",
+	"viridian_forest",
+]
 
 func _run() -> void:
 	for name in MAPS:
@@ -32,6 +42,7 @@ func _build(name: String) -> void:
 	var tiles: Array = data["tiles"]
 	var above_flags: Array = data["above"]
 	var cells: Array = data["cells"]
+	var ledges: Array = data.get("ledges", [])
 	var collision: Array = data["collision"]
 	var connections: Array = data.get("connections", [])
 
@@ -72,6 +83,7 @@ func _build(name: String) -> void:
 	root.name = "Map"
 	root.set_meta("map_size", Vector2i(W, H))
 	root.set_meta("connections", connections)
+	root.set_meta("ledges", ledges)
 
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
 	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts

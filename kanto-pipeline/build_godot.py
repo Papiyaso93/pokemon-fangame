@@ -79,10 +79,19 @@ def build(name, layout_dir, primary, secondary, connections):
     cells = [idx_of[v & 0x3FF] for v in grid]
     collision = [1 if ((v >> 10) & 0x3) != 0 else 0 for v in grid]
 
+    # Rebords (ledges) : franchissables dans un seul sens (saut de 2 cases).
+    # Comportement metatile = attrs bits 0-8 (pret src/fieldmap.c). Constantes
+    # dans include/constants/metatile_behaviors.h : MB_JUMP_EAST/WEST/NORTH/SOUTH.
+    LEDGE_BEHAVIOR_TO_DIR = {0x38: "right", 0x39: "left", 0x3A: "up", 0x3B: "down"}
+    def behavior_of(mid):
+        _, attr = get(mid)
+        return attr & 0x1FF
+    ledges = [LEDGE_BEHAVIOR_TO_DIR.get(behavior_of(v & 0x3FF), "") for v in grid]
+
     data = {
         "name": name, "width": W, "height": H, "atlas_cols": cols,
         "tiles": used, "above": above_flags,
-        "cells": cells, "collision": collision,
+        "cells": cells, "collision": collision, "ledges": ledges,
         "connections": connections,
     }
     json.dump(data, open(OUT / f"{name}.json", "w"))
@@ -109,9 +118,51 @@ def build_map(pret_map, godot_name):
           tileset_folder(L["secondary_tileset"]), conns)
 
 # Table nom-pret -> nom-godot (snake_case) pour les maps à générer.
+# Kanto classique (villes + routes), îles Sevii et grottes exclues pour l'instant.
 MAPS = {
+    "CeladonCity": "celadon_city",
+    "CeruleanCity": "cerulean_city",
+    "CinnabarIsland": "cinnabar_island",
+    "FuchsiaCity": "fuchsia_city",
+    "IndigoPlateau_Exterior": "indigo_plateau_exterior",
+    "LavenderTown": "lavender_town",
     "PalletTown": "pallet_town",
+    "PewterCity": "pewter_city",
     "Route1": "route1",
+    "Route10": "route10",
+    "Route11": "route11",
+    "Route12": "route12",
+    "Route13": "route13",
+    "Route14": "route14",
+    "Route15": "route15",
+    "Route16": "route16",
+    "Route17": "route17",
+    "Route18": "route18",
+    "Route19": "route19",
+    "Route2": "route2",
+    "Route20": "route20",
+    "Route21_North": "route21_north",
+    "Route21_South": "route21_south",
+    "Route22": "route22",
+    "Route23": "route23",
+    "Route24": "route24",
+    "Route25": "route25",
+    "Route3": "route3",
+    "Route4": "route4",
+    "Route5": "route5",
+    "Route6": "route6",
+    "Route7": "route7",
+    "Route8": "route8",
+    "Route9": "route9",
+    "SafariZone_Center": "safari_zone_center",
+    "SafariZone_East": "safari_zone_east",
+    "SafariZone_North": "safari_zone_north",
+    "SafariZone_West": "safari_zone_west",
+    "SaffronCity": "saffron_city",
+    "SaffronCity_Connection": "saffron_city_connection",
+    "VermilionCity": "vermilion_city",
+    "ViridianCity": "viridian_city",
+    "ViridianForest": "viridian_forest",
 }
 
 if __name__ == "__main__":
