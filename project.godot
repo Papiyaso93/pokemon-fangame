@@ -14,3 +14,7 @@ config/name="Pokemon Fangame"
 run/main_scene="res://scenes/maps/pallet_town.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
+
+[autoload]
+
+Transitions="*res://scripts/transitions.gd"

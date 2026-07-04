@@ -1,24 +1,29 @@
 @tool
 extends EditorScript
 
-# Assemble une scène Godot à partir des artefacts du pipeline (res://generated/).
-# Produit scenes/maps/<name>_auto.tscn : TileSet + calques Below/Above + Collision + Player.
+# Assemble les scènes Godot depuis les artefacts du pipeline (res://generated/).
+# Une scène par map : TileSet + calques Below/Above/Collision + Player,
+# et en métadonnées de la racine : taille de map + connexions (pour les transitions).
 
-const NAME := "pallet_town"
 const TILE := 16
+const MAPS := ["pallet_town", "route1"]
 
 func _run() -> void:
-	var base := "res://generated/%s" % NAME
+	for name in MAPS:
+		_build(name)
+
+func _build(name: String) -> void:
+	var base := "res://generated/%s" % name
 	var f := FileAccess.open(base + ".json", FileAccess.READ)
 	if f == null:
-		push_error("JSON introuvable : %s.json — as-tu rafraîchi le FileSystem ?" % base)
+		push_error("JSON introuvable : %s.json — rafraîchis le FileSystem ?" % base)
 		return
 	var data: Dictionary = JSON.parse_string(f.get_as_text())
 
 	var tex_below := load(base + "_below.png") as Texture2D
 	var tex_above := load(base + "_above.png") as Texture2D
 	if tex_below == null or tex_above == null:
-		push_error("Atlas PNG non importés. Rafraîchis le FileSystem de Godot puis relance.")
+		push_error("Atlas PNG non importés (%s). Rafraîchis le FileSystem." % name)
 		return
 
 	var W: int = data["width"]
@@ -28,25 +33,23 @@ func _run() -> void:
 	var above_flags: Array = data["above"]
 	var cells: Array = data["cells"]
 	var collision: Array = data["collision"]
+	var connections: Array = data.get("connections", [])
 
 	# ── TileSet ──
 	var ts := TileSet.new()
 	ts.tile_size = Vector2i(TILE, TILE)
-
 	var src_below := TileSetAtlasSource.new()
 	src_below.texture = tex_below
 	src_below.texture_region_size = Vector2i(TILE, TILE)
 	var src_above := TileSetAtlasSource.new()
 	src_above.texture = tex_above
 	src_above.texture_region_size = Vector2i(TILE, TILE)
-
 	for k in range(tiles.size()):
 		var coord := Vector2i(k % cols, k / cols)
 		src_below.create_tile(coord)
 		if above_flags[k]:
 			src_above.create_tile(coord)
 
-	# source collision : 1 tuile rouge translucide avec polygone plein
 	var img := Image.create(TILE, TILE, false, Image.FORMAT_RGBA8)
 	img.fill(Color(1, 0, 0, 0.35))
 	var src_coll := TileSetAtlasSource.new()
@@ -57,22 +60,23 @@ func _run() -> void:
 	var id_below := ts.add_source(src_below)
 	var id_above := ts.add_source(src_above)
 	var id_coll := ts.add_source(src_coll)
-
 	ts.add_physics_layer()
 	var td := src_coll.get_tile_data(Vector2i(0, 0), 0)
 	td.add_collision_polygon(0)
-	var h := TILE / 2.0
+	var hh := TILE / 2.0
 	td.set_collision_polygon_points(0, 0, PackedVector2Array([
-		Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)]))
+		Vector2(-hh, -hh), Vector2(hh, -hh), Vector2(hh, hh), Vector2(-hh, hh)]))
 
 	# ── Scène ──
 	var root := Node2D.new()
-	root.name = "Node2D"
+	root.name = "Map"
+	root.set_meta("map_size", Vector2i(W, H))
+	root.set_meta("connections", connections)
 
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
 	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts
 	var coll := TileMapLayer.new(); coll.name = "Collision"; coll.tile_set = ts
-	coll.visible = false   # collision invisible par défaut (physique inchangée) ; réaffiche pour debug
+	coll.visible = false
 
 	for i in range(cells.size()):
 		var pos := Vector2i(i % W, i / W)
@@ -86,15 +90,15 @@ func _run() -> void:
 
 	var player_scene := load("res://scenes/player/player.tscn") as PackedScene
 	var player := player_scene.instantiate()
-	player.position = Vector2(11 * TILE, 13 * TILE)   # spawn central approximatif
+	var spawn := _find_spawn(collision, W, H)
+	player.position = Vector2(spawn) * TILE
 	var cam := player.get_node_or_null("Camera2D") as Camera2D
-	if cam:   # borne la caméra aux limites de la map (pas de fond noir hors-map)
+	if cam:
 		cam.limit_left = 0
 		cam.limit_top = 0
 		cam.limit_right = W * TILE
 		cam.limit_bottom = H * TILE
 
-	# ordre de dessin : Below, Player, Above, (Collision au-dessus pour debug)
 	root.add_child(below)
 	root.add_child(player)
 	root.add_child(above)
@@ -104,10 +108,18 @@ func _run() -> void:
 
 	var packed := PackedScene.new()
 	packed.pack(root)
-	var out := "res://scenes/maps/%s.tscn" % NAME
+	var out := "res://scenes/maps/%s.tscn" % name
 	var err := ResourceSaver.save(packed, out)
 	if err != OK:
-		push_error("Échec sauvegarde scène : %d" % err)
+		push_error("Échec sauvegarde %s : %d" % [name, err])
 		return
-	print("Scène générée : %s (%dx%d, %d cases)" % [out, W, H, cells.size()])
-	print("Ouvre-la dans Godot. Le calque 'Collision' (rouge) est visible pour debug.")
+	print("Scène : %s (%dx%d, %d connexions)" % [out, W, H, connections.size()])
+
+# Case libre proche du centre-bas (spawn par défaut si chargement direct).
+func _find_spawn(collision: Array, W: int, H: int) -> Vector2i:
+	for y in range(H - 2, 0, -1):
+		for dx in [0, 1, -1, 2, -2]:
+			var x: int = W / 2 + dx
+			if x >= 0 and x < W and collision[y * W + x] == 0:
+				return Vector2i(x, y)
+	return Vector2i(W / 2, H / 2)

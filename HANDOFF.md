@@ -69,21 +69,29 @@ intenable, et que les données pret contiennent déjà layout + collision + calq
 
 ---
 
-## ▶ Prochaine étape : Route 1 + transitions
-Données Route 1 déjà relevées : `LAYOUT_ROUTE1`, **24 × 40**, tilesets `general` + `pallet_town`.
-Connexions : **up → Viridian City (offset -12)**, **down → Pallet Town (offset 0)**.
+## État : pipeline générique + transitions (fonctionnel)
+- ✅ Pipeline **générique** : `build_godot.py` (dict `MAPS` nom-pret → nom-godot) et
+  `import_map.gd` (liste `MAPS`) génèrent n'importe quelle map. Ajouter le nom aux DEUX
+  listes + relancer `python3 build_godot.py` puis `import_map.gd` (dans Godot).
+- ✅ **Route 1** générée. **Transitions fonctionnelles** Bourg Palette ↔ Route 1 :
+  - `scripts/transitions.gd` = autoload `Transitions` (passe le spawn entre maps).
+  - Chaque scène stocke en métadonnées racine : `map_size` + `connections` [{dir, offset, target}].
+  - `player.gd` : au franchissement d'un bord connecté vers une scène existante →
+    `change_scene_to_file` + replacement au bord opposé (offset géré).
 
-1. **Paramétrer** `build_godot.py` (argument nom de map + mapping du secondary tileset) et
-   `import_map.gd` (NAME + spawn) pour générer n'importe quelle map, pas seulement Bourg Palette.
-2. **Générer Route 1** → `scenes/maps/route1.tscn`.
-3. **Système de transitions** : détecter quand le joueur franchit un bord de map ayant une
-   connexion → charger la map connectée + repositionner le joueur au bord opposé (en tenant
-   compte de l'`offset`). Stocker les connexions dans la scène générée (ex. métadonnées sur
-   le nœud racine) + un `MapManager` (autoload) pour le swap de scène et la caméra.
-   Objectif : marcher vers le nord depuis Bourg Palette → arriver naturellement sur Route 1,
-   et inversement. C'est le point que Gus veut voir marcher de façon fluide.
+## ▶ TODO — transitions SEAMLESS (défilement continu FRLG)
+Le `change_scene` actuel fait un « téléport » (recharge la scène ; pas de continuité ; gris
+au-delà du bord). La vraie façon FRLG à implémenter :
+- **Joueur persistant** + un **gestionnaire de monde** qui charge la map courante ET ses
+  **voisines** (instanciées à leur offset en pixels ; ex. Route 1 au-dessus de Pallet).
+- Pas de rechargement : marche continue, caméra qui défile ; quand le joueur traverse dans une
+  voisine, elle devient « courante », on charge SES voisines et on décharge les lointaines.
+  Collision OK (chaque scène garde son calque Collision). Caméra : limites = boîte englobante
+  des maps chargées. → Refonte : le joueur sort des scènes de map et devient persistant.
 
-Ensuite : généraliser à tout Kanto (boucle sur les layouts), puis les intérieurs.
+## Générer la suite de Kanto (token-efficient)
+Ajouter les maps dans `MAPS` (les deux fichiers), générer en **batch** (plusieurs d'un coup),
+pas une par une. Intérieurs à la toute fin.
 
 ---
 

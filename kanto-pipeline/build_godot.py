@@ -4,7 +4,7 @@
   - <name>.json : dimensions, mapping, grille, collision, connexions
 Sortie dans le projet Godot : res://generated/
 """
-import json, struct
+import json, struct, re, sys
 from pathlib import Path
 from PIL import Image
 import render_map as R
@@ -90,8 +90,31 @@ def build(name, layout_dir, primary, secondary, connections):
           f"{sum(above_flags)} avec haut, {sum(collision)} cases solides")
     print("->", OUT)
 
+def tileset_folder(gname):
+    # "gTileset_PalletTown" -> "pallet_town"
+    name = gname.replace("gTileset_", "")
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+
+def build_map(pret_map, godot_name):
+    """Génère une map à partir de son nom pret (ex: 'Route1'). Déduit layout,
+    tilesets et connexions automatiquement depuis les données pret."""
+    mj = json.load(open(PRET / f"data/maps/{pret_map}/map.json"))
+    lj = json.load(open(PRET / "data/layouts/layouts.json"))
+    L = next(x for x in lj["layouts"] if x and x["id"] == mj["layout"])
+    # target = nom de scène godot (ex: "MAP_ROUTE1" -> "route1")
+    conns = [{"dir": c["direction"], "offset": c["offset"],
+              "target": c["map"].replace("MAP_", "").lower()}
+             for c in (mj.get("connections") or [])]
+    build(godot_name, L["id"], tileset_folder(L["primary_tileset"]),
+          tileset_folder(L["secondary_tileset"]), conns)
+
+# Table nom-pret -> nom-godot (snake_case) pour les maps à générer.
+MAPS = {
+    "PalletTown": "pallet_town",
+    "Route1": "route1",
+}
+
 if __name__ == "__main__":
-    # Bourg Palette (PoC)
-    conns = json.load(open(PRET / "data/maps/PalletTown/map.json")).get("connections", [])
-    conns = [{"dir": c["direction"], "map": c["map"], "offset": c["offset"]} for c in conns]
-    build("pallet_town", "LAYOUT_PALLET_TOWN", "general", "pallet_town", conns)
+    targets = sys.argv[1:] or list(MAPS.keys())
+    for pret_name in targets:
+        build_map(pret_name, MAPS.get(pret_name, pret_name.lower()))
