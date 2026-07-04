@@ -5,7 +5,17 @@ export_presets.cfg
 
 # macOS
 .DS_Store
+**/.DS_Store
 
 # Editeurs
 .vscode/
 .idea/
+
+# Cache Python (pipeline)
+__pycache__/
+*.pyc
+
+# Clone externe de la décompilation FireRed (pret, ~72 Mo, repo tiers).
+# Se re-clone via : git clone --depth 1 https://github.com/pret/pokefirered
+# dans kanto-pipeline/ pour régénérer des maps.
+kanto-pipeline/pokefirered/
