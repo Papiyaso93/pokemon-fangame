@@ -16,6 +16,7 @@ const MAPS := [
 	"safari_zone_center", "safari_zone_east", "safari_zone_north", "safari_zone_west",
 	"saffron_city", "saffron_city_connection", "vermilion_city", "viridian_city",
 	"viridian_forest",
+	"cave_diglett", "cave_mtmoon", "cave_rocktunnel", "cave_seafoam", "cave_victoryroad",
 ]
 
 func _run() -> void:
@@ -45,6 +46,7 @@ func _build(name: String) -> void:
 	var ledges: Array = data.get("ledges", [])
 	var collision: Array = data["collision"]
 	var connections: Array = data.get("connections", [])
+	var warps: Array = data.get("warps", [])
 
 	# ── TileSet ──
 	var ts := TileSet.new()
@@ -84,6 +86,7 @@ func _build(name: String) -> void:
 	root.set_meta("map_size", Vector2i(W, H))
 	root.set_meta("connections", connections)
 	root.set_meta("ledges", ledges)
+	root.set_meta("warps", warps)
 
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
 	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts

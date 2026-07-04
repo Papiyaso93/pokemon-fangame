@@ -24,7 +24,7 @@ def render_half(entries, half, pt, st, pals):
         R.render_subtile(img, pos[i][0], pos[i][1], entries[half*4+i], pt, st, pals)
     return img
 
-def build(name, layout_dir, primary, secondary, connections):
+def build(name, layout_dir, primary, secondary, connections, warps=None):
     prim = PRET / f"data/tilesets/primary/{primary}"
     sec = PRET / f"data/tilesets/secondary/{secondary}"
     pals = R.load_palettes(prim, sec)
@@ -92,7 +92,7 @@ def build(name, layout_dir, primary, secondary, connections):
         "name": name, "width": W, "height": H, "atlas_cols": cols,
         "tiles": used, "above": above_flags,
         "cells": cells, "collision": collision, "ledges": ledges,
-        "connections": connections,
+        "connections": connections, "warps": warps or [],
     }
     json.dump(data, open(OUT / f"{name}.json", "w"))
     print(f"{name}: {W}x{H}, {len(used)} metatiles, "
@@ -115,7 +115,71 @@ def build_map(pret_map, godot_name):
               "target": c["map"].replace("MAP_", "").lower()}
              for c in (mj.get("connections") or [])]
     build(godot_name, L["id"], tileset_folder(L["primary_tileset"]),
-          tileset_folder(L["secondary_tileset"]), conns)
+          tileset_folder(L["secondary_tileset"]), conns, WARP_OVERRIDES.get(godot_name))
+
+# Warps ponctuels ajoutés à la main sur des maps déjà générées : portes vers
+# les grottes génériques (build_cave.py) + accès direct Route2<->Foret de Jade
+# (pas de batiment-porte, on saute directement l'etape "petit batiment vide").
+# Coordonnées réelles extraites des warp_events pret (voir conversation) —
+# ce sont les points d'entrée sur CETTE map, avec la cible correspondante.
+WARP_OVERRIDES = {
+    "route2": [
+        {"x": 17, "y": 11, "target": "cave_diglett", "tx": 4, "ty": 9},
+        {"x": 5, "y": 13, "target": "viridian_forest", "tx": 5, "ty": 9},
+        {"x": 6, "y": 13, "target": "viridian_forest", "tx": 5, "ty": 9},
+        {"x": 5, "y": 51, "target": "viridian_forest", "tx": 29, "ty": 62},
+        {"x": 6, "y": 51, "target": "viridian_forest", "tx": 29, "ty": 62},
+    ],
+    "route11": [
+        {"x": 6, "y": 7, "target": "cave_diglett", "tx": 4, "ty": 1},
+    ],
+    "route4": [
+        {"x": 19, "y": 5, "target": "cave_mtmoon", "tx": 4, "ty": 9},
+        {"x": 32, "y": 5, "target": "cave_mtmoon", "tx": 4, "ty": 1},
+    ],
+    "route10": [
+        {"x": 8, "y": 19, "target": "cave_rocktunnel", "tx": 4, "ty": 9},
+        {"x": 8, "y": 57, "target": "cave_rocktunnel", "tx": 4, "ty": 1},
+    ],
+    "route20": [
+        {"x": 60, "y": 8, "target": "cave_seafoam", "tx": 4, "ty": 9},
+        {"x": 72, "y": 14, "target": "cave_seafoam", "tx": 4, "ty": 1},
+    ],
+    "route23": [
+        {"x": 5, "y": 28, "target": "cave_victoryroad", "tx": 4, "ty": 9},
+        {"x": 18, "y": 28, "target": "cave_victoryroad", "tx": 4, "ty": 1},
+    ],
+    "viridian_forest": [
+        {"x": 5, "y": 9, "target": "route2", "tx": 5, "ty": 12},
+        {"x": 6, "y": 9, "target": "route2", "tx": 5, "ty": 12},
+        {"x": 29, "y": 62, "target": "route2", "tx": 5, "ty": 52},
+        {"x": 30, "y": 62, "target": "route2", "tx": 5, "ty": 52},
+    ],
+    # Portes de Safrania : accès direct route<->ville, sans batiment-porte
+    # (meme principe que la Foret de Jade). Coord. reelles pret.
+    "route5": [
+        {"x": 24, "y": 32, "target": "saffron_city", "tx": 34, "ty": 6},
+        {"x": 25, "y": 32, "target": "saffron_city", "tx": 35, "ty": 6},
+    ],
+    "route6": [
+        {"x": 12, "y": 5, "target": "saffron_city", "tx": 34, "ty": 45},
+        {"x": 13, "y": 5, "target": "saffron_city", "tx": 35, "ty": 45},
+    ],
+    "route7": [
+        {"x": 15, "y": 10, "target": "saffron_city", "tx": 9, "ty": 27},
+    ],
+    "route8": [
+        {"x": 7, "y": 10, "target": "saffron_city", "tx": 57, "ty": 27},
+    ],
+    "saffron_city": [
+        {"x": 34, "y": 5, "target": "route5", "tx": 24, "ty": 31},
+        {"x": 35, "y": 5, "target": "route5", "tx": 25, "ty": 31},
+        {"x": 34, "y": 46, "target": "route6", "tx": 12, "ty": 6},
+        {"x": 35, "y": 46, "target": "route6", "tx": 13, "ty": 6},
+        {"x": 8, "y": 27, "target": "route7", "tx": 14, "ty": 10},
+        {"x": 58, "y": 27, "target": "route8", "tx": 8, "ty": 10},
+    ],
+}
 
 # Table nom-pret -> nom-godot (snake_case) pour les maps à générer.
 # Kanto classique (villes + routes), îles Sevii et grottes exclues pour l'instant.

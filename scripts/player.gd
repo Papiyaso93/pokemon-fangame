@@ -19,6 +19,7 @@ var turn_timer := 0.0
 var map_size := Vector2i(1000, 1000)
 var connections: Array = []
 var ledges: Array = []
+var warps: Array = []
 var current_speed := SPEED
 var is_jumping := false
 var jump_total_dist := 0.0
@@ -26,10 +27,13 @@ const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 
 func _ready() -> void:
 	_read_map_meta()
-	# Arrivée via une transition : on se place au bon bord de la nouvelle map.
+	# Arrivée via une transition : on se place au bon endroit de la nouvelle map.
 	if Transitions.pending:
 		facing = Transitions.facing
-		position = Vector2(_entry_tile(Transitions.from_dir, Transitions.cross)) * TILE_SIZE
+		if Transitions.direct:
+			position = Vector2(Transitions.direct_tile) * TILE_SIZE
+		else:
+			position = Vector2(_entry_tile(Transitions.from_dir, Transitions.cross)) * TILE_SIZE
 		Transitions.pending = false
 	move_target = position
 	_play("face")
@@ -42,6 +46,15 @@ func _read_map_meta() -> void:
 		connections = root.get_meta("connections")
 	if root and root.has_meta("ledges"):
 		ledges = root.get_meta("ledges")
+	if root and root.has_meta("warps"):
+		warps = root.get_meta("warps")
+
+# Warp ponctuel sur cette case (porte, entrée de grotte...), ou null si aucun.
+func _warp_at(tile: Vector2i) -> Dictionary:
+	for w in warps:
+		if int(w.get("x", -1)) == tile.x and int(w.get("y", -1)) == tile.y:
+			return w
+	return {}
 
 # Direction du rebord sur cette case ("down"/"up"/"left"/"right"), ou "" si aucun.
 func _ledge_dir_at(tile: Vector2i) -> String:
@@ -126,6 +139,19 @@ func _check_input() -> void:
 		_try_transition(dir, cur)
 		return
 
+	# Warp ponctuel (porte, entrée de grotte) : téléportation à coord précise.
+	var warp := _warp_at(tgt)
+	if not warp.is_empty():
+		var target := String(warp.get("target", ""))
+		var path := "res://scenes/maps/%s.tscn" % target
+		if ResourceLoader.exists(path):
+			Transitions.pending = true
+			Transitions.direct = true
+			Transitions.facing = String(warp.get("face", facing))
+			Transitions.direct_tile = Vector2i(int(warp.get("tx", 0)), int(warp.get("ty", 0)))
+			get_tree().change_scene_to_file(path)
+			return
+
 	# Rebord franchissable dans ce sens : saut de 2 cases (fidèle à FRLG),
 	# on ignore la collision du rebord lui-même.
 	var dname := _dir_name(dir)
@@ -157,6 +183,7 @@ func _try_transition(dir: Vector2, cur: Vector2i) -> void:
 			if ResourceLoader.exists(path):
 				var off := int(c.get("offset", 0))
 				Transitions.pending = true
+				Transitions.direct = false
 				Transitions.from_dir = dname
 				Transitions.facing = facing
 				if dname == "up" or dname == "down":
