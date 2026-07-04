@@ -57,27 +57,42 @@ intenable, et que les données pret contiennent déjà layout + collision + calq
   **tap-to-turn** (TURN_TIME=0.1 ; pression brève = pivot sur place sans avancer),
   collision via `test_move`, caméra bornée aux limites de la map (posées par `import_map.gd`).
   Logique fidèle à pret `field_player_avatar.c` (`CheckMovementInputNotOnBike`).
+- **Rebords (ledges)** : comportement metatile extrait dans `build_godot.py` (attr bits 0-8,
+  cf. pret `src/fieldmap.c`), constantes `MB_JUMP_EAST/WEST/NORTH/SOUTH` (`0x38-0x3B`,
+  `include/constants/metatile_behaviors.h`). Saut = 2 cases, sens unique, **JUMP_SPEED=120**
+  (16 frames pour 2 cases = même durée qu'1 case en marche normale — vérifié dans
+  `event_object_movement.c`, `MovementAction_Jump2*`). Arc visuel sinusoïdal 6px
+  (`JUMP_ARC_HEIGHT`) sur `anim.position.y` pendant le saut, pas sur la position réelle.
 
 ---
 
 ## État actuel
-- ✅ **Bourg Palette** généré et jouable (`scenes/maps/pallet_town.tscn` = `main_scene`).
-- ✅ **Joueur ISO** : déplacement, animations, tap-to-turn, bloqué par les collisions.
-- ❌ Aucune autre map. **Aucun intérieur** (plan validé : TOUS les extérieurs d'abord —
-  routes, villes, grottes — intérieurs à la toute fin).
-- ❌ **Aucune transition** entre maps.
+- ✅ **Kanto classique complet en extérieur** : 12 villes + 31 routes générées et jouables
+  (`generated/*.json` + `.png`, `scenes/maps/*.tscn`). Îles Sevii et prototypes exclus (hors
+  scope, cf. `game-design.md`). Liste exacte dans `build_godot.py` (dict `MAPS`) et
+  `import_map.gd` (const `MAPS`) — TOUJOURS mettre à jour les DEUX en parallèle.
+- ✅ **Joueur ISO** : déplacement, animations, tap-to-turn, collisions, **rebords/ledges**
+  (saut 2 cases à sens unique + arc visuel — voir section Joueur).
+- ✅ **Transitions entre maps** fonctionnelles (Bourg Palette ↔ Route 1 testé, le reste doit
+  suivre le même mécanisme). Limitation connue : `change_scene` = « téléport », pas de
+  défilement continu (voir TODO seamless ci-dessous).
+- ❌ **Grottes** (Diglett, Mt Sélénite, Souterrain, Écume, Route Victoria, Azurine — 19 maps
+  `MAP_TYPE_UNDERGROUND` dans pret) : **pas commencées**, mises en attente. Gus veut d'abord
+  simplifier leur game design (obscurité/Flash, HM, warps multi-étages) avant de les générer.
+  Pas bloquant pour la suite.
+- ❌ **Aucun intérieur** (maisons, Centres, arènes, labo…) — prévu en tout dernier.
 
----
-
-## État : pipeline générique + transitions (fonctionnel)
-- ✅ Pipeline **générique** : `build_godot.py` (dict `MAPS` nom-pret → nom-godot) et
-  `import_map.gd` (liste `MAPS`) génèrent n'importe quelle map. Ajouter le nom aux DEUX
-  listes + relancer `python3 build_godot.py` puis `import_map.gd` (dans Godot).
-- ✅ **Route 1** générée. **Transitions fonctionnelles** Bourg Palette ↔ Route 1 :
-  - `scripts/transitions.gd` = autoload `Transitions` (passe le spawn entre maps).
-  - Chaque scène stocke en métadonnées racine : `map_size` + `connections` [{dir, offset, target}].
-  - `player.gd` : au franchissement d'un bord connecté vers une scène existante →
-    `change_scene_to_file` + replacement au bord opposé (offset géré).
+## Pipeline générique (comment ajouter des maps)
+`build_godot.py` (dict `MAPS` nom-pret → nom-godot) et `import_map.gd` (const `MAPS`, même
+noms godot) génèrent n'importe quelle map pret. Pour en ajouter : ajouter le nom aux DEUX
+listes, relancer `python3 build_godot.py` (génère les JSON/PNG dans `generated/`), puis dans
+Godot ouvrir `import_map.gd` → Fichier → Exécuter (génère/régénère les `.tscn`).
+Système de transitions :
+- `scripts/transitions.gd` = autoload `Transitions` (passe le spawn entre maps).
+- Chaque scène stocke en métadonnées racine : `map_size`, `connections` [{dir, offset, target}],
+  `ledges` (array parallèle à `cells`, direction de saut ou "").
+- `player.gd` : au franchissement d'un bord connecté vers une scène existante →
+  `change_scene_to_file` + replacement au bord opposé (offset géré).
 
 ## ▶ TODO — transitions SEAMLESS (défilement continu FRLG)
 Le `change_scene` actuel fait un « téléport » (recharge la scène ; pas de continuité ; gris
