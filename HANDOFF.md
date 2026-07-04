@@ -73,26 +73,42 @@ intenable, et que les données pret contiennent déjà layout + collision + calq
   `import_map.gd` (const `MAPS`) — TOUJOURS mettre à jour les DEUX en parallèle.
 - ✅ **Joueur ISO** : déplacement, animations, tap-to-turn, collisions, **rebords/ledges**
   (saut 2 cases à sens unique + arc visuel — voir section Joueur).
-- ✅ **Transitions entre maps** fonctionnelles (Bourg Palette ↔ Route 1 testé, le reste doit
-  suivre le même mécanisme). Limitation connue : `change_scene` = « téléport », pas de
-  défilement continu (voir TODO seamless ci-dessous).
-- ❌ **Grottes** (Diglett, Mt Sélénite, Souterrain, Écume, Route Victoria, Azurine — 19 maps
-  `MAP_TYPE_UNDERGROUND` dans pret) : **pas commencées**, mises en attente. Gus veut d'abord
-  simplifier leur game design (obscurité/Flash, HM, warps multi-étages) avant de les générer.
-  Pas bloquant pour la suite.
-- ❌ **Aucun intérieur** (maisons, Centres, arènes, labo…) — prévu en tout dernier.
+- ✅ **Kanto extérieur entièrement navigable à pied** (transitions de bord + warps ponctuels).
+  Limitation connue : `change_scene` = « téléport », pas de défilement continu (TODO seamless).
+- ✅ **5 grottes génériques** (Diglett, Mt Sélénite, Souterrain, Écume, Route Victoria) :
+  petite pièce 9×11 réutilisée telle quelle (vraies tuiles cave FRLG extraites de Mt Moon),
+  chacune avec 2 portes reliant les vrais points de passage obligatoires de Kanto (voir
+  `kanto-pipeline/build_cave.py`, dict `CAVES`). **Simplification volontaire** : pas de vrai
+  layout de donjon, juste entrée/sortie. Azurine (post-jeu, optionnelle) non faite.
+- ✅ **Forêt de Jade + les 4 portes de Safrania** : warp **direct** route↔ville, sans bâtiment
+  intermédiaire (le petit bâtiment-porte du vrai jeu est sauté, invisible pour le joueur).
+- ❌ **Aucun intérieur réel** (maisons, Centres, arènes, labo, étages de grottes…) — prévu en
+  tout dernier, comme convenu.
 
 ## Pipeline générique (comment ajouter des maps)
 `build_godot.py` (dict `MAPS` nom-pret → nom-godot) et `import_map.gd` (const `MAPS`, même
 noms godot) génèrent n'importe quelle map pret. Pour en ajouter : ajouter le nom aux DEUX
 listes, relancer `python3 build_godot.py` (génère les JSON/PNG dans `generated/`), puis dans
 Godot ouvrir `import_map.gd` → Fichier → Exécuter (génère/régénère les `.tscn`).
-Système de transitions :
-- `scripts/transitions.gd` = autoload `Transitions` (passe le spawn entre maps).
-- Chaque scène stocke en métadonnées racine : `map_size`, `connections` [{dir, offset, target}],
-  `ledges` (array parallèle à `cells`, direction de saut ou "").
-- `player.gd` : au franchissement d'un bord connecté vers une scène existante →
-  `change_scene_to_file` + replacement au bord opposé (offset géré).
+
+**Deux mécanismes de transition, ne pas les confondre :**
+- **Connexions de bord** (`connections` en métadonnées racine, `{dir, offset, target}`) :
+  pour les maps qui se touchent directement dans les données pret (`map.json` → `connections`).
+  Automatique dès que la map cible existe.
+- **Warps ponctuels** (`warps` en métadonnées racine, `{x, y, target, tx, ty, face?}`) :
+  pour les portes/grottes/bâtiments — téléportation à une coordonnée précise, indépendante
+  des bords. Système dans `player.gd` (`_warp_at`) + `scripts/transitions.gd` (autoload
+  `Transitions`, champ `direct` + `direct_tile`). Défini à la main dans `WARP_OVERRIDES`
+  (`build_godot.py`) pour les routes/villes, ou généré par `build_cave.py` pour les grottes.
+
+**⚠️ Piège vécu plusieurs fois** : `connections` existant dans les données pret ne veut PAS
+dire que le passage est réellement praticable — un vrai bâtiment ou une montagne peut occuper
+la bordure et bloquer physiquement le passage même si la donnée dit « connecté » (ex. Victory
+Road, portes de Safrania). **Toujours vérifier la collision réelle** (bits 10-11 de `map.bin`)
+à l'endroit exact avant de conclure qu'un passage est ouvert. Idem pour toute coordonnée
+d'atterrissage inventée (ex. « +1 case au sud de la porte ») : **vérifier sa collision** avant
+de l'utiliser — plusieurs fois une case voisine tombait dans le bâtiment/mur (voir historique
+de session : bugs Forêt de Jade nord + portes Safrania 5/6).
 
 ## ▶ TODO — transitions SEAMLESS (défilement continu FRLG)
 Le `change_scene` actuel fait un « téléport » (recharge la scène ; pas de continuité ; gris
