@@ -8,6 +8,22 @@ pour la narration (classes, pivot Team Rocket).
 
 ---
 
+## ▶▶ PROCHAINE SESSION — objectif : le tout début du jeu jouable
+Idée de Gus, à prototyper :
+1. **Intro dans un intérieur** (nouveau : premier vrai intérieur du jeu) — une **maison à
+   Parmanie (Fuchsia City)**. Le joueur personnalise son personnage ici. Côté histoire : face
+   à un « conseiller d'orientation » qui fait choisir la classe (une seule classe pour
+   commencer, même si le système en prévoit plusieurs à terme) et pose le contexte narratif.
+2. Le joueur sort et va à la **Zone Safari** (déjà générée : `safari_zone_center/east/north/west`)
+   pour capturer son **premier Pokémon**. Règle à définir ensemble : uniquement des Pokémon de
+   base (pas d'évolutions) — détails à trancher en session (quelles espèces, quelle table de
+   rencontre, mécanique de capture pas encore existante non plus).
+Implique : premier intérieur généré (voir pipeline, ça marche aussi pour les intérieurs pret,
+même mécanisme que les extérieurs), un minimum de dialogue/choix de classe (UI à créer), et
+une mécanique de rencontre/capture (n'existe pas du tout encore — à concevoir).
+
+---
+
 ## ⚡ Architecture : pipeline pret → Godot (LE point clé)
 
 On ne construit **plus** les maps à la main. Un convertisseur lit les données de la
