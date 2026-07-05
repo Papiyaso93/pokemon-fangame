@@ -3,6 +3,7 @@ extends CanvasLayer
 signal choice_made(result: String)
 
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
+const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 
 # Marges pour caler la fenêtre juste au-dessus de la boîte de dialogue
 # (offset_top=-168 dans dialogue_box.tscn), même bord droit qu'elle (24px).
@@ -14,8 +15,12 @@ const MARGIN_BOTTOM := 172.0
 func _ready() -> void:
 	for btn in window.get_node("Buttons").get_children():
 		if btn is Button:
+			# Icône transparente par défaut (même taille que la flèche) pour que
+			# la place soit toujours réservée : la fenêtre ne doit pas changer
+			# de largeur quand la flèche apparaît/disparaît au survol.
+			btn.icon = BlankTexture
 			btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
-			btn.mouse_exited.connect(func(): btn.icon = null)
+			btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
 	await get_tree().process_frame
 	_place_window()
 

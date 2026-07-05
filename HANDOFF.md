@@ -83,6 +83,30 @@ de secours si bredouille → `PlayerData.starter_species` rempli.
     libérée qu'une fois un choix fait. **Pattern réutilisable** pour toute future boîte de choix
     accompagnée d'une question (chercher `page_typed`/`active = false` si besoin de refaire ça
     ailleurs).
+- **✅ 2ème vague de retours Gus (bordure, largeur stable, alignement, partner_choice)** :
+  - **Bordure** : remplace `assets/ui/std_window.png` par `assets/ui/dialogue_frame.png` (le
+    cadre ondulé bleu/blanc de `dialogue_box.tscn`) pour les fenêtres de choix aussi — Gus voulait
+    la cohérence visuelle avec la boîte de dialogue. `axis_stretch_horizontal=1` (répète la vague
+    du haut/bas sans la déformer) MAIS **`axis_stretch_vertical=0` (étirer, pas répéter)** — en
+    mode répétition (TILE) verticalement, une fenêtre plus haute que la hauteur native de l'asset
+    (comme `partner_choice` avec plusieurs Pokémon) affichait un pincement/sablier disgracieux au
+    milieu (le motif des bords latéraux ne boucle pas proprement). L'étirement lisse évite ce
+    problème quelle que soit la hauteur de la fenêtre.
+  - **Largeur stable au survol** : `Button.icon` passait de `null` à la flèche au survol, ce qui
+    changeait la largeur minimale du bouton (donc de la fenêtre) selon l'option survolée.
+    **Fix** : `assets/ui/choice_arrow_blank.png` (même taille que `choice_arrow.png`, transparent)
+    assigné par défaut à la place de `null` ; seul le survol change l'icône entre
+    `choice_arrow_blank`/`choice_arrow`, la place est donc toujours réservée.
+  - **`partner_choice.tscn` restructuré** : ne contient plus que les boutons de choix (plus de
+    `Prompt`/`Dim`/`CenterContainer`) — même principe que `class_choice.tscn`/`npc_worker_f.gd` :
+    **la question doit être dans une vraie boîte de dialogue**, pas dans la fenêtre de choix.
+    `safari_entrance_gate.gd::_handle_return_from_safari()` affiche maintenant "Lequel
+    choisis-tu comme partenaire ?" via `dialogue_box.tscn` (attend `page_typed`, puis
+    `active = false`), avant d'afficher `partner_choice` (options seules) positionnée en haut à
+    droite via le même `_place_window()` que `class_choice.gd`. **Règle générale à retenir** :
+    toute future fenêtre de choix doit suivre ce pattern — question dans une boîte de dialogue
+    tenue ouverte, fenêtre à côté = uniquement les options, jamais les deux mélangés dans la
+    même fenêtre.
 
 ### ✅ Écran de capture (`encounter.gd`/`encounter.tscn`) refait à l'identique du vrai jeu
 Reconstruit cette session à partir des vraies données pret (background, formule de capture,

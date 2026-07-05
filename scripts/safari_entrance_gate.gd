@@ -29,11 +29,22 @@ func _handle_return_from_safari() -> void:
 		dialogue.queue_free()
 		PlayerData.starter_species = "Rattata"
 	else:
+		# La question reste affichée dans sa boîte de dialogue (juste tapée puis
+		# désactivée, pas fermée) pendant que la fenêtre de choix (les options
+		# seules) s'affiche à côté, même principe que npc_worker_f.gd.
+		var dialogue := DialogueBoxScene.instantiate()
+		get_tree().current_scene.add_child(dialogue)
+		var question: Array[String] = ["Lequel choisis-tu comme partenaire ?"]
+		dialogue.say(question)
+		await dialogue.page_typed
+		dialogue.active = false
+
 		var choice := PartnerChoiceScene.instantiate()
 		get_tree().current_scene.add_child(choice)
 		choice.setup(SafariState.caught)
 		var species: String = await choice.chosen
 		choice.queue_free()
+		dialogue.queue_free()
 		PlayerData.starter_species = species
 
 	SafariState.leave()

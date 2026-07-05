@@ -1,18 +1,20 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/partner_choice.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/ui/std_window.png" id="2_window"]
+[ext_resource type="Texture2D" path="res://assets/ui/dialogue_frame.png" id="2_window"]
 
 [sub_resource type="StyleBoxTexture" id="WindowStyle"]
 texture = ExtResource("2_window")
-texture_margin_left = 24.0
+texture_margin_left = 48.0
 texture_margin_top = 24.0
-texture_margin_right = 24.0
+texture_margin_right = 48.0
 texture_margin_bottom = 24.0
-content_margin_left = 14.0
-content_margin_top = 10.0
-content_margin_right = 14.0
-content_margin_bottom = 10.0
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 0
 
 [sub_resource type="StyleBoxEmpty" id="Btn_empty"]
 content_margin_left = 8.0
@@ -36,32 +38,10 @@ script = ExtResource("1_script")
 anchor_right = 1.0
 anchor_bottom = 1.0
 
-[node name="Dim" type="ColorRect" parent="Root"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.6)
-
-[node name="Center" type="CenterContainer" parent="Root"]
-anchor_right = 1.0
-anchor_bottom = 1.0
-
-[node name="Window" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(260, 0)
-layout_mode = 2
+[node name="Window" type="PanelContainer" parent="Root"]
 theme_override_styles/panel = SubResource("WindowStyle")
 
-[node name="Content" type="VBoxContainer" parent="Root/Center/Window"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Prompt" type="Label" parent="Root/Center/Window/Content"]
-layout_mode = 2
-horizontal_alignment = 1
-autowrap_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_font_sizes/font_size = 18
-
-[node name="Buttons" type="VBoxContainer" parent="Root/Center/Window/Content"]
+[node name="Buttons" type="VBoxContainer" parent="Root/Window"]
 layout_mode = 2
 theme = SubResource("ChoiceTheme")
 theme_override_constants/separation = 2
