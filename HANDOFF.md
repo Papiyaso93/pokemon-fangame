@@ -8,6 +8,50 @@ pour la narration (classes, pivot Team Rocket).
 
 ---
 
+## ▶▶▶ PROCHAINE SESSION — état exact et prochaines étapes
+
+**Ce qui marche de bout en bout, testé** : écran noir → dialogue → création perso (genre/nom/
+apparence) → spawn dans `safari_entrance` → `worker_f` (confirmation → explication classes →
+choix Compétiteur/Chercheur en boucle) → verrou de sortie → Zone Safari → marche dans les
+hautes herbes → rencontre Rattata (placeholder) → capture avec vraie formule FRLG → retour à
+l'entrée (volontaire ou forcé si 0 balls) → choix du partenaire parmi les captures, ou Rattata
+de secours si bredouille → `PlayerData.starter_species` rempli.
+
+**Dans l'ordre logique des prochaines étapes :**
+1. **`npc_worker_m.gd` est un placeholder** — il se contente d'annoncer que l'étape n'est pas
+   développée et de mettre `intro_complete = true`. Il faut maintenant lui faire dire quelque
+   chose de cohérent avec `PlayerData.starter_species` (déjà rempli à ce moment !) — par ex.
+   confirmer/présenter le partenaire choisi, transition vers la suite du jeu.
+2. **Appliquer l'apparence choisie au joueur** — jamais fait. `player.tscn` charge en dur
+   `red_normal.png` ; il faut lire `PlayerData.appearance` et charger le bon spritesheet parmi
+   les 4 (même format 144×32/9 frames, donc juste changer la texture source des `AtlasTexture`).
+3. **Roster réel de la Zone Safari** (gros chantier de contenu, pas du code) : Gus veut les
+   « bébés » Pokémon de la 1ère génération (Pichu au lieu de Pikachu, Toudoudou au lieu de
+   Rondoudou, etc. — seules certaines espèces ont un bébé, sinon garder la forme de base gen 1),
+   avec un taux d'apparition et un taux de capture par espèce/zone (4 sous-zones : center/east/
+   north/west). Remplace le Rattata unique codé en dur dans `scripts/encounter.gd`. **Ne PAS
+   improviser seul cette liste** — c'est une décision de game design à prendre avec l'ami de Gus.
+4. **Fidélité de la formule de capture** : actuellement un seul jet de probabilité
+   (`odds/255`) au lieu de la simulation exacte à 4 « secousses » du jeu original. Formule
+   complète vérifiée dans pret `src/battle_script_commands.c` (`Cmd_handleballthrow`) — need
+   `Sqrt(Sqrt(16711680/odds))` puis 4 tirages successifs. Amélioration de fidélité, pas urgent.
+5. **Appât / caillou** (bait/rock) — mécanique réelle du Parc Safari absente pour l'instant
+   (un seul type de lancer possible). Note amusante vérifiée dans le code : dans le jeu
+   original, l'appât **diminue** la capture (mais aussi la fuite) et le caillou **l'augmente**
+   (mais aussi la fuite) — contre-intuitif mais réel (`HandleAction_ThrowBait/ThrowRock`,
+   pret `src/battle_main.c`).
+6. **Animation d'apparition du Pokémon sauvage** (transition d'écran façon vrai jeu) — demandée
+   par Gus, cosmétique, pas urgente.
+7. Classe **Chercheur** indisponible ("Grodolphe doit bosser dessus") — v2 selon `game-design.md`.
+
+**Fichiers clés Zone Safari** : `scripts/safari_state.gd` (autoload `SafariState` : `active`,
+`balls`, `caught`), `scripts/encounter.gd`+`scenes/ui/encounter.tscn` (écran de capture),
+`scripts/partner_choice.gd`+`scenes/ui/partner_choice.tscn` (choix final), logique de retour
+dans `scripts/safari_entrance_gate.gd::_handle_return_from_safari()`, détection herbes dans
+`player.gd` (`_is_grass`, `pending_encounter_check`, `ENCOUNTER_CHANCE=0.10`).
+
+---
+
 ## ⚠️ PIÈGE GODOT — UI ajoutée dynamiquement à une map = toujours `CanvasLayer`
 Bug vécu et résolu en session : `encounter.tscn` (racine `Control` nu, ajouté via
 `get_tree().current_scene.add_child(...)` sous une map dont la racine est un `Node2D`)
@@ -83,16 +127,8 @@ Fichiers clés :
   positions, éditer AUSSI les coordonnées dans `setup_safari_entrance_npcs.gd` lui-même (pas
   seulement dans le `.tscn`), sinon un futur re-run écrase le fix.
 
-### Reste à faire (prochaine session)
-1. **Appliquer l'apparence choisie au joueur** : `player.gd`/`player.tscn` chargent en dur
-   `red_normal.png` — il faut lire `PlayerData.appearance` pour choisir dynamiquement le
-   spritesheet (les 4 fichiers ont le même format 144×32/9 frames).
-2. **Remplacer le placeholder `npc_worker_m.gd`** par la vraie remise du premier Pokémon.
-3. **Mécanique de rencontre/capture dans la Zone Safari** — n'existe pas du tout encore, à
-   concevoir : quelles espèces (Gus veut uniquement des Pokémon de base, pas d'évolutions),
-   table de rencontre, comment on capture (pas de combat existant non plus à ce stade).
-4. Classe **Chercheur** actuellement indisponible ("Grodolphe doit bosser dessus") — à
-   implémenter quand son tour viendra (v2 selon `game-design.md`).
+### Reste à faire
+Voir la section **« PROCHAINE SESSION »** tout en haut du document — liste à jour et détaillée.
 
 ---
 
