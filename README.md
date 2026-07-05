@@ -13,3 +13,8 @@ Fan-game Pokémon développé avec Godot 4.
 
 - **Moteur** : Godot 4
 - **Langage** : GDScript
+
+## Contribuer
+
+Avant de committer/pousser du code, voir [CONTRIBUTING.md](CONTRIBUTING.md)
+(workflow Git, branches, pièges spécifiques Godot).
