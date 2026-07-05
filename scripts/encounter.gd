@@ -50,7 +50,7 @@ func _ready() -> void:
 	level_label.text = "N.%d" % SPECIES_LEVEL
 	gender_label.text = "♂" if randf() < 0.5 else "♀"
 	hp_fill.anchor_right = 1.0
-	label.text = "Que faites-vous ?"
+	label.text = "Un %s sauvage apparaît !" % SPECIES_NAME
 	_update_balls_label()
 	_set_buttons_enabled(false)
 
@@ -83,7 +83,17 @@ func play_entrance() -> void:
 	tw.tween_property(safari_box, "position:x", safari_box.position.x - 200, 0.35).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tw.tween_property(safari_box, "modulate:a", 1.0, 0.25)
 	await tw.finished
+
+	# Fidèle FRLG : le message d'apparition reste affiché (rideau déjà ouvert,
+	# Pokémon déjà visible) jusqu'à un appui du joueur, avant de proposer le
+	# menu d'action.
+	await _wait_for_continue()
+	label.text = "Que faites-vous ?"
 	_set_buttons_enabled(true)
+
+func _wait_for_continue() -> void:
+	while not Input.is_action_just_pressed("ui_accept"):
+		await get_tree().process_frame
 
 func _set_buttons_enabled(enabled: bool) -> void:
 	ball_button.disabled = not enabled or SafariState.balls <= 0

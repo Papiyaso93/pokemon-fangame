@@ -133,13 +133,13 @@ plus bas), pas juste "ça compile".
   contexte). **Compromis assumé** : `assets/ui/platform.png` généré par script (ellipse pâle,
   bord légèrement plus foncé, flou léger) plutôt qu'un asset pret exact — mais couvre maintenant
   **les deux** combattants (Pokémon sauvage ET joueur), pas juste le Pokémon comme avant.
-- **Message d'apparition déplacé avant la transition** : fidèle FRLG, "Un X sauvage apparaît !"
-  s'affiche maintenant via la `dialogue_box.tscn` standard, **par-dessus la carte** (le joueur
-  voit encore l'overworld), AVANT le rideau noir de `battle_transition.gd` — pas après, comme
-  avant cette session. Voir `player.gd::_start_encounter()`. Une fois ce message acquitté
-  (appui sur le bouton, comme toute boîte de dialogue), le rideau se ferme puis s'ouvre sur
-  l'écran de combat déjà réglé sur "Que faites-vous ?" (pas de répétition du message
-  d'apparition à l'intérieur de `encounter.tscn`).
+- **Message d'apparition : dans l'écran de combat, après le rideau** (2ème itération — 1ère
+  tentative : l'afficher par-dessus la carte AVANT le rideau, rejetée par Gus : le rideau doit
+  déjà être ouvert et le Pokémon déjà visible quand le message apparaît). Flux final dans
+  `encounter.gd::play_entrance()` : animation d'entrée → "Un X sauvage apparaît !" affiché dans
+  `BottomBox` (boutons grisés) → attend un appui (`_wait_for_continue()`, poll sur
+  `ui_accept` via `await get_tree().process_frame` en boucle) → passe à "Que faites-vous ?" et
+  active les boutons. `player.gd::_start_encounter()` n'affiche plus rien avant le rideau.
 - **Animation d'entrée** (`encounter.gd::play_entrance()`, appelée par `player.gd` juste après
   l'ouverture du rideau de `battle_transition.gd`) : sprite qui rebondit en échelle
   (`TRANS_BACK`/`EASE_OUT`), boîte de stats qui glisse depuis la gauche, boîte Safari Balls
