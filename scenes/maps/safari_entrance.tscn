@@ -1,0 +1,151 @@
+[gd_scene format=4 uid="uid://tnau045bcel0"]
+
+[ext_resource type="Texture2D" uid="uid://bjlgdbhn62daq" path="res://generated/safari_entrance_below.png" id="1_05ur4"]
+[ext_resource type="Script" uid="uid://b6gdtgb1xhvlb" path="res://scripts/safari_entrance_gate.gd" id="1_6f8p0"]
+[ext_resource type="Texture2D" uid="uid://bc28hd6y1g2hg" path="res://generated/safari_entrance_above.png" id="2_4q5c8"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_w8dgd"]
+[ext_resource type="Script" uid="uid://wo77dsdtl5lj" path="res://scripts/player.gd" id="4_p3o5m"]
+[ext_resource type="PackedScene" path="res://scenes/npc/npc.tscn" id="5_p3o5m"]
+[ext_resource type="Script" uid="uid://vsp2jll54shk" path="res://scripts/npc_worker_f.gd" id="6_6f8p0"]
+[ext_resource type="Script" uid="uid://bv6n7u2fd151n" path="res://scripts/npc_worker_m.gd" id="7_dvh8p"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_05ur4"]
+texture = ExtResource("1_05ur4")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+6:0/0 = 0
+7:0/0 = 0
+8:0/0 = 0
+9:0/0 = 0
+10:0/0 = 0
+11:0/0 = 0
+12:0/0 = 0
+13:0/0 = 0
+14:0/0 = 0
+15:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+6:1/0 = 0
+7:1/0 = 0
+8:1/0 = 0
+9:1/0 = 0
+10:1/0 = 0
+11:1/0 = 0
+12:1/0 = 0
+13:1/0 = 0
+14:1/0 = 0
+15:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_4q5c8"]
+texture = ExtResource("2_4q5c8")
+0:0/0 = 0
+13:0/0 = 0
+0:1/0 = 0
+
+[sub_resource type="Image" id="Image_6f8p0"]
+data = {
+"data": PackedByteArray("/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWf8AAFn/AABZ/wAAWQ=="),
+"format": "RGBA8",
+"height": 16,
+"mipmaps": false,
+"width": 16
+}
+
+[sub_resource type="ImageTexture" id="ImageTexture_p3o5m"]
+image = SubResource("Image_6f8p0")
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_6f8p0"]
+texture = SubResource("ImageTexture_p3o5m")
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSet" id="TileSet_dvh8p"]
+physics_layer_0/collision_layer = 1
+sources/0 = SubResource("TileSetAtlasSource_05ur4")
+sources/1 = SubResource("TileSetAtlasSource_4q5c8")
+sources/2 = SubResource("TileSetAtlasSource_6f8p0")
+
+[sub_resource type="RectangleShape2D" id="Shape_1"]
+size = Vector2(14, 14)
+
+[node name="Map" type="Node2D" unique_id=394650604]
+script = ExtResource("1_6f8p0")
+metadata/map_size = Vector2i(9, 9)
+metadata/connections = []
+metadata/ledges = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
+metadata/warps = [{
+"target": "safari_zone_center",
+"tx": 26.0,
+"ty": 30.0,
+"x": 4.0,
+"y": 1.0
+}, {
+"target": "fuchsia_city",
+"tx": 24.0,
+"ty": 6.0,
+"x": 3.0,
+"y": 7.0
+}, {
+"target": "fuchsia_city",
+"tx": 24.0,
+"ty": 6.0,
+"x": 4.0,
+"y": 7.0
+}, {
+"target": "fuchsia_city",
+"tx": 24.0,
+"ty": 6.0,
+"x": 5.0,
+"y": 7.0
+}]
+
+[node name="Below" type="TileMapLayer" parent="." unique_id=1542822484]
+tile_map_data = PackedByteArray("AAAAAAAAAAAEAAAAAAABAAAAAAAEAAAAAAACAAAAAAAEAAAAAAADAAAAAAAFAAAAAAAEAAAAAAAGAAAAAAAFAAAAAAAHAAAAAAAGAAAAAAAEAAAAAAAHAAAAAAAEAAAAAAAIAAAAAAAEAAAAAAAAAAEAAAANAAAAAAABAAEAAAANAAAAAAACAAEAAAAAAAEAAAADAAEAAAAKAAAAAAAEAAEAAAALAAAAAAAFAAEAAAAMAAAAAAAGAAEAAAAAAAEAAAAHAAEAAAANAAAAAAAIAAEAAAANAAAAAAAAAAIAAAABAAEAAAABAAIAAAABAAEAAAACAAIAAAAFAAEAAAADAAIAAAACAAEAAAAEAAIAAAAEAAEAAAAFAAIAAAADAAEAAAAGAAIAAAAFAAEAAAAHAAIAAAABAAEAAAAIAAIAAAABAAEAAAAAAAMAAAALAAEAAAABAAMAAAAIAAEAAAACAAMAAAAFAAEAAAADAAMAAAAJAAEAAAAEAAMAAAAPAAAAAAAFAAMAAAAOAAAAAAAGAAMAAAAFAAEAAAAHAAMAAAAIAAEAAAAIAAMAAAAGAAEAAAAAAAQAAAAOAAEAAAABAAQAAAAKAAEAAAACAAQAAAAFAAEAAAADAAQAAAAJAAEAAAAEAAQAAAAJAAAAAAAFAAQAAAAOAAAAAAAGAAQAAAAFAAEAAAAHAAQAAAAKAAEAAAAIAAQAAAANAAEAAAAAAAUAAAAPAAEAAAABAAUAAAAKAAEAAAACAAUAAAAFAAEAAAADAAUAAAAJAAEAAAAEAAUAAAAPAAAAAAAFAAUAAAAOAAAAAAAGAAUAAAAFAAEAAAAHAAUAAAAKAAEAAAAIAAUAAAAIAAAAAAAAAAYAAAAHAAEAAAABAAYAAAAIAAEAAAACAAYAAAAFAAEAAAADAAYAAAAJAAEAAAAEAAYAAAAPAAAAAAAFAAYAAAAOAAAAAAAGAAYAAAAFAAEAAAAHAAYAAAAIAAEAAAAIAAYAAAAGAAEAAAAAAAcAAAANAAEAAAABAAcAAAAKAAEAAAACAAcAAAAMAAEAAAADAAcAAAAAAAIAAAAEAAcAAAABAAIAAAAFAAcAAAACAAIAAAAGAAcAAAAMAAEAAAAHAAcAAAAKAAEAAAAIAAcAAAANAAEAAAAAAAgAAAAAAAAAAAABAAgAAAAAAAAAAAACAAgAAAAAAAAAAAADAAgAAAABAAAAAAAEAAgAAAACAAAAAAAFAAgAAAADAAAAAAAGAAgAAAAAAAAAAAAHAAgAAAAAAAAAAAAIAAgAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_dvh8p")
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=728003311 instance=ExtResource("3_w8dgd")]
+position = Vector2(64, 112)
+script = ExtResource("4_p3o5m")
+
+[node name="Above" type="TileMapLayer" parent="." unique_id=1477549524]
+tile_map_data = PackedByteArray("AAAAAAEAAQANAAAAAAABAAEAAQANAAAAAAACAAEAAQAAAAEAAAAGAAEAAQAAAAEAAAAHAAEAAQANAAAAAAAIAAEAAQANAAAAAAAAAAgAAQAAAAAAAAABAAgAAQAAAAAAAAACAAgAAQAAAAAAAAAGAAgAAQAAAAAAAAAHAAgAAQAAAAAAAAAIAAgAAQAAAAAAAAA=")
+tile_set = SubResource("TileSet_dvh8p")
+
+[node name="Collision" type="TileMapLayer" parent="." unique_id=90576710]
+visible = false
+tile_map_data = PackedByteArray("AAAAAAAAAgAAAAAAAAABAAAAAgAAAAAAAAACAAAAAgAAAAAAAAADAAAAAgAAAAAAAAAEAAAAAgAAAAAAAAAFAAAAAgAAAAAAAAAGAAAAAgAAAAAAAAAHAAAAAgAAAAAAAAAIAAAAAgAAAAAAAAAAAAEAAgAAAAAAAAABAAEAAgAAAAAAAAACAAEAAgAAAAAAAAADAAEAAgAAAAAAAAAFAAEAAgAAAAAAAAAGAAEAAgAAAAAAAAAHAAEAAgAAAAAAAAAIAAEAAgAAAAAAAAAAAAIAAgAAAAAAAAABAAIAAgAAAAAAAAACAAIAAgAAAAAAAAAGAAIAAgAAAAAAAAAHAAIAAgAAAAAAAAAIAAIAAgAAAAAAAAAAAAMAAgAAAAAAAAACAAMAAgAAAAAAAAAGAAMAAgAAAAAAAAAIAAMAAgAAAAAAAAAAAAQAAgAAAAAAAAACAAQAAgAAAAAAAAAGAAQAAgAAAAAAAAAIAAQAAgAAAAAAAAAAAAUAAgAAAAAAAAACAAUAAgAAAAAAAAAGAAUAAgAAAAAAAAAAAAYAAgAAAAAAAAACAAYAAgAAAAAAAAAGAAYAAgAAAAAAAAAIAAYAAgAAAAAAAAAAAAcAAgAAAAAAAAACAAcAAgAAAAAAAAAGAAcAAgAAAAAAAAAIAAcAAgAAAAAAAAAAAAgAAgAAAAAAAAABAAgAAgAAAAAAAAACAAgAAgAAAAAAAAADAAgAAgAAAAAAAAAEAAgAAgAAAAAAAAAFAAgAAgAAAAAAAAAGAAgAAgAAAAAAAAAHAAgAAgAAAAAAAAAIAAgAAgAAAAAAAAA=")
+tile_set = SubResource("TileSet_dvh8p")
+
+[node name="worker_f" type="StaticBody2D" parent="." unique_id=2065503979 instance=ExtResource("5_p3o5m")]
+position = Vector2(112, 80)
+script = ExtResource("6_6f8p0")
+facing = "west"
+
+[node name="Sprite2D2" type="Sprite2D" parent="worker_f" unique_id=1692794978]
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="worker_f" unique_id=1610988493]
+position = Vector2(0, -8)
+shape = SubResource("Shape_1")
+
+[node name="worker_m" type="StaticBody2D" parent="." unique_id=775620693 instance=ExtResource("5_p3o5m")]
+position = Vector2(16, 64)
+script = ExtResource("7_dvh8p")
+sprite_name = "worker_m"
+facing = "east"
+
+[node name="Sprite2D2" type="Sprite2D" parent="worker_m" unique_id=1472670179]
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="worker_m" unique_id=37674169]
+position = Vector2(0, -8)
+shape = SubResource("Shape_1")

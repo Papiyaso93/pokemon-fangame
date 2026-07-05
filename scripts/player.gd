@@ -7,11 +7,14 @@ const JUMP_SPEED := 120.0   # rebord : saut de 2 cases, plus rapide qu'un pas no
 const TILE_SIZE := 16
 const TURN_TIME := 0.1
 
+const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
+
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
 enum { NOT_MOVING, TURNING, MOVING }
 var state := NOT_MOVING
 var is_moving := false
+var is_busy := false   # true pendant un dialogue : ignore déplacement/interaction
 var move_target := Vector2.ZERO
 var facing := "south"     # south / north / west / east
 var turn_timer := 0.0
@@ -26,6 +29,7 @@ var jump_total_dist := 0.0
 const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 
 func _ready() -> void:
+	add_to_group("player")
 	_read_map_meta()
 	# Arrivée via une transition : on se place au bon endroit de la nouvelle map.
 	if Transitions.pending:
@@ -72,7 +76,16 @@ func _entry_tile(from_dir: String, cross: int) -> Vector2i:
 		"left": return Vector2i(map_size.x - 1, cross)   # entre à droite
 		_:      return Vector2i(0, cross)                # entre à gauche
 
+var interact_cooldown := 0.0   # évite de ré-ouvrir un dialogue avec la touche qui vient de le fermer
+
 func _physics_process(delta: float) -> void:
+	if interact_cooldown > 0.0:
+		interact_cooldown -= delta
+	if is_busy:
+		return
+	if is_moving == false and turn_timer <= 0.0 and interact_cooldown <= 0.0 and Input.is_action_just_pressed("ui_accept"):
+		_try_interact()
+		return
 	if turn_timer > 0.0:
 		turn_timer -= delta
 		if _input_dir() == Vector2.ZERO:
@@ -94,6 +107,40 @@ func _input_dir() -> Vector2:
 	if Input.is_action_pressed("ui_right"):
 		return Vector2(1, 0)
 	return Vector2.ZERO
+
+func _facing_offset(f: String) -> Vector2i:
+	match f:
+		"south": return Vector2i(0, 1)
+		"north": return Vector2i(0, -1)
+		"west":  return Vector2i(-1, 0)
+		_:       return Vector2i(1, 0)
+
+const INTERACT_RANGE := 2   # portée en cases (permet de parler par-dessus un comptoir)
+
+func _try_interact() -> void:
+	var cur := Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))
+	var offset := _facing_offset(facing)
+	var npcs := get_tree().get_nodes_in_group("npc")
+	for dist in range(1, INTERACT_RANGE + 1):
+		var target_tile := cur + offset * dist
+		for npc in npcs:
+			if npc.tile() == target_tile:
+				_talk_to(npc)
+				return
+
+func _talk_to(npc: Node) -> void:
+	var lines: Array[String] = npc.get_lines()
+	if lines.is_empty():
+		return
+	is_busy = true
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	dialogue.finished.connect(func():
+		dialogue.queue_free()
+		is_busy = false
+		interact_cooldown = 0.2
+	)
+	dialogue.say(lines)
 
 func _facing_for(dir: Vector2) -> String:
 	if dir.y > 0:
@@ -142,6 +189,13 @@ func _check_input() -> void:
 	# Warp ponctuel (porte, entrée de grotte) : téléportation à coord précise.
 	var warp := _warp_at(tgt)
 	if not warp.is_empty():
+		var root := get_parent()
+		# Point d'extension : la map peut verrouiller certains warps (ex. scène
+		# scriptée) en implémentant gate_check()/on_gate_blocked().
+		if root and root.has_method("gate_check") and not root.gate_check(warp):
+			if root.has_method("on_gate_blocked"):
+				root.on_gate_blocked(warp, self)
+			return
 		var target := String(warp.get("target", ""))
 		var path := "res://scenes/maps/%s.tscn" % target
 		if ResourceLoader.exists(path):

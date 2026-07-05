@@ -17,6 +17,11 @@ const MAPS := [
 	"saffron_city", "saffron_city_connection", "vermilion_city", "viridian_city",
 	"viridian_forest",
 	"cave_diglett", "cave_mtmoon", "cave_rocktunnel", "cave_seafoam", "cave_victoryroad",
+	"safari_office",
+	# "safari_entrance" retiré DEFINITIVEMENT : contient des PNJ + un script de
+	# verrouillage ajoutés à la main (setup_safari_entrance_npcs.gd,
+	# setup_safari_entrance_gate.gd). Ne JAMAIS le remettre dans cette liste
+	# sans avoir prévu de relancer les deux scripts juste après.
 ]
 
 func _run() -> void:

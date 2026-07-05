@@ -100,9 +100,11 @@ def build(name, layout_dir, primary, secondary, connections, warps=None):
     print("->", OUT)
 
 def tileset_folder(gname):
-    # "gTileset_PalletTown" -> "pallet_town"
+    # "gTileset_PalletTown" -> "pallet_town" ; "gTileset_GenericBuilding2" -> "generic_building_2"
     name = gname.replace("gTileset_", "")
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+    name = re.sub(r"(?<!^)(?=[A-Z])", "_", name)
+    name = re.sub(r"(?<=[a-zA-Z])(?=[0-9])", "_", name)
+    return name.lower()
 
 def build_map(pret_map, godot_name):
     """Génère une map à partir de son nom pret (ex: 'Route1'). Déduit layout,
@@ -179,6 +181,28 @@ WARP_OVERRIDES = {
         {"x": 8, "y": 27, "target": "route7", "tx": 14, "ty": 10},
         {"x": 58, "y": 27, "target": "route8", "tx": 8, "ty": 10},
     ],
+    # Intro : le joueur démarre directement dans safari_entrance (bâtiment
+    # d'Entrée réel de la Zone Safari à Parmanie). Coordonnées réelles pret.
+    "safari_office": [
+        {"x": 5, "y": 9, "target": "fuchsia_city", "tx": 28, "ty": 17},
+        {"x": 6, "y": 9, "target": "fuchsia_city", "tx": 28, "ty": 17},
+        {"x": 7, "y": 9, "target": "fuchsia_city", "tx": 28, "ty": 17},
+    ],
+    "safari_entrance": [
+        {"x": 4, "y": 1, "target": "safari_zone_center", "tx": 26, "ty": 30},
+        {"x": 3, "y": 7, "target": "fuchsia_city", "tx": 24, "ty": 6},
+        {"x": 4, "y": 7, "target": "fuchsia_city", "tx": 24, "ty": 6},
+        {"x": 5, "y": 7, "target": "fuchsia_city", "tx": 24, "ty": 6},
+    ],
+    "fuchsia_city": [
+        {"x": 24, "y": 5, "target": "safari_entrance", "tx": 4, "ty": 7},
+        {"x": 28, "y": 16, "target": "safari_office", "tx": 6, "ty": 9},
+    ],
+    "safari_zone_center": [
+        {"x": 25, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
+        {"x": 26, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
+        {"x": 27, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
+    ],
 }
 
 # Table nom-pret -> nom-godot (snake_case) pour les maps à générer.
@@ -227,6 +251,9 @@ MAPS = {
     "VermilionCity": "vermilion_city",
     "ViridianCity": "viridian_city",
     "ViridianForest": "viridian_forest",
+    # Intro : vrais bâtiments Zone Safari (Parmanie).
+    "FuchsiaCity_SafariZone_Office": "safari_office",
+    "FuchsiaCity_SafariZone_Entrance": "safari_entrance",
 }
 
 if __name__ == "__main__":

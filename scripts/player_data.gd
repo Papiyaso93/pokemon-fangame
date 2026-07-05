@@ -14,3 +14,5 @@ const APPEARANCES := {
 var gender := "male"        # "male" / "female"
 var player_name := "Red"
 var appearance := "red_normal"   # nom de fichier (sans extension) dans assets/characters/
+var chosen_class := ""      # "" tant que non choisi ; "competiteur" (chercheur pas encore dispo)
+var intro_complete := false # true une fois qu'on a parlé à worker_m (débloque les sorties)
