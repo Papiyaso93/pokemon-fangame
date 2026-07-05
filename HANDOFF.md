@@ -8,33 +8,46 @@ pour la narration (classes, pivot Team Rocket).
 
 ---
 
-## ▶▶ PROCHAINE SESSION — objectif : le tout début du jeu jouable
+## ▶▶ ÉTAT DE L'INTRO — fonctionnelle de bout en bout
 
-### Déjà fait (session en cours)
-- **Intro complète** : écran noir → dialogue (« Excusez-moi... » ×2 + formulaire) → création
-  du personnage (genre → nom (7 car. max, fidèle FRLG) → apparence parmi 4 vrais sprites).
-  Voir `scenes/intro/intro.tscn`, `scripts/character_creation.gd`, `scripts/player_data.gd`
-  (autoload, stocke le choix), `scenes/ui/dialogue_box.tscn` (système de dialogue réutilisable,
-  vraie bordure FRLG `assets/ui/textbox_std.png`), `scenes/ui/ui_theme.tres` (thème UI partagé).
-  `main_scene` = `scenes/intro/intro.tscn`.
-- **Décision de lieu** : pas de maison séparée à Parmanie — le conseiller/formulaire se passe
-  directement dans le bâtiment d'entrée de la Zone Safari (`FuchsiaCity_SafariZone_Entrance`,
-  vrai petit bâtiment pret, warps réels vers `MAP_FUCHSIA_CITY` et `MAP_SAFARI_ZONE_CENTER`).
-  Plus économique qu'une map dédiée, et enchaîne naturellement vers la capture.
+Séquence complète et testée : écran noir (dialogue) → création de personnage (genre/nom 7
+caractères/apparence) → spawn dans `safari_entrance` → `worker_f` enchaîne automatiquement
+(confirmation → explication des 2 classes → choix Compétiteur/Chercheur/Peux-tu répéter ?) →
+sorties verrouillées tant que `worker_m` n'a pas été vu (placeholder) → déverrouillage complet.
+`main_scene` = `scenes/intro/intro.tscn`.
 
-### Reste à faire
-1. **Générer le bâtiment** `FuchsiaCity_SafariZone_Entrance` via le pipeline (l'ajouter aux
-   deux `MAPS` comme d'habitude) et y faire spawn le joueur après la création de personnage
-   (actuellement `character_creation.gd` émet juste `creation_finished`, cf. `intro.gd` —
-   il faut enchaîner vers ce bâtiment au lieu du simple print de debug).
-2. **Appliquer l'apparence choisie au joueur** : `player.gd`/`player.tscn` chargent en dur
+Fichiers clés :
+- `scripts/intro.gd`, `scenes/intro/intro.tscn` : dialogue d'ouverture + lancement création.
+- `scripts/character_creation.gd` + `scenes/ui/character_creation.tscn` : genre/nom/apparence.
+- `scripts/player_data.gd` (autoload `PlayerData`) : `gender`, `player_name`, `appearance`,
+  `chosen_class` (""/"competiteur"), `intro_complete` (bool, débloque les sorties).
+- `scripts/npc.gd` (+ `scenes/npc/npc.tscn`) : PNJ statique réutilisable, sprite réel
+  (`sprite_name` export), `facing`, méthode virtuelle `get_lines()`. Portée d'interaction du
+  joueur = **2 cases** dans la direction du regard (permet de parler par-dessus un comptoir).
+- `scripts/npc_worker_f.gd` : logique complète de la séquence auto (voir constantes en tête
+  de fichier pour le texte). `scripts/npc_worker_m.gd` : placeholder, met `intro_complete=true`.
+- `scripts/safari_entrance_gate.gd` : verrou générique de sorties, attaché à la racine de
+  `safari_entrance.tscn`. Le point d'extension `gate_check()`/`on_gate_blocked()` existe
+  maintenant dans `player.gd` — réutilisable pour d'autres maps scriptées à l'avenir.
+- **`safari_office` et `safari_entrance` sont HORS de la liste auto-régénérée**
+  (`scripts/import_map.gd`) car ils contiennent des PNJ/scripts ajoutés à la main via
+  `scripts/setup_safari_entrance_npcs.gd` et `scripts/setup_safari_entrance_gate.gd`.
+  **⚠️ Piège vécu 2 fois cette session** : si `safari_entrance` est remis dans cette liste
+  (même temporairement pour un fix) et qu'on relance `import_map.gd`, les PNJ/le verrou sont
+  perdus — il faut relancer les deux scripts `setup_*` juste après. Si on modifie leurs
+  positions, éditer AUSSI les coordonnées dans `setup_safari_entrance_npcs.gd` lui-même (pas
+  seulement dans le `.tscn`), sinon un futur re-run écrase le fix.
+
+### Reste à faire (prochaine session)
+1. **Appliquer l'apparence choisie au joueur** : `player.gd`/`player.tscn` chargent en dur
    `red_normal.png` — il faut lire `PlayerData.appearance` pour choisir dynamiquement le
-   spritesheet (les 4 fichiers ont le même format 144×32/9 frames, donc le changement est
-   probablement juste : charger la bonne texture dans les `AtlasTexture` au lieu du chemin fixe).
-3. **NPC conseiller** dans le bâtiment (dialogue à écrire, réutilise `dialogue_box.tscn`).
-4. **Mécanique de rencontre/capture dans la Zone Safari** — n'existe pas du tout encore, à
+   spritesheet (les 4 fichiers ont le même format 144×32/9 frames).
+2. **Remplacer le placeholder `npc_worker_m.gd`** par la vraie remise du premier Pokémon.
+3. **Mécanique de rencontre/capture dans la Zone Safari** — n'existe pas du tout encore, à
    concevoir : quelles espèces (Gus veut uniquement des Pokémon de base, pas d'évolutions),
    table de rencontre, comment on capture (pas de combat existant non plus à ce stade).
+4. Classe **Chercheur** actuellement indisponible ("Grodolphe doit bosser dessus") — à
+   implémenter quand son tour viendra (v2 selon `game-design.md`).
 
 ---
 
