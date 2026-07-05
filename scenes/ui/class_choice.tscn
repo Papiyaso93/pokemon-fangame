@@ -51,6 +51,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
+alignment = 0
 text = "Compétiteur"
 
 [node name="Chercheur" type="Button" parent="Root/Window/Buttons"]
@@ -58,6 +59,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
+alignment = 0
 text = "Chercheur"
 
 [node name="Repeat" type="Button" parent="Root/Window/Buttons"]
@@ -65,6 +67,7 @@ layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
+alignment = 0
 text = "Peux-tu répéter ?"
 
 [connection signal="pressed" from="Root/Window/Buttons/Competiteur" to="." method="_on_competiteur_pressed"]

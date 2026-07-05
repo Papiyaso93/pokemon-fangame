@@ -24,6 +24,7 @@ func setup(species_list: Array[String]) -> void:
 		btn.text = species
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.expand_icon = false
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.icon = BlankTexture
 		btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
 		btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
