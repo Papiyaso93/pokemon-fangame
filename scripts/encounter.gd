@@ -88,7 +88,7 @@ func play_entrance() -> void:
 	# Pokémon déjà visible) jusqu'à un appui du joueur, avant de proposer le
 	# menu d'action.
 	await _wait_for_continue()
-	label.text = "Que faites-vous ?"
+	label.text = "Que veux-tu faire ?"
 	_set_buttons_enabled(true)
 
 func _wait_for_continue() -> void:
@@ -200,5 +200,5 @@ func _end_of_round() -> void:
 		finished.emit()
 		return
 
-	label.text = "Que faites-vous ?"
+	label.text = "Que veux-tu faire ?"
 	_set_buttons_enabled(true)
