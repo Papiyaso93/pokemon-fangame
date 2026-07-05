@@ -65,6 +65,24 @@ de secours si bredouille → `PlayerData.starter_species` rempli.
   la sélection par curseur du vrai jeu.
 - **Police** : système par défaut de Godot (pas `dialogue_latin.fnt`) — voir piège police
   bitmap ci-dessus, même bug rencontré ici.
+- **✅ Corrections post-retour Gus (taille + question qui reste affichée)** :
+  - **Taille** : le 1er jet était bien trop gros (police 22, `PanelContainer` seul sous un
+    `Control` racine sans `Container` parent → ne se dimensionne pas à son contenu, débordait
+    hors de la fenêtre visible). Réduit la police à 18-20 et surtout **positionné/dimensionné en
+    code** (`class_choice.gd::_place_window()`, appelé après un `await get_tree().process_frame`
+    pour laisser le layout se calculer) : `window.size = window.get_combined_minimum_size()`
+    puis positionné en haut à droite de la boîte de dialogue (marges 24px droite / 172px bas,
+    calées sur les offsets de `dialogue_box.tscn`). `partner_choice.tscn` gardait déjà un
+    `CenterContainer` (qui dimensionne correctement son enfant), donc juste la police à réduire.
+  - **Question qui reste affichée pendant le choix** : `dialogue_box.gd` a un nouveau signal
+    `page_typed` (émis quand une page finit de s'afficher, y compris si le joueur saute l'effet
+    machine à écrire). `npc_worker_f.gd::_ask_and_choose()` affiche la question dans sa propre
+    boîte de dialogue, attend `page_typed`, puis **désactive juste ses entrées**
+    (`dialogue.active = false`, sans la fermer/`queue_free`) pendant que le menu de choix
+    s'affiche à côté — la boîte reste visible avec le texte tapé, fidèle au vrai jeu. Elle n'est
+    libérée qu'une fois un choix fait. **Pattern réutilisable** pour toute future boîte de choix
+    accompagnée d'une question (chercher `page_typed`/`active = false` si besoin de refaire ça
+    ailleurs).
 
 ### ✅ Écran de capture (`encounter.gd`/`encounter.tscn`) refait à l'identique du vrai jeu
 Reconstruit cette session à partir des vraies données pret (background, formule de capture,

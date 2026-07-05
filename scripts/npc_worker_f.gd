@@ -52,20 +52,33 @@ func _start_auto_intro() -> void:
 		player.interact_cooldown = 0.2   # évite que la touche qui ferme le dernier dialogue relance une interaction
 
 func _explain_and_choose() -> void:
-	await _say(CLASS_EXPLANATION)
-	await _show_choice()
+	await _say(CLASS_EXPLANATION.slice(0, CLASS_EXPLANATION.size() - 1))
+	await _ask_and_choose()
 
-func _show_choice() -> void:
+# Garde la question affichée dans sa boîte de dialogue pendant que le joueur
+# choisit (fidèle FRLG) : on tape le texte normalement, mais une fois affiché
+# on désactive juste ses entrées (`active = false`) au lieu de la fermer, le
+# temps que le menu de choix soit résolu.
+func _ask_and_choose() -> void:
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	var question: Array[String] = [CLASS_EXPLANATION[-1]]
+	dialogue.say(question)
+	await dialogue.page_typed
+	dialogue.active = false
+
 	var choice := ClassChoiceScene.instantiate()
 	get_tree().current_scene.add_child(choice)
 	var result: String = await choice.choice_made
 	choice.queue_free()
+	dialogue.queue_free()
+
 	match result:
 		"repeat":
 			await _explain_and_choose()
 		"chercheur":
 			await _say(CHERCHEUR_UNAVAILABLE)
-			await _show_choice()
+			await _ask_and_choose()
 		"competiteur":
 			PlayerData.chosen_class = "competiteur"
 			await _say(COMPETITEUR_CONFIRM + NEXT_STEP_REMINDER)

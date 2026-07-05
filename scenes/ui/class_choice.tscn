@@ -9,16 +9,16 @@ texture_margin_left = 24.0
 texture_margin_top = 24.0
 texture_margin_right = 24.0
 texture_margin_bottom = 24.0
-content_margin_left = 18.0
-content_margin_top = 14.0
-content_margin_right = 18.0
-content_margin_bottom = 14.0
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
 
 [sub_resource type="StyleBoxEmpty" id="Btn_empty"]
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
 
 [sub_resource type="Theme" id="ChoiceTheme"]
 Button/styles/normal = SubResource("Btn_empty")
@@ -27,42 +27,36 @@ Button/styles/pressed = SubResource("Btn_empty")
 Button/styles/focus = SubResource("Btn_empty")
 Button/colors/font_color = Color(0.1, 0.1, 0.1, 1)
 Button/colors/font_hover_color = Color(0.1, 0.1, 0.1, 1)
-Button/font_sizes/font_size = 22
+Button/font_sizes/font_size = 20
 
 [node name="ClassChoice" type="Control"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_script")
 
-[node name="Center" type="CenterContainer" parent="."]
-anchor_right = 1.0
-anchor_bottom = 1.0
-
-[node name="Window" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(340, 0)
-layout_mode = 2
+[node name="Window" type="PanelContainer" parent="."]
 theme_override_styles/panel = SubResource("WindowStyle")
 
-[node name="Buttons" type="VBoxContainer" parent="Center/Window"]
+[node name="Buttons" type="VBoxContainer" parent="Window"]
 layout_mode = 2
 theme = SubResource("ChoiceTheme")
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
-[node name="Competiteur" type="Button" parent="Center/Window/Buttons"]
+[node name="Competiteur" type="Button" parent="Window/Buttons"]
 layout_mode = 2
 icon_alignment = 0
 text = "Compétiteur"
 
-[node name="Chercheur" type="Button" parent="Center/Window/Buttons"]
+[node name="Chercheur" type="Button" parent="Window/Buttons"]
 layout_mode = 2
 icon_alignment = 0
 text = "Chercheur"
 
-[node name="Repeat" type="Button" parent="Center/Window/Buttons"]
+[node name="Repeat" type="Button" parent="Window/Buttons"]
 layout_mode = 2
 icon_alignment = 0
 text = "Peux-tu répéter ?"
 
-[connection signal="pressed" from="Center/Window/Buttons/Competiteur" to="." method="_on_competiteur_pressed"]
-[connection signal="pressed" from="Center/Window/Buttons/Chercheur" to="." method="_on_chercheur_pressed"]
-[connection signal="pressed" from="Center/Window/Buttons/Repeat" to="." method="_on_repeat_pressed"]
+[connection signal="pressed" from="Window/Buttons/Competiteur" to="." method="_on_competiteur_pressed"]
+[connection signal="pressed" from="Window/Buttons/Chercheur" to="." method="_on_chercheur_pressed"]
+[connection signal="pressed" from="Window/Buttons/Repeat" to="." method="_on_repeat_pressed"]

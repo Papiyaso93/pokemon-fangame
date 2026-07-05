@@ -8,6 +8,7 @@ extends CanvasLayer
 # texte à afficher.
 
 signal finished
+signal page_typed   # émis quand le texte de la page en cours a fini de s'afficher
 
 const CHAR_DELAY := 0.02   # secondes entre chaque caractère
 const ARROW_BLINK := 0.3   # secondes entre les 2 frames de la flèche
@@ -110,6 +111,7 @@ func _process(delta: float) -> void:
 		if revealed >= current_text.length():
 			typing = false
 			arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
+			page_typed.emit()
 	elif arrow.visible:
 		arrow_timer += delta
 		if arrow_timer >= ARROW_BLINK:
@@ -126,6 +128,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			label.text = current_text
 			typing = false
 			arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
+			page_typed.emit()
 		elif page_idx + 1 < pages.size():
 			page_idx += 1
 			_show_page()
