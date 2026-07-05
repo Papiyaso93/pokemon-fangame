@@ -40,7 +40,31 @@ de secours si bredouille → `PlayerData.starter_species` rempli.
 4. ✅ **FAIT** — Écran de capture entièrement refait pour coller au vrai jeu (voir détails dans
    la section dédiée ci-dessous) : fond pixel-perfect, boîte de stats (nom/sexe/niveau/PV),
    formule de capture à 4 secousses fidèle, appât/pierre, animation d'entrée.
-5. Classe **Chercheur** indisponible ("Grodolphe doit bosser dessus") — v2 selon `game-design.md`.
+5. ✅ **FAIT** — Menus de choix (`class_choice.tscn`, `partner_choice.tscn`) refaits au vrai
+   style Pokémon (voir section dédiée ci-dessous) : fenêtre blanche à bordure bleu-gris
+   (`assets/ui/std_window.png`, reconstruit depuis pret `graphics/text_window/std.png`), flèche
+   `▶` (`assets/ui/choice_arrow.png`) qui apparaît devant l'option survolée au lieu de gros
+   boutons sombres. Gus a validé le style sur aperçu avant implémentation (mockup montré avec
+   l'outil visualize) — **si un autre menu de choix doit être créé plus tard, réutiliser ce
+   même style** (`std_window.png` + `choice_arrow.png` + icône Button qui apparaît/disparaît au
+   survol), ne pas repartir sur les boutons `ui_theme.tres` sombres d'origine.
+6. Classe **Chercheur** indisponible ("Grodolphe doit bosser dessus") — v2 selon `game-design.md`.
+
+### ✅ Menus de choix — style Pokémon réel (`class_choice.tscn`, `partner_choice.tscn`)
+- **Fenêtre** : `assets/ui/std_window.png`, reconstruite depuis `graphics/text_window/std.png`
+  (pret) — c'est un **vrai NinePatch tout fait** (grille 3×3 de tuiles 8px, contrairement à
+  `menu_message.png` qui nécessitait un réassemblage) : couleur clé de transparence
+  `(115,205,164)`, bordure bleu-gris `(98,115,123)`, anneau clair `(205,213,213)`, intérieur
+  blanc. Utilisé via `PanelContainer` + `StyleBoxTexture` (**pas** `NinePatchRect` directement —
+  `NinePatchRect` ne s'agrandit pas automatiquement autour de ses enfants, contrairement à
+  `PanelContainer`/`StyleBoxTexture` qui est un vrai `Container` ; piège vécu cette session, les
+  boutons débordaient hors de la fenêtre).
+- **Flèche de sélection** : `assets/ui/choice_arrow.png` (petit triangle généré, pas un asset
+  pret) assigné/retiré de `Button.icon` sur `mouse_entered`/`mouse_exited` (connecté en code dans
+  `class_choice.gd`/`partner_choice.gd`), plutôt qu'un changement de couleur de fond — fidèle à
+  la sélection par curseur du vrai jeu.
+- **Police** : système par défaut de Godot (pas `dialogue_latin.fnt`) — voir piège police
+  bitmap ci-dessus, même bug rencontré ici.
 
 ### ✅ Écran de capture (`encounter.gd`/`encounter.tscn`) refait à l'identique du vrai jeu
 Reconstruit cette session à partir des vraies données pret (background, formule de capture,
@@ -100,15 +124,22 @@ plus bas), pas juste "ça compile".
   vertical + actions (droite), fidèle à la disposition réelle — avant on avait 2 boîtes
   séparées (`MessageBox`/`ActionBox`), ce n'était pas fidèle. Les actions sont du **texte brut**
   (pas de bouton avec bordure individuelle), fidèle au vrai jeu.
-- **⚠️ Piège police bitmap (suite)** : le texte de `BottomBox` (fond bleu marine) affichait des
-  **rectangles blancs pleins** derrière chaque mot avec `dialogue_latin.fnt`, alors que le MÊME
-  texte s'affiche parfaitement sur fond clair (`HealthBox`/`SafariBox`/`dialogue_box.tscn`).
-  Cause exacte non identifiée avec certitude (pas juste `font_color`/`scaling_mode`, déjà
-  vérifiés item par item sans effet) — hypothèse la plus probable : un problème de rendu de
-  cette police bitmap spécifique sur fond sombre à fort contraste, invisible sur fond clair par
-  coïncidence de teinte. **Contournement appliqué** : `BottomBox` utilise la police système par
-  défaut de Godot (pas `dialogue_latin.fnt`) — texte blanc propre, sans artefact. Si on
-  retente cette police sur fond sombre plus tard, vérifier d'abord sur un cas isolé minimal.
+- **⚠️ Piège police bitmap (suite, et la théorie "fond sombre" est FAUSSE)** : le texte de
+  `BottomBox` (fond bleu marine) affichait des **rectangles blancs pleins** derrière chaque mot
+  avec `dialogue_latin.fnt`. Théorie initiale : problème de contraste sur fond sombre, invisible
+  sur fond clair par coïncidence. **Cette théorie est fausse** — `class_choice.tscn` et
+  `partner_choice.tscn` (menus refaits même session, voir plus bas), sur fond **blanc**, à
+  `font_size=32` (natif, comme `dialogue_box.tscn` qui fonctionne), ont montré EXACTEMENT le même
+  bug (rectangles **noirs** cette fois, derrière chaque mot). Donc : ni le fond sombre, ni la
+  taille non-native, ni `Button` vs `Label` n'expliquent le bug à eux seuls — `dialogue_box.tscn`
+  et `HealthBox`/`SafariBox` fonctionnent, mais `BottomBox`, `class_choice` et `partner_choice`
+  échouent, sans variable commune identifiée qui distingue les deux groupes. **Cause réelle non
+  trouvée après plusieurs tentatives.** **Contournement appliqué partout où ça a merdé** :
+  utiliser la police système par défaut de Godot (ne pas mettre `theme_override_fonts/font` ni
+  `Button/fonts/font` vers `dialogue_latin.fnt`) — fonctionne de manière fiable à chaque fois.
+  **Ne PAS perdre de temps à re-débugger ça sans une piste nouvelle** ; si un jour on veut
+  comprendre, tester d'abord sur une scène minimale isolée (un seul Label, rien d'autre) pour
+  éliminer les variables une par une plutôt que de deviner.
 - **Formule de capture fidèle à 4 secousses** (`_attempt_catch()`) : implémente exactement
   `Cmd_handleballthrow` (pret `src/battle_script_commands.c`) — si `odds > 254` capture
   garantie, sinon `shake_odds = Sqrt(Sqrt(16711680/odds))`, `threshold = 1048560/shake_odds`,
