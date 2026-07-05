@@ -9,18 +9,32 @@ pour la narration (classes, pivot Team Rocket).
 ---
 
 ## ▶▶ PROCHAINE SESSION — objectif : le tout début du jeu jouable
-Idée de Gus, à prototyper :
-1. **Intro dans un intérieur** (nouveau : premier vrai intérieur du jeu) — une **maison à
-   Parmanie (Fuchsia City)**. Le joueur personnalise son personnage ici. Côté histoire : face
-   à un « conseiller d'orientation » qui fait choisir la classe (une seule classe pour
-   commencer, même si le système en prévoit plusieurs à terme) et pose le contexte narratif.
-2. Le joueur sort et va à la **Zone Safari** (déjà générée : `safari_zone_center/east/north/west`)
-   pour capturer son **premier Pokémon**. Règle à définir ensemble : uniquement des Pokémon de
-   base (pas d'évolutions) — détails à trancher en session (quelles espèces, quelle table de
-   rencontre, mécanique de capture pas encore existante non plus).
-Implique : premier intérieur généré (voir pipeline, ça marche aussi pour les intérieurs pret,
-même mécanisme que les extérieurs), un minimum de dialogue/choix de classe (UI à créer), et
-une mécanique de rencontre/capture (n'existe pas du tout encore — à concevoir).
+
+### Déjà fait (session en cours)
+- **Intro complète** : écran noir → dialogue (« Excusez-moi... » ×2 + formulaire) → création
+  du personnage (genre → nom (7 car. max, fidèle FRLG) → apparence parmi 4 vrais sprites).
+  Voir `scenes/intro/intro.tscn`, `scripts/character_creation.gd`, `scripts/player_data.gd`
+  (autoload, stocke le choix), `scenes/ui/dialogue_box.tscn` (système de dialogue réutilisable,
+  vraie bordure FRLG `assets/ui/textbox_std.png`), `scenes/ui/ui_theme.tres` (thème UI partagé).
+  `main_scene` = `scenes/intro/intro.tscn`.
+- **Décision de lieu** : pas de maison séparée à Parmanie — le conseiller/formulaire se passe
+  directement dans le bâtiment d'entrée de la Zone Safari (`FuchsiaCity_SafariZone_Entrance`,
+  vrai petit bâtiment pret, warps réels vers `MAP_FUCHSIA_CITY` et `MAP_SAFARI_ZONE_CENTER`).
+  Plus économique qu'une map dédiée, et enchaîne naturellement vers la capture.
+
+### Reste à faire
+1. **Générer le bâtiment** `FuchsiaCity_SafariZone_Entrance` via le pipeline (l'ajouter aux
+   deux `MAPS` comme d'habitude) et y faire spawn le joueur après la création de personnage
+   (actuellement `character_creation.gd` émet juste `creation_finished`, cf. `intro.gd` —
+   il faut enchaîner vers ce bâtiment au lieu du simple print de debug).
+2. **Appliquer l'apparence choisie au joueur** : `player.gd`/`player.tscn` chargent en dur
+   `red_normal.png` — il faut lire `PlayerData.appearance` pour choisir dynamiquement le
+   spritesheet (les 4 fichiers ont le même format 144×32/9 frames, donc le changement est
+   probablement juste : charger la bonne texture dans les `AtlasTexture` au lieu du chemin fixe).
+3. **NPC conseiller** dans le bâtiment (dialogue à écrire, réutilise `dialogue_box.tscn`).
+4. **Mécanique de rencontre/capture dans la Zone Safari** — n'existe pas du tout encore, à
+   concevoir : quelles espèces (Gus veut uniquement des Pokémon de base, pas d'évolutions),
+   table de rencontre, comment on capture (pas de combat existant non plus à ce stade).
 
 ---
 
