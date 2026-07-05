@@ -13,6 +13,10 @@ const MARGIN_BOTTOM := 172.0
 @onready var window: PanelContainer = $Root/Window
 
 func _ready() -> void:
+	# Caché tant que _place_window() n'a pas calculé sa position définitive —
+	# sinon la fenêtre apparaît une frame en haut à gauche (position par
+	# défaut) avant de "sauter" à sa place, un flash bref mais visible.
+	window.visible = false
 	for btn in window.get_node("Buttons").get_children():
 		if btn is Button:
 			# Icône transparente par défaut (même taille que la flèche) pour que
@@ -23,6 +27,7 @@ func _ready() -> void:
 			btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
 	await get_tree().process_frame
 	_place_window()
+	window.visible = true
 
 # Taille la fenêtre à son contenu (PanelContainer ne le fait pas tout seul
 # hors d'un Container parent) et la cale en haut à droite de la boîte de

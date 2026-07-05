@@ -17,6 +17,12 @@ const MARGIN_BOTTOM := 172.0
 @onready var window: PanelContainer = $Root/Window
 @onready var buttons_box: VBoxContainer = $Root/Window/Buttons
 
+func _ready() -> void:
+	# Caché tant que _place_window() n'a pas calculé sa position définitive —
+	# sinon la fenêtre apparaît une frame en haut à gauche (position par
+	# défaut) avant de "sauter" à sa place, un flash bref mais visible.
+	window.visible = false
+
 func setup(species_list: Array[String]) -> void:
 	for species in species_list:
 		var btn := Button.new()
@@ -32,6 +38,7 @@ func setup(species_list: Array[String]) -> void:
 		buttons_box.add_child(btn)
 	await get_tree().process_frame
 	_place_window()
+	window.visible = true
 
 # Taille la fenêtre à son contenu (PanelContainer ne le fait pas tout seul
 # hors d'un Container parent) et la cale en haut à droite de la boîte de
