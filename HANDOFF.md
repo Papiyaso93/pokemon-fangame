@@ -52,12 +52,17 @@ plus bas), pas juste "ça compile".
   palette(12-15), comme `map.bin` mais indépendant de ce format-là. Seules les 7 premières lignes
   (56px) contiennent du vrai contenu (ciel rayé + monticules d'herbe) ; le reste (lignes 7-14)
   est transparent dans les données — le sol est en réalité une **couleur plate** (pas de texture),
-  on a sample le vert des monticules (`get_tile(65)`) pour le sol. Assemblé en `battle_bg_grass.png`
-  (240×160 natif, écran GBA exact) direct dans `assets/ui/`, pas de prescale nécessaire (le
-  `TextureRect` stretch déjà en place s'en charge). **Correction post-retour Gus** : le sol
-  n'est plus un simple vert plat mais des bandes horizontales alternées (deux verts très
-  proches, ré-échantillonnés depuis les tuiles 65/66 du tileset) pour prolonger l'effet
-  "rayures" du vrai jeu jusqu'en bas de l'écran (cf. capture Leveinard fournie par Gus).
+  sur laquelle plusieurs itérations ont été nécessaires (voir corrections ci-dessous). Assemblé
+  en `battle_bg_grass.png` (240×160 natif, écran GBA exact) direct dans `assets/ui/`, pas de
+  prescale nécessaire (le `TextureRect` stretch déjà en place s'en charge).
+  **2 corrections post-retours Gus** :
+  1. 1ère tentative : sol en bandes vertes ré-échantillonnées depuis les monticules (tuile 65)
+     — trop saturé, créait une coupure nette de couleur avec le ciel pâle du dessus, donnant
+     l'impression que les monticules d'herbe étaient "coupés" à leur base.
+  2. **Version actuelle** : sol en bandes très pâles `(230,255,230)`/`(222,246,222)` — les
+     MÊMES tons que le ciel (tuiles 89/91), pas de vert saturé ni de bleu — pour un rendu
+     uniforme du haut en bas de l'écran, fidèle à la demande de Gus ("tout devrait être
+     uniforme, blanc") et cohérent avec la capture Leveinard fournie en référence.
   **Animation `anim.bin`/`anim.png` (herbe qui bouge) pas exploitée** — amélioration possible
   plus tard.
 - **Sprite du dresseur vu de dos** : trouvé dans pret `graphics/trainers/back_pics/`

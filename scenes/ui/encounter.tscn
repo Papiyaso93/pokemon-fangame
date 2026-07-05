@@ -117,18 +117,18 @@ texture_filter = 1
 
 [node name="Shadow" type="TextureRect" parent="Root"]
 anchor_left = 0.56
-anchor_top = 0.5
+anchor_top = 0.4
 anchor_right = 0.84
-anchor_bottom = 0.58
+anchor_bottom = 0.48
 texture = ExtResource("4_shadow")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Sprite" type="TextureRect" parent="Root"]
 anchor_left = 0.55
-anchor_top = 0.14
+anchor_top = 0.04
 anchor_right = 0.85
-anchor_bottom = 0.54
+anchor_bottom = 0.44
 texture = ExtResource("2_sprite")
 expand_mode = 1
 stretch_mode = 5
