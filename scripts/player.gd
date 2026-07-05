@@ -9,6 +9,7 @@ const TURN_TIME := 0.1
 
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const EncounterScene := preload("res://scenes/ui/encounter.tscn")
+const EncounterScript := preload("res://scripts/encounter.gd")
 const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
@@ -310,6 +311,17 @@ func _move_toward_target(delta: float) -> void:
 
 func _start_encounter() -> void:
 	is_busy = true
+
+	# Fidèle FRLG : le message d'apparition s'affiche d'abord par-dessus la
+	# carte (dialogue standard, attend un appui), AVANT le rideau/flash qui
+	# bascule vers l'écran de combat dédié.
+	var appear_dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(appear_dialogue)
+	var appear_lines: Array[String] = ["Un %s sauvage apparaît !" % EncounterScript.SPECIES_NAME]
+	appear_dialogue.say(appear_lines)
+	await appear_dialogue.finished
+	appear_dialogue.queue_free()
+
 	var transition := BattleTransitionScene.instantiate()
 	get_tree().current_scene.add_child(transition)
 	await transition.play_close()

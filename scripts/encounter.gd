@@ -28,11 +28,11 @@ const BASE_ESCAPE_FACTOR := maxf(2.0, SPECIES_FLEE_RATE * 100.0 / 1275.0)
 @onready var hp_fill: ColorRect = $Root/HealthBox/VBox/HPBarBg/HPBarFill
 @onready var safari_box: PanelContainer = $Root/SafariBox
 @onready var balls_label: Label = $Root/SafariBox/BallsLabel
-@onready var label: Label = $Root/MessageBox/Label
-@onready var ball_button: Button = $Root/ActionBox/Buttons/Ball
-@onready var bait_button: Button = $Root/ActionBox/Buttons/Bait
-@onready var rock_button: Button = $Root/ActionBox/Buttons/Rock
-@onready var run_button: Button = $Root/ActionBox/Buttons/Run
+@onready var label: Label = $Root/BottomBox/HBox/Label
+@onready var ball_button: Button = $Root/BottomBox/HBox/Buttons/Ball
+@onready var bait_button: Button = $Root/BottomBox/HBox/Buttons/Bait
+@onready var rock_button: Button = $Root/BottomBox/HBox/Buttons/Rock
+@onready var run_button: Button = $Root/BottomBox/HBox/Buttons/Run
 
 var catch_factor := BASE_CATCH_FACTOR
 var bait_counter := 0
@@ -50,7 +50,7 @@ func _ready() -> void:
 	level_label.text = "N.%d" % SPECIES_LEVEL
 	gender_label.text = "♂" if randf() < 0.5 else "♀"
 	hp_fill.anchor_right = 1.0
-	label.text = "Un %s sauvage apparaît !" % SPECIES_NAME
+	label.text = "Que faites-vous ?"
 	_update_balls_label()
 	_set_buttons_enabled(false)
 

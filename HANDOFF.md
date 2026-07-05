@@ -86,11 +86,29 @@ plus bas), pas juste "ça compile".
   au-dessus de la boîte d'action — même largeur, même bord droit), compromis assumé pour rester
   dans un temps raisonnable. Barre de PV toujours à 100% (les Pokémon Safari ne sont jamais
   blessés).
-- **Boîte de message + boîte d'action** : utilisent maintenant `assets/ui/dialogue_frame.png`
-  (le même cadre ondulé bleu/blanc que `dialogue_box.tscn`, patch margins 48/48/24/24,
-  `axis_stretch_horizontal=1`) au lieu du placeholder `textbox_std.png` — cohérence visuelle
-  demandée par Gus avec les autres boîtes de dialogue du jeu. Les boutons d'action gardent leur
-  propre style crème/vert foncé à l'intérieur (case individuelle, pas de bord ondulé par bouton).
+- **Boîte de message + boîte d'action** : **2ème itération**. 1ère tentative : réutiliser
+  `assets/ui/dialogue_frame.png` (le cadre ondulé de `dialogue_box.tscn`) — rejeté par Gus après
+  captures de référence (vraie boîte de combat FRLG = fond **bleu marine** avec bordure **or**,
+  PAS le cadre ondulé crème de l'overworld ; ce sont deux systèmes de fenêtres différents dans le
+  vrai jeu). Reconstruit depuis le vrai asset `graphics/battle_interface/textbox.png` +
+  `textbox.bin` (pret) — tilemap GBA standard, décodé en 64×32 tuiles (`CopyToBgTilemapBuffer`
+  copie tout le tilemap d'un coup dans `src/battle_bg.c::LoadBattleTextboxAndBackground`, pas de
+  logique d'assemblage dynamique comme pour `menu_message.png`). Couleurs réelles sampleées :
+  fond marine `(41,82,106)`, bordure or `(205,172,74)`. Implémenté en `StyleBoxFlat`
+  (`BottomBoxStyle`) plutôt qu'en asset tuile-par-tuile (compromis de temps, comme la boîte de
+  stats). **Une seule boîte unifiée** (`BottomBox`) contenant message (gauche) + séparateur
+  vertical + actions (droite), fidèle à la disposition réelle — avant on avait 2 boîtes
+  séparées (`MessageBox`/`ActionBox`), ce n'était pas fidèle. Les actions sont du **texte brut**
+  (pas de bouton avec bordure individuelle), fidèle au vrai jeu.
+- **⚠️ Piège police bitmap (suite)** : le texte de `BottomBox` (fond bleu marine) affichait des
+  **rectangles blancs pleins** derrière chaque mot avec `dialogue_latin.fnt`, alors que le MÊME
+  texte s'affiche parfaitement sur fond clair (`HealthBox`/`SafariBox`/`dialogue_box.tscn`).
+  Cause exacte non identifiée avec certitude (pas juste `font_color`/`scaling_mode`, déjà
+  vérifiés item par item sans effet) — hypothèse la plus probable : un problème de rendu de
+  cette police bitmap spécifique sur fond sombre à fort contraste, invisible sur fond clair par
+  coïncidence de teinte. **Contournement appliqué** : `BottomBox` utilise la police système par
+  défaut de Godot (pas `dialogue_latin.fnt`) — texte blanc propre, sans artefact. Si on
+  retente cette police sur fond sombre plus tard, vérifier d'abord sur un cas isolé minimal.
 - **Formule de capture fidèle à 4 secousses** (`_attempt_catch()`) : implémente exactement
   `Cmd_handleballthrow` (pret `src/battle_script_commands.c`) — si `odds > 254` capture
   garantie, sinon `shake_odds = Sqrt(Sqrt(16711680/odds))`, `threshold = 1048560/shake_odds`,
@@ -107,11 +125,26 @@ plus bas), pas juste "ça compile".
   jet de fuite = `taux*5` % à chaque tour. **Aucune vraie donnée `safariZoneFleeRate` par
   espèce pour l'instant** (placeholder `SPECIES_FLEE_RATE=30.0` dans `encounter.gd`) — à
   rebrancher avec le vrai roster (point 3).
+- **Plateformes (rond clair sous chaque combattant)** : remplace l'ancienne `enemy_mon_shadow.png`
+  (ombre grise, pas fidèle — Gus a fourni des captures de référence montrant un **grand ovale
+  clair/blanc**, pas une ombre). Cherché l'asset réel dans pret sans succès garanti (pas trouvé
+  de `platform.png`/`reflection.png` dédié dans `graphics/battle_interface` ou
+  `graphics/battle_terrain` ; `graphics/oak_speech/platform.png` existe mais pour un tout autre
+  contexte). **Compromis assumé** : `assets/ui/platform.png` généré par script (ellipse pâle,
+  bord légèrement plus foncé, flou léger) plutôt qu'un asset pret exact — mais couvre maintenant
+  **les deux** combattants (Pokémon sauvage ET joueur), pas juste le Pokémon comme avant.
+- **Message d'apparition déplacé avant la transition** : fidèle FRLG, "Un X sauvage apparaît !"
+  s'affiche maintenant via la `dialogue_box.tscn` standard, **par-dessus la carte** (le joueur
+  voit encore l'overworld), AVANT le rideau noir de `battle_transition.gd` — pas après, comme
+  avant cette session. Voir `player.gd::_start_encounter()`. Une fois ce message acquitté
+  (appui sur le bouton, comme toute boîte de dialogue), le rideau se ferme puis s'ouvre sur
+  l'écran de combat déjà réglé sur "Que faites-vous ?" (pas de répétition du message
+  d'apparition à l'intérieur de `encounter.tscn`).
 - **Animation d'entrée** (`encounter.gd::play_entrance()`, appelée par `player.gd` juste après
   l'ouverture du rideau de `battle_transition.gd`) : sprite qui rebondit en échelle
   (`TRANS_BACK`/`EASE_OUT`), boîte de stats qui glisse depuis la gauche, boîte Safari Balls
-  depuis la droite, ombre qui apparaît en fondu. Boutons d'action désactivés jusqu'à la fin de
-  l'animation.
+  depuis la droite, plateformes + sprite dos du joueur qui apparaissent en fondu. Boutons
+  d'action désactivés jusqu'à la fin de l'animation.
 - **⚠️ Piège Godot découvert cette session — police bitmap (BMFont) qui "bave" en noir** :
   deux causes distinctes, les deux à surveiller si on retouche `dialogue_latin.fnt`/tout futur
   BMFont :
