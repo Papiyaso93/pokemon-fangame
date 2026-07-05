@@ -1,0 +1,64 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/encounter.gd" id="1_script"]
+[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/pokemon/rattata_front.png" id="3_sprite"]
+
+[node name="Encounter" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = ExtResource("2_theme")
+
+[node name="Dim" type="ColorRect" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.5)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="VBoxContainer" parent="Root/Center"]
+custom_minimum_size = Vector2(320, 0)
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="Sprite" type="TextureRect" parent="Root/Center/Panel"]
+custom_minimum_size = Vector2(128, 128)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("3_sprite")
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="Label" type="Label" parent="Root/Center/Panel"]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="BallsLabel" type="Label" parent="Root/Center/Panel"]
+layout_mode = 2
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Center/Panel"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="Throw" type="Button" parent="Root/Center/Panel/Buttons"]
+custom_minimum_size = Vector2(180, 50)
+text = "Lancer une Safari Ball"
+
+[node name="Flee" type="Button" parent="Root/Center/Panel/Buttons"]
+custom_minimum_size = Vector2(100, 50)
+text = "Fuir"
+
+[connection signal="pressed" from="Root/Center/Panel/Buttons/Throw" to="." method="_on_throw_pressed"]
+[connection signal="pressed" from="Root/Center/Panel/Buttons/Flee" to="." method="_on_flee_pressed"]

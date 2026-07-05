@@ -8,6 +8,51 @@ pour la narration (classes, pivot Team Rocket).
 
 ---
 
+## ⚠️ PIÈGE GODOT — UI ajoutée dynamiquement à une map = toujours `CanvasLayer`
+Bug vécu et résolu en session : `encounter.tscn` (racine `Control` nu, ajouté via
+`get_tree().current_scene.add_child(...)` sous une map dont la racine est un `Node2D`)
+se retrouvait avec une **taille résolue de (0,0)** — nœud présent dans l'arbre, `visible=true`,
+mais rien ne s'affichait (même pas le fond semi-transparent). Cause : un `Control` avec des
+ancres en % (`anchor_right/bottom=1.0`) a besoin d'un **parent `Control`/`Viewport`** pour
+calculer sa taille ; sous un `Node2D` nu, ça peut échouer silencieusement.
+**Fix qui marche à coup sûr** : mettre un `CanvasLayer` en racine de la scène UI (comme
+`dialogue_box.tscn`, jamais bugué), avec un `Control` enfant pour les ancres/contenu.
+Déjà appliqué à `encounter.tscn` et `partner_choice.tscn`. **`character_creation.tscn` et
+`class_choice.tscn` utilisent encore un `Control` nu en racine** — ils fonctionnent
+empiriquement (testés avec succès), mais si un bug d'affichage similaire apparaît dessus un
+jour, appliquer le même correctif `CanvasLayer`.
+**Méthode de diagnostic qui a marché** : onglet "Distant" du panneau Scène pendant que le jeu
+tourne (bloqué) → sélectionner le nœud suspect → Inspecteur → section "Transform" → si `Size`
+= (0,0), c'est ce bug.
+
+## 📋 TODO — non urgent, à faire plus tard
+
+### Boîte de dialogue — fidélité visuelle complète
+- **Police fidèle FRLG** : le vrai asset est `graphics/fonts/latin_normal.png` (pret) — contient
+  bien tous les accents français. MAIS : largeur variable par caractère (table
+  `sFontNormalLatinGlyphWidths` dans pret `src/text.c`) + encodage propre à Pokémon (pas
+  l'ASCII standard, table de correspondance caractère→tuile à trouver dans le même fichier).
+  Construire une vraie `BitmapFont` Godot fidèle demande de décoder ces deux tables — pas un
+  simple import d'image. Chercher aussi `latin_small.png` (police plus petite, autre contexte).
+- **Bordure de dialogue fidèle** : `assets/ui/textbox_std.png` (déjà utilisé actuellement) vient
+  de `graphics/text_window/std.png` dans pret, qui **n'est référencé par aucun `INCBIN` dans le
+  code source** — probablement pas le bon asset. Le vrai fichier chargé pour les dialogues
+  overworld est `graphics/text_window/menu_message.png` (`gMenuMessageWindow_Gfx`, chargé via
+  `LoadBgTiles` dans pret `src/text_window.c`) — bordure ondulée bleu/blanc, la vraie identité
+  visuelle Pokémon. C'est un **fragment de tuiles** (48×24px, 6×3 tuiles de 8px) à réassembler
+  selon la logique de `WindowFunc_DrawDialogueFrame` (pret `src/new_menu_helpers.c` ligne ~520),
+  pas une image toute faite — nécessite de comprendre l'agencement des tuiles dans ce code avant
+  de reconstruire un `NinePatchRect`/atlas Godot correct.
+
+### Fait cette session (pour référence)
+- ✅ Texte progressif (effet machine à écrire) + appui touche = affichage instantané du reste.
+- ✅ Flèche de continuation quand il reste du texte à afficher — vrai asset trouvé dans pret :
+  `graphics/fonts/down_arrow_3.png` / `down_arrow_4.png` (animation 2 frames).
+- ✅ Confirmé : FRLG n'affiche **pas** de nom de personnage dans la boîte de dialogue standard
+  (aucune étiquette de nom pour les PNJ) — pas la peine de l'ajouter.
+
+---
+
 ## ▶▶ ÉTAT DE L'INTRO — fonctionnelle de bout en bout
 
 Séquence complète et testée : écran noir (dialogue) → création de personnage (genre/nom 7

@@ -88,10 +88,13 @@ def build(name, layout_dir, primary, secondary, connections, warps=None):
         return attr & 0x1FF
     ledges = [LEDGE_BEHAVIOR_TO_DIR.get(behavior_of(v & 0x3FF), "") for v in grid]
 
+    # Hautes herbes : MB_TALL_GRASS = 0x02 (pret include/constants/metatile_behaviors.h).
+    grass = [behavior_of(v & 0x3FF) == 0x02 for v in grid]
+
     data = {
         "name": name, "width": W, "height": H, "atlas_cols": cols,
         "tiles": used, "above": above_flags,
-        "cells": cells, "collision": collision, "ledges": ledges,
+        "cells": cells, "collision": collision, "ledges": ledges, "grass": grass,
         "connections": connections, "warps": warps or [],
     }
     json.dump(data, open(OUT / f"{name}.json", "w"))

@@ -8,6 +8,8 @@ const TILE_SIZE := 16
 const TURN_TIME := 0.1
 
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
+const EncounterScene := preload("res://scenes/ui/encounter.tscn")
+const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -22,7 +24,9 @@ var turn_timer := 0.0
 var map_size := Vector2i(1000, 1000)
 var connections: Array = []
 var ledges: Array = []
+var grass: Array = []
 var warps: Array = []
+var pending_encounter_check := false
 var current_speed := SPEED
 var is_jumping := false
 var jump_total_dist := 0.0
@@ -31,6 +35,7 @@ const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 func _ready() -> void:
 	add_to_group("player")
 	_read_map_meta()
+	_update_safari_state()
 	# Arrivée via une transition : on se place au bon endroit de la nouvelle map.
 	if Transitions.pending:
 		facing = Transitions.facing
@@ -50,8 +55,25 @@ func _read_map_meta() -> void:
 		connections = root.get_meta("connections")
 	if root and root.has_meta("ledges"):
 		ledges = root.get_meta("ledges")
+	if root and root.has_meta("grass"):
+		grass = root.get_meta("grass")
 	if root and root.has_meta("warps"):
 		warps = root.get_meta("warps")
+
+# Démarre une nouvelle visite (balls/captures à zéro) seulement à la première
+# entrée dans une des 4 maps de la Zone Safari. La sortie (et le choix du
+# partenaire) est gérée par safari_entrance_gate.gd.
+func _update_safari_state() -> void:
+	var scene_name := get_tree().current_scene.scene_file_path.get_file().get_basename()
+	if scene_name in SafariState.SAFARI_MAPS and not SafariState.active:
+		SafariState.enter()
+
+# Case de hautes herbes ? (Zone Safari — voir SafariState.active pour l'activation)
+func _is_grass(tile: Vector2i) -> bool:
+	if tile.x < 0 or tile.y < 0 or tile.x >= map_size.x or tile.y >= map_size.y:
+		return false
+	var idx := tile.y * map_size.x + tile.x
+	return idx >= 0 and idx < grass.size() and bool(grass[idx])
 
 # Warp ponctuel sur cette case (porte, entrée de grotte...), ou null si aucun.
 func _warp_at(tile: Vector2i) -> Dictionary:
@@ -215,6 +237,7 @@ func _check_input() -> void:
 		jump_total_dist = TILE_SIZE * 2
 		move_target = position + dir * TILE_SIZE * 2
 		is_moving = true
+		pending_encounter_check = false
 		_play("walk")
 		return
 
@@ -226,6 +249,7 @@ func _check_input() -> void:
 		is_jumping = false
 		move_target = position + motion
 		is_moving = true
+		pending_encounter_check = SafariState.active and _is_grass(tgt)
 		_play("walk")
 
 func _try_transition(dir: Vector2, cur: Vector2i) -> void:
@@ -257,11 +281,37 @@ func _move_toward_target(delta: float) -> void:
 		if is_jumping:
 			is_jumping = false
 			anim.position.y = 0.0
+		if pending_encounter_check:
+			pending_encounter_check = false
+			if randf() < ENCOUNTER_CHANCE:
+				_start_encounter()
 	else:
 		position += diff.normalized() * step
 	if is_jumping:
 		var progress := 1.0 - (move_target - position).length() / jump_total_dist
 		anim.position.y = -JUMP_ARC_HEIGHT * sin(progress * PI)
+
+func _start_encounter() -> void:
+	is_busy = true
+	var encounter := EncounterScene.instantiate()
+	get_tree().current_scene.add_child(encounter)
+	await encounter.finished
+	encounter.queue_free()
+	if SafariState.balls <= 0:
+		var dialogue := DialogueBoxScene.instantiate()
+		get_tree().current_scene.add_child(dialogue)
+		var lines: Array[String] = ["Tu n'as plus de Safari Balls ! On te raccompagne à l'entrée."]
+		dialogue.say(lines)
+		await dialogue.finished
+		dialogue.queue_free()
+		Transitions.pending = true
+		Transitions.direct = true
+		Transitions.facing = "south"
+		Transitions.direct_tile = Vector2i(4, 2)   # atterrissage porte nord de safari_entrance
+		get_tree().change_scene_to_file("res://scenes/maps/safari_entrance.tscn")
+		return
+	is_busy = false
+	interact_cooldown = 0.2
 
 # East réutilise les frames "west" retournées horizontalement.
 func _play(prefix: String) -> void:

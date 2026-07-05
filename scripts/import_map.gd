@@ -49,6 +49,7 @@ func _build(name: String) -> void:
 	var above_flags: Array = data["above"]
 	var cells: Array = data["cells"]
 	var ledges: Array = data.get("ledges", [])
+	var grass: Array = data.get("grass", [])
 	var collision: Array = data["collision"]
 	var connections: Array = data.get("connections", [])
 	var warps: Array = data.get("warps", [])
@@ -91,6 +92,7 @@ func _build(name: String) -> void:
 	root.set_meta("map_size", Vector2i(W, H))
 	root.set_meta("connections", connections)
 	root.set_meta("ledges", ledges)
+	root.set_meta("grass", grass)
 	root.set_meta("warps", warps)
 
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
