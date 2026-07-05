@@ -1,12 +1,13 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/encounter.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/pokemon/rattata_front.png" id="2_sprite"]
 [ext_resource type="Texture2D" path="res://assets/ui/battle_bg_grass.png" id="3_bg"]
 [ext_resource type="Texture2D" path="res://assets/ui/enemy_mon_shadow.png" id="4_shadow"]
 [ext_resource type="Texture2D" path="res://assets/ui/textbox_std.png" id="5_textbox"]
+[ext_resource type="FontFile" path="res://assets/fonts/dialogue_latin.fnt" id="6_font"]
 
-[sub_resource type="StyleBoxFlat" id="SafariBoxStyle"]
+[sub_resource type="StyleBoxFlat" id="CreamBoxStyle"]
 bg_color = Color(1, 1, 0.870588, 1)
 border_width_left = 3
 border_width_top = 3
@@ -33,10 +34,10 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
 
 [sub_resource type="StyleBoxFlat" id="ActionBtn_hover"]
 bg_color = Color(0.984314, 0.909804, 0.560784, 1)
@@ -49,19 +50,38 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="ActionBtn_disabled"]
+bg_color = Color(0.8, 0.8, 0.7, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.4, 0.4, 0.35, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
 
 [sub_resource type="Theme" id="ActionTheme"]
+Button/styles/disabled = SubResource("ActionBtn_disabled")
 Button/styles/normal = SubResource("ActionBtn_normal")
 Button/styles/hover = SubResource("ActionBtn_hover")
 Button/styles/pressed = SubResource("ActionBtn_hover")
 Button/styles/focus = SubResource("ActionBtn_hover")
-Button/colors/font_color = Color(0.12549, 0.223529, 0, 1)
-Button/colors/font_hover_color = Color(0.12549, 0.223529, 0, 1)
-Button/font_sizes/font_size = 20
+Button/colors/font_color = Color(1, 1, 1, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_disabled_color = Color(1, 1, 1, 0.6)
+Button/fonts/font = ExtResource("6_font")
+Button/font_sizes/font_size = 18
 
 [node name="Encounter" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -96,19 +116,68 @@ expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="SafariBox" type="PanelContainer" parent="Root"]
+[node name="HealthBox" type="PanelContainer" parent="Root"]
 anchor_left = 0.03
 anchor_top = 0.04
-anchor_right = 0.32
-anchor_bottom = 0.14
-theme_override_styles/panel = SubResource("SafariBoxStyle")
+anchor_right = 0.36
+anchor_bottom = 0.17
+theme_override_styles/panel = SubResource("CreamBoxStyle")
+
+[node name="VBox" type="VBoxContainer" parent="Root/HealthBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameRow" type="HBoxContainer" parent="Root/HealthBox/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="Root/HealthBox/VBox/NameRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_fonts/font = ExtResource("6_font")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="GenderLabel" type="Label" parent="Root/HealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("6_font")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="LevelLabel" type="Label" parent="Root/HealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("6_font")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="HPBarBg" type="ColorRect" parent="Root/HealthBox/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+color = Color(0.321569, 0.415686, 0.352941, 1)
+
+[node name="HPBarFill" type="ColorRect" parent="Root/HealthBox/VBox/HPBarBg"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+color = Color(0.45098, 1, 0.67451, 1)
+
+[node name="SafariBox" type="PanelContainer" parent="Root"]
+anchor_left = 0.58
+anchor_top = 0.58
+anchor_right = 0.9
+anchor_bottom = 0.7
+theme_override_styles/panel = SubResource("CreamBoxStyle")
 
 [node name="BallsLabel" type="Label" parent="Root/SafariBox"]
 layout_mode = 2
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(0.12549, 0.223529, 0, 1)
+theme_override_fonts/font = ExtResource("6_font")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="MessageBox" type="NinePatchRect" parent="Root"]
 anchor_left = 0.03
@@ -129,14 +198,15 @@ offset_left = 16.0
 offset_top = 10.0
 offset_right = -16.0
 offset_bottom = -10.0
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_fonts/font = ExtResource("6_font")
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
 autowrap_mode = 2
 vertical_alignment = 1
 
 [node name="ActionBox" type="NinePatchRect" parent="Root"]
 anchor_left = 0.69
-anchor_top = 0.78
+anchor_top = 0.7
 anchor_right = 0.97
 anchor_bottom = 0.97
 texture = ExtResource("5_textbox")
@@ -146,7 +216,7 @@ patch_margin_top = 8
 patch_margin_right = 8
 patch_margin_bottom = 8
 
-[node name="Buttons" type="VBoxContainer" parent="Root/ActionBox"]
+[node name="Buttons" type="GridContainer" parent="Root/ActionBox"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 10.0
@@ -154,17 +224,35 @@ offset_top = 8.0
 offset_right = -10.0
 offset_bottom = -8.0
 theme = SubResource("ActionTheme")
-theme_override_constants/separation = 8
+columns = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
 
-[node name="Throw" type="Button" parent="Root/ActionBox/Buttons"]
+[node name="Ball" type="Button" parent="Root/ActionBox/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-text = "SAFARI BALL"
+text = "BALL"
 
-[node name="Flee" type="Button" parent="Root/ActionBox/Buttons"]
+[node name="Bait" type="Button" parent="Root/ActionBox/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
-text = "FUIR"
+text = "APPÂT"
 
-[connection signal="pressed" from="Root/ActionBox/Buttons/Throw" to="." method="_on_throw_pressed"]
-[connection signal="pressed" from="Root/ActionBox/Buttons/Flee" to="." method="_on_flee_pressed"]
+[node name="Rock" type="Button" parent="Root/ActionBox/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "PIERRE"
+
+[node name="Run" type="Button" parent="Root/ActionBox/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+text = "FUITE"
+
+[connection signal="pressed" from="Root/ActionBox/Buttons/Ball" to="." method="_on_ball_pressed"]
+[connection signal="pressed" from="Root/ActionBox/Buttons/Bait" to="." method="_on_bait_pressed"]
+[connection signal="pressed" from="Root/ActionBox/Buttons/Rock" to="." method="_on_rock_pressed"]
+[connection signal="pressed" from="Root/ActionBox/Buttons/Run" to="." method="_on_run_pressed"]

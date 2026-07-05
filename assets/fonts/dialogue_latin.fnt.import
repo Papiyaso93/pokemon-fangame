@@ -13,5 +13,5 @@ dest_files=["res://.godot/imported/dialogue_latin.fnt-2ff7913d661c84bfb4d9112e1f
 [params]
 
 fallbacks=[]
-compress=true
-scaling_mode=2
+compress=false
+scaling_mode=0

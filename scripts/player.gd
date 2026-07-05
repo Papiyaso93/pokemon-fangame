@@ -317,6 +317,7 @@ func _start_encounter() -> void:
 	get_tree().current_scene.add_child(encounter)
 	await transition.play_open()
 	transition.queue_free()
+	await encounter.play_entrance()
 	await encounter.finished
 	encounter.queue_free()
 	if SafariState.balls <= 0:

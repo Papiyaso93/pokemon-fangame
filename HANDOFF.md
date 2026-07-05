@@ -35,18 +35,78 @@ de secours si bredouille → `PlayerData.starter_species` rempli.
    avec un taux d'apparition et un taux de capture par espèce/zone (4 sous-zones : center/east/
    north/west). Remplace le Rattata unique codé en dur dans `scripts/encounter.gd`. **Ne PAS
    improviser seul cette liste** — c'est une décision de game design à prendre avec l'ami de Gus.
-4. **Fidélité de la formule de capture** : actuellement un seul jet de probabilité
-   (`odds/255`) au lieu de la simulation exacte à 4 « secousses » du jeu original. Formule
-   complète vérifiée dans pret `src/battle_script_commands.c` (`Cmd_handleballthrow`) — need
-   `Sqrt(Sqrt(16711680/odds))` puis 4 tirages successifs. Amélioration de fidélité, pas urgent.
-5. **Appât / caillou** (bait/rock) — mécanique réelle du Parc Safari absente pour l'instant
-   (un seul type de lancer possible). Note amusante vérifiée dans le code : dans le jeu
-   original, l'appât **diminue** la capture (mais aussi la fuite) et le caillou **l'augmente**
-   (mais aussi la fuite) — contre-intuitif mais réel (`HandleAction_ThrowBait/ThrowRock`,
-   pret `src/battle_main.c`).
-6. **Animation d'apparition du Pokémon sauvage** (transition d'écran façon vrai jeu) — demandée
-   par Gus, cosmétique, pas urgente.
-7. Classe **Chercheur** indisponible ("Grodolphe doit bosser dessus") — v2 selon `game-design.md`.
+   Seul point tranché pour l'instant : **niveau fixe 5** pour tous les Pokémon du Parc Safari
+   (`SPECIES_LEVEL` dans `encounter.gd`), en attendant le vrai roster.
+4. ✅ **FAIT** — Écran de capture entièrement refait pour coller au vrai jeu (voir détails dans
+   la section dédiée ci-dessous) : fond pixel-perfect, boîte de stats (nom/sexe/niveau/PV),
+   formule de capture à 4 secousses fidèle, appât/pierre, animation d'entrée.
+5. Classe **Chercheur** indisponible ("Grodolphe doit bosser dessus") — v2 selon `game-design.md`.
+
+### ✅ Écran de capture (`encounter.gd`/`encounter.tscn`) refait à l'identique du vrai jeu
+Reconstruit cette session à partir des vraies données pret (background, formule de capture,
+mécaniques Appât/Pierre, animation) — tout est vérifié par rendu headless Godot (voir méthode
+plus bas), pas juste "ça compile".
+- **Fond de combat pixel-perfect** : décodé depuis `graphics/battle_terrain/grass/terrain.bin`
+  (pret) — format tilemap GBA standard **64 tuiles de large × 32 de haut** (pas 32×64, testé les
+  deux et vérifié visuellement), tuile = tile_id (bits 0-9) | flipX(10) | flipY(11) |
+  palette(12-15), comme `map.bin` mais indépendant de ce format-là. Seules les 7 premières lignes
+  (56px) contiennent du vrai contenu (ciel rayé + monticules d'herbe) ; le reste (lignes 7-14)
+  est transparent dans les données — le sol est en réalité une **couleur plate** (pas de texture),
+  on a sample le vert des monticules (`get_tile(65)`) pour le sol. Assemblé en `battle_bg_grass.png`
+  (240×160 natif, écran GBA exact) direct dans `assets/ui/`, pas de prescale nécessaire (le
+  `TextureRect` stretch déjà en place s'en charge). **Animation `anim.bin`/`anim.png` (herbe qui
+  bouge) pas exploitée** — amélioration possible plus tard.
+- **Boîte de stats du Pokémon sauvage** (nom/sexe/niveau/barre de PV, haut-gauche) : couleurs
+  réelles sampleées depuis `graphics/battle_interface/healthbox_elements.png` (vert PV
+  `(115,255,172)`, fond de barre `(82,106,90)`). **Pas de reconstruction tuile-par-tuile de la
+  vraie silhouette du cadre** (le vrai `healthbox_singles_opponent.png` a un coin diagonal
+  caractéristique, complexe à assembler — cf. `DrawHealthboxbank`/`GetHealthboxElementGfxPtr`
+  dans pret `src/battle_interface.c`) — on réutilise le même style de boîte crème/vert foncé que
+  la boîte Safari Balls (`CreamBoxStyle` dans `encounter.tscn`), compromis assumé pour rester
+  dans un temps raisonnable. Barre de PV toujours à 100% (les Pokémon Safari ne sont jamais
+  blessés).
+- **Formule de capture fidèle à 4 secousses** (`_attempt_catch()`) : implémente exactement
+  `Cmd_handleballthrow` (pret `src/battle_script_commands.c`) — si `odds > 254` capture
+  garantie, sinon `shake_odds = Sqrt(Sqrt(16711680/odds))`, `threshold = 1048560/shake_odds`,
+  4 tirages `Random() < threshold` successifs. Message d'échec varie selon le nombre de
+  secousses réussies (0 à 3).
+- **Appât et Pierre** (`_on_bait_pressed`/`_on_rock_pressed`/`_end_of_round`) : fidèle à
+  `HandleAction_ThrowBait/ThrowRock` + `HandleAction_WatchesCarefully` + `Cmd_if_random_safari_flee`
+  (pret `src/battle_main.c` et `src/battle_ai_script_commands.c`). Mécanique complète : un
+  `catch_factor` (base = `catchRate*100/1275`) est divisé par 2 (min 3) par l'appât, multiplié
+  par 2 (max 20) par la pierre ; un compteur (2-6 tours aléatoires, plafond 6) décompte à chaque
+  tour et redonne le taux de base **uniquement pour la pierre** (l'appât ne revient PAS au taux
+  de base une fois épuisé — bizarrerie confirmée du jeu original, assumée). Le taux de fuite est
+  doublé (max 20) si pierre active, divisé par 4 (min 1) si appât actif, sinon taux de base ;
+  jet de fuite = `taux*5` % à chaque tour. **Aucune vraie donnée `safariZoneFleeRate` par
+  espèce pour l'instant** (placeholder `SPECIES_FLEE_RATE=30.0` dans `encounter.gd`) — à
+  rebrancher avec le vrai roster (point 3).
+- **Animation d'entrée** (`encounter.gd::play_entrance()`, appelée par `player.gd` juste après
+  l'ouverture du rideau de `battle_transition.gd`) : sprite qui rebondit en échelle
+  (`TRANS_BACK`/`EASE_OUT`), boîte de stats qui glisse depuis la gauche, boîte Safari Balls
+  depuis la droite, ombre qui apparaît en fondu. Boutons d'action désactivés jusqu'à la fin de
+  l'animation.
+- **⚠️ Piège Godot découvert cette session — police bitmap (BMFont) qui "bave" en noir** :
+  deux causes distinctes, les deux à surveiller si on retouche `dialogue_latin.fnt`/tout futur
+  BMFont :
+  1. Le `.fnt.import` a par défaut `scaling_mode=2` (MSDF) — **totalement inadapté** à une
+     police bitmap brute (pas des données de champ de distance), ça corrompt le rendu. Mettre
+     `scaling_mode=0` dans le fichier `.import` (pas d'option UI simple trouvée, édition directe
+     du fichier + suppression du cache `.godot/imported/*.fontdata` + relancer l'éditeur en
+     `--headless --quit` pour forcer le réimport).
+  2. **Ne jamais teinter `font_color` avec une couleur sombre** sur ce genre de police bitmap
+     pré-colorée (encre foncée + halo blanc déjà dans les pixels) : `font_color` multiplie TOUTE
+     la texture du glyphe, donc une teinte sombre écrase aussi le halo blanc et transforme le
+     texte en rectangles noirs pleins. **Toujours `font_color = Color(1,1,1,1)`** (blanc, pas de
+     teinte) quel que soit le fond de la boîte — déjà noté pour `dialogue_box.tscn`, ça vaut pour
+     **tout** usage de cette police (a fait la même erreur dans `encounter.tscn` avant de s'en
+     souvenir).
+- **Méthode de vérification utilisée** : scène `Node2D` temporaire + script qui instancie la
+  scène UI à tester, appelle directement les fonctions de test (`_on_bait_pressed()` etc.) et
+  sauvegarde des captures d'écran (`get_viewport().get_texture().get_image().save_png(...)`) à
+  chaque étape clé, lancé via `/Applications/Godot.app/Contents/MacOS/Godot --path . res://scenes/_tmp_xxx.tscn`
+  (pas `--headless`, il faut le vrai rendu). Toujours nettoyer les fichiers `_tmp_*` (+ `.import`
+  + `.uid`) après coup.
 
 **Fichiers clés Zone Safari** : `scripts/safari_state.gd` (autoload `SafariState` : `active`,
 `balls`, `caught`), `scripts/encounter.gd`+`scenes/ui/encounter.tscn` (écran de capture),
