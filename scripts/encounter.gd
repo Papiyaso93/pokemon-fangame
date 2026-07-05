@@ -19,6 +19,8 @@ const BASE_ESCAPE_FACTOR := maxf(2.0, SPECIES_FLEE_RATE * 100.0 / 1275.0)
 
 @onready var sprite: TextureRect = $Root/Sprite
 @onready var shadow: TextureRect = $Root/Shadow
+@onready var player_sprite: TextureRect = $Root/PlayerSprite
+@onready var player_shadow: TextureRect = $Root/PlayerShadow
 @onready var health_box: PanelContainer = $Root/HealthBox
 @onready var name_label: Label = $Root/HealthBox/VBox/NameRow/NameLabel
 @onready var gender_label: Label = $Root/HealthBox/VBox/NameRow/GenderLabel
@@ -51,9 +53,16 @@ func _ready() -> void:
 	label.text = "Un %s sauvage apparaît !" % SPECIES_NAME
 	_update_balls_label()
 	_set_buttons_enabled(false)
+
+	var back_path := "res://assets/characters/%s_back.png" % PlayerData.appearance
+	if ResourceLoader.exists(back_path):
+		player_sprite.texture = load(back_path)
+
 	sprite.scale = Vector2.ZERO
 	sprite.pivot_offset = sprite.size / 2.0
 	shadow.modulate.a = 0.0
+	player_sprite.modulate.a = 0.0
+	player_shadow.modulate.a = 0.0
 	health_box.modulate.a = 0.0
 	health_box.position.x -= 200
 	safari_box.modulate.a = 0.0
@@ -67,6 +76,8 @@ func play_entrance() -> void:
 	tw.set_parallel(true)
 	tw.tween_property(sprite, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(shadow, "modulate:a", 1.0, 0.3).set_delay(0.15)
+	tw.tween_property(player_sprite, "modulate:a", 1.0, 0.3).set_delay(0.1)
+	tw.tween_property(player_shadow, "modulate:a", 1.0, 0.3).set_delay(0.1)
 	tw.tween_property(health_box, "position:x", health_box.position.x + 200, 0.35).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tw.tween_property(health_box, "modulate:a", 1.0, 0.25)
 	tw.tween_property(safari_box, "position:x", safari_box.position.x - 200, 0.35).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)

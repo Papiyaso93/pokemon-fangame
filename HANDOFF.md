@@ -54,17 +54,38 @@ plus bas), pas juste "ça compile".
   est transparent dans les données — le sol est en réalité une **couleur plate** (pas de texture),
   on a sample le vert des monticules (`get_tile(65)`) pour le sol. Assemblé en `battle_bg_grass.png`
   (240×160 natif, écran GBA exact) direct dans `assets/ui/`, pas de prescale nécessaire (le
-  `TextureRect` stretch déjà en place s'en charge). **Animation `anim.bin`/`anim.png` (herbe qui
-  bouge) pas exploitée** — amélioration possible plus tard.
+  `TextureRect` stretch déjà en place s'en charge). **Correction post-retour Gus** : le sol
+  n'est plus un simple vert plat mais des bandes horizontales alternées (deux verts très
+  proches, ré-échantillonnés depuis les tuiles 65/66 du tileset) pour prolonger l'effet
+  "rayures" du vrai jeu jusqu'en bas de l'écran (cf. capture Leveinard fournie par Gus).
+  **Animation `anim.bin`/`anim.png` (herbe qui bouge) pas exploitée** — amélioration possible
+  plus tard.
+- **Sprite du dresseur vu de dos** : trouvé dans pret `graphics/trainers/back_pics/`
+  (`red_back_pic.png`, `leaf_back_pic.png`, `ruby_sapphire_brendan_back_pic.png`,
+  `ruby_sapphire_may_back_pic.png` — un par apparence, correspondance avec
+  `PlayerData.APPEARANCES`). Chaque fichier source contient 5 frames 64×64 empilées
+  verticalement (animation d'envoi de balle) ; seule la 1ère frame (pose statique) est utilisée
+  pour l'instant, extraite dans `assets/characters/<appearance>_back.png`. Contrairement aux
+  sprites overworld (fond noir = transparent par convention), ces fichiers ont une **vraie
+  transparence PNG (tRNS)** déjà correcte après un simple `.convert('RGBA')` — pas besoin de
+  color-keying manuel. `encounter.gd` charge le bon fichier selon `PlayerData.appearance` et
+  affiche le joueur en bas à gauche avec sa propre ombre (réutilise `enemy_mon_shadow.png`).
+  Non fait : l'animation de lancer de balle (les 4 autres frames), cosmétique, pour plus tard.
 - **Boîte de stats du Pokémon sauvage** (nom/sexe/niveau/barre de PV, haut-gauche) : couleurs
   réelles sampleées depuis `graphics/battle_interface/healthbox_elements.png` (vert PV
   `(115,255,172)`, fond de barre `(82,106,90)`). **Pas de reconstruction tuile-par-tuile de la
   vraie silhouette du cadre** (le vrai `healthbox_singles_opponent.png` a un coin diagonal
   caractéristique, complexe à assembler — cf. `DrawHealthboxbank`/`GetHealthboxElementGfxPtr`
   dans pret `src/battle_interface.c`) — on réutilise le même style de boîte crème/vert foncé que
-  la boîte Safari Balls (`CreamBoxStyle` dans `encounter.tscn`), compromis assumé pour rester
+  la boîte Safari Balls (`CreamBoxStyle` dans `encounter.tscn`, maintenant alignée directement
+  au-dessus de la boîte d'action — même largeur, même bord droit), compromis assumé pour rester
   dans un temps raisonnable. Barre de PV toujours à 100% (les Pokémon Safari ne sont jamais
   blessés).
+- **Boîte de message + boîte d'action** : utilisent maintenant `assets/ui/dialogue_frame.png`
+  (le même cadre ondulé bleu/blanc que `dialogue_box.tscn`, patch margins 48/48/24/24,
+  `axis_stretch_horizontal=1`) au lieu du placeholder `textbox_std.png` — cohérence visuelle
+  demandée par Gus avec les autres boîtes de dialogue du jeu. Les boutons d'action gardent leur
+  propre style crème/vert foncé à l'intérieur (case individuelle, pas de bord ondulé par bouton).
 - **Formule de capture fidèle à 4 secousses** (`_attempt_catch()`) : implémente exactement
   `Cmd_handleballthrow` (pret `src/battle_script_commands.c`) — si `odds > 254` capture
   garantie, sinon `shake_odds = Sqrt(Sqrt(16711680/odds))`, `threshold = 1048560/shake_odds`,
