@@ -29,34 +29,36 @@ Button/colors/font_color = Color(0.1, 0.1, 0.1, 1)
 Button/colors/font_hover_color = Color(0.1, 0.1, 0.1, 1)
 Button/font_sizes/font_size = 20
 
-[node name="ClassChoice" type="Control"]
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="ClassChoice" type="CanvasLayer"]
 script = ExtResource("1_script")
 
-[node name="Window" type="PanelContainer" parent="."]
+[node name="Root" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Window" type="PanelContainer" parent="Root"]
 theme_override_styles/panel = SubResource("WindowStyle")
 
-[node name="Buttons" type="VBoxContainer" parent="Window"]
+[node name="Buttons" type="VBoxContainer" parent="Root/Window"]
 layout_mode = 2
 theme = SubResource("ChoiceTheme")
 theme_override_constants/separation = 2
 
-[node name="Competiteur" type="Button" parent="Window/Buttons"]
+[node name="Competiteur" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 icon_alignment = 0
 text = "Compétiteur"
 
-[node name="Chercheur" type="Button" parent="Window/Buttons"]
+[node name="Chercheur" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 icon_alignment = 0
 text = "Chercheur"
 
-[node name="Repeat" type="Button" parent="Window/Buttons"]
+[node name="Repeat" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 icon_alignment = 0
 text = "Peux-tu répéter ?"
 
-[connection signal="pressed" from="Window/Buttons/Competiteur" to="." method="_on_competiteur_pressed"]
-[connection signal="pressed" from="Window/Buttons/Chercheur" to="." method="_on_chercheur_pressed"]
-[connection signal="pressed" from="Window/Buttons/Repeat" to="." method="_on_repeat_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Competiteur" to="." method="_on_competiteur_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Chercheur" to="." method="_on_chercheur_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Repeat" to="." method="_on_repeat_pressed"]

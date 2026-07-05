@@ -233,10 +233,15 @@ ancres en % (`anchor_right/bottom=1.0`) a besoin d'un **parent `Control`/`Viewpo
 calculer sa taille ; sous un `Node2D` nu, ça peut échouer silencieusement.
 **Fix qui marche à coup sûr** : mettre un `CanvasLayer` en racine de la scène UI (comme
 `dialogue_box.tscn`, jamais bugué), avec un `Control` enfant pour les ancres/contenu.
-Déjà appliqué à `encounter.tscn` et `partner_choice.tscn`. **`character_creation.tscn` et
-`class_choice.tscn` utilisent encore un `Control` nu en racine** — ils fonctionnent
-empiriquement (testés avec succès), mais si un bug d'affichage similaire apparaît dessus un
-jour, appliquer le même correctif `CanvasLayer`.
+Déjà appliqué à `encounter.tscn`, `partner_choice.tscn`, et **`class_choice.tscn`** (ce
+paragraphe prédisait exactement ce bug — Gus a signalé que la fenêtre de choix de classe restait
+invisible en jeu réel alors qu'elle s'affichait bien dans mes tests isolés headless ; cause
+probable : contexte réel différent — plusieurs CanvasLayers déjà actifs autour de la map — qui
+faisait passer `class_choice` derrière quelque chose d'autre. Corrigé par le même remède
+`CanvasLayer` racine + `Control` enfant, cf. `class_choice.gd`/`class_choice.tscn`).
+**`character_creation.tscn` utilise encore un `Control` nu en racine** — fonctionne
+empiriquement (testé avec succès), mais si un bug d'affichage similaire apparaît dessus un jour,
+appliquer le même correctif `CanvasLayer`.
 **Méthode de diagnostic qui a marché** : onglet "Distant" du panneau Scène pendant que le jeu
 tourne (bloqué) → sélectionner le nœud suspect → Inspecteur → section "Transform" → si `Size`
 = (0,0), c'est ce bug.

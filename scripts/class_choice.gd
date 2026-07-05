@@ -1,4 +1,4 @@
-extends Control
+extends CanvasLayer
 
 signal choice_made(result: String)
 
@@ -9,7 +9,7 @@ const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const MARGIN_RIGHT := 24.0
 const MARGIN_BOTTOM := 172.0
 
-@onready var window: PanelContainer = $Window
+@onready var window: PanelContainer = $Root/Window
 
 func _ready() -> void:
 	for btn in window.get_node("Buttons").get_children():
@@ -25,7 +25,7 @@ func _ready() -> void:
 func _place_window() -> void:
 	var min_size := window.get_combined_minimum_size()
 	window.size = min_size
-	var viewport_size := get_viewport_rect().size
+	var viewport_size := get_viewport().get_visible_rect().size
 	window.position = Vector2(
 		viewport_size.x - MARGIN_RIGHT - min_size.x,
 		viewport_size.y - MARGIN_BOTTOM - min_size.y,
