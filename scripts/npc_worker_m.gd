@@ -8,7 +8,7 @@ extends "res://scripts/npc.gd"
 const RULES_EXPLANATION: Array[String] = [
 	"Bienvenue au Parc Safari ! Voici comment ça marche.",
 	"Je te donne 30 Safari Balls. À l'intérieur, tu peux tenter de capturer n'importe quel Pokémon de base de Kanto que tu croises dans les hautes herbes.",
-	"Une fois que tu auras fini d'explorer — ou que tu n'auras plus de Safari Ball —, reviens me voir ici.",
+	"Une fois que tu auras fini d'explorer, ou si tu n'as plus de Safari Ball, reviens me voir ici.",
 	"Tu pourras alors choisir, parmi tout ce que tu auras attrapé, lequel sera ton tout premier partenaire.",
 	"Attention : si tu n'as plus de Safari Ball, tu seras automatiquement ramené ici, même en pleine exploration.",
 	"Bonne chance, %s !",

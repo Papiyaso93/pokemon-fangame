@@ -10,7 +10,7 @@ const INTRO_LINES: Array[String] = [
 
 const CLASS_EXPLANATION: Array[String] = [
 	"Il existe deux voies possibles ici à Kanto.",
-	"Le Compétiteur vit de la compétition Pokémon. Ses revenus viennent des matchs officiels — arènes, compétitions, adversaires réputés. Son objectif : devenir Champion de la Ligue.",
+	"Le Compétiteur vit de la compétition Pokémon. Ses revenus viennent des matchs officiels : arènes, compétitions, adversaires réputés. Son objectif : devenir Champion de la Ligue.",
 	"Le Chercheur travaille sur le terrain pour le laboratoire du Professeur Chen, à la découverte de ce que personne n'a encore documenté. Il est rémunéré pour ses missions de recherche. Son objectif : percer les mystères de Kanto et explorer des zones inconnues.",
 	"Alors, quelle carrière t'intéresse le plus ?",
 ]

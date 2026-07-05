@@ -16,8 +16,13 @@ const ARROW_BLINK := 0.3   # secondes entre les 2 frames de la flèche
 @onready var label: Label = $Panel/Label
 @onready var arrow: TextureRect = $Panel/Arrow
 
+const MAX_LINES_PER_PAGE := 2   # fidèle FRLG : jamais plus de 2 lignes affichées à la fois
+
 var queue: Array[String] = []
 var active := false
+
+var pages: Array[String] = []
+var page_idx := 0
 
 var current_text := ""
 var revealed := 0
@@ -48,11 +53,52 @@ func _show_next() -> void:
 		visible = false
 		finished.emit()
 		return
-	current_text = String(queue.pop_front())
+	pages = _paginate(String(queue.pop_front()))
+	page_idx = 0
+	_show_page()
+
+func _show_page() -> void:
+	current_text = pages[page_idx]
 	revealed = 0
 	typing = true
 	char_timer = 0.0
 	label.text = ""
+
+# Découpe le texte en pages d'au maximum MAX_LINES_PER_PAGE lignes, selon la
+# largeur réelle du Label et de la police en cours — pour que le joueur voie
+# toujours au plus 2 lignes à la fois, le reste apparaissant à l'appui sur le
+# bouton d'action (comme dans le vrai jeu), au lieu de déborder de la boîte.
+func _paginate(text: String) -> Array[String]:
+	var font := label.get_theme_font("font")
+	var font_size := label.get_theme_font_size("font_size")
+	var max_width := label.size.x
+	var lines: Array[String] = []
+	var current_line := ""
+	for word in text.split(" "):
+		var candidate := word if current_line.is_empty() else current_line + " " + word
+		var w := font.get_string_size(candidate, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		if w > max_width and not current_line.is_empty():
+			lines.append(current_line)
+			current_line = word
+		else:
+			current_line = candidate
+	if not current_line.is_empty():
+		lines.append(current_line)
+	if lines.is_empty():
+		lines.append("")
+
+	# Fenêtre glissante d'une ligne (fidèle FRLG) : la page suivante garde la
+	# dernière ligne affichée et ajoute la suivante, plutôt que de repartir
+	# de zéro par paires de lignes indépendantes.
+	var result: Array[String] = []
+	var i := 0
+	while true:
+		var end := mini(i + MAX_LINES_PER_PAGE, lines.size())
+		result.append("\n".join(lines.slice(i, end)))
+		if end >= lines.size():
+			break
+		i += 1
+	return result
 
 func _process(delta: float) -> void:
 	if typing:
@@ -63,7 +109,7 @@ func _process(delta: float) -> void:
 			label.text = current_text.substr(0, revealed)
 		if revealed >= current_text.length():
 			typing = false
-			arrow.visible = not queue.is_empty()
+			arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
 	elif arrow.visible:
 		arrow_timer += delta
 		if arrow_timer >= ARROW_BLINK:
@@ -79,7 +125,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			revealed = current_text.length()
 			label.text = current_text
 			typing = false
-			arrow.visible = not queue.is_empty()
+			arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
+		elif page_idx + 1 < pages.size():
+			page_idx += 1
+			_show_page()
 		else:
 			_show_next()
 		get_viewport().set_input_as_handled()

@@ -75,22 +75,44 @@ tourne (bloqué) → sélectionner le nœud suspect → Inspecteur → section "
 
 ## 📋 TODO — non urgent, à faire plus tard
 
-### Boîte de dialogue — fidélité visuelle complète
-- **Police fidèle FRLG** : le vrai asset est `graphics/fonts/latin_normal.png` (pret) — contient
-  bien tous les accents français. MAIS : largeur variable par caractère (table
-  `sFontNormalLatinGlyphWidths` dans pret `src/text.c`) + encodage propre à Pokémon (pas
-  l'ASCII standard, table de correspondance caractère→tuile à trouver dans le même fichier).
-  Construire une vraie `BitmapFont` Godot fidèle demande de décoder ces deux tables — pas un
-  simple import d'image. Chercher aussi `latin_small.png` (police plus petite, autre contexte).
-- **Bordure de dialogue fidèle** : `assets/ui/textbox_std.png` (déjà utilisé actuellement) vient
-  de `graphics/text_window/std.png` dans pret, qui **n'est référencé par aucun `INCBIN` dans le
-  code source** — probablement pas le bon asset. Le vrai fichier chargé pour les dialogues
-  overworld est `graphics/text_window/menu_message.png` (`gMenuMessageWindow_Gfx`, chargé via
-  `LoadBgTiles` dans pret `src/text_window.c`) — bordure ondulée bleu/blanc, la vraie identité
-  visuelle Pokémon. C'est un **fragment de tuiles** (48×24px, 6×3 tuiles de 8px) à réassembler
-  selon la logique de `WindowFunc_DrawDialogueFrame` (pret `src/new_menu_helpers.c` ligne ~520),
-  pas une image toute faite — nécessite de comprendre l'agencement des tuiles dans ce code avant
-  de reconstruire un `NinePatchRect`/atlas Godot correct.
+### ✅ Boîte de dialogue — fidélité visuelle complète (FAIT, session Zone Safari UI)
+- **Police fidèle FRLG** : `assets/fonts/dialogue_latin.png` + `.fnt` (format BMFont, importé
+  nativement par Godot comme `FontFile`). Reconstruite depuis `graphics/fonts/latin_normal.png`
+  (pret) : cellules de 16×16px (512 glyphes, confirmé par la longueur de la table de largeurs),
+  largeurs réelles décodées depuis `sFontNormalLatinGlyphWidths` (pret `src/text.c`), mapping
+  caractère→glyphe depuis `charmap.txt` (pret, racine du repo pret) — **l'`id` de chaque `char`
+  dans le `.fnt` est le codepoint Unicode réel** (pas le byte GBA interne, qui sert seulement à
+  indexer la table de largeurs et l'image source). Prescale ×2 (32×32 par glyphe). Charset
+  couvert : A-Z/a-z/0-9, ponctuation courante, tous les accents français usuels + ♂/♀. Utilisée
+  dans `dialogue_box.tscn` (`theme_override_fonts/font`, taille 32, **`font_color` remis à blanc
+  `(1,1,1,1)`** — le bitmap a déjà ses couleurs réelles (encre foncée + halo blanc), un tint
+  sombre comme avant casserait le halo). Fond transparent = couleur `(144,200,255)` dans la
+  source pret (converti en alpha 0).
+- **Bordure de dialogue fidèle** : `assets/ui/dialogue_frame.png`, reconstruite tuile par tuile
+  depuis `graphics/text_window/menu_message.png` (pret) selon l'algorithme exact de
+  `WindowFunc_DrawDialogueFrame` (pret `src/new_menu_helpers.c` ~ligne 520, indices
+  `DLG_WINDOW_BASE_TILE_NUM+0..13`, symétrie verticale haut/bas via `BG_TILE_V_FLIP`). Couleur
+  extérieure `(115,205,164)` = transparence (convention pret), convertie en alpha 0. Asset
+  prescalé ×3 (cohérent avec la hauteur fixe existante de la boîte : 144px = 48px natif × 3,
+  donc **aucune distorsion verticale**). Utilisée dans `dialogue_box.tscn` en `NinePatchRect`
+  (`patch_margin_left/right=48`, `top/bottom=24`, `axis_stretch_horizontal=1` pour que la vague
+  se répète au lieu de s'étirer horizontalement). Vérifié par rendu headless Godot (voir méthode
+  ci-dessous).
+- **Non fait / scope pas couvert** : seule `dialogue_box.tscn` (boîte de discussion PNJ) a été
+  refaite. Les autres fenêtres (menus `class_choice`, `partner_choice`, boîte d'action de
+  `encounter.tscn`) utilisent encore `ui_theme.tres` / police par défaut Godot — même technique
+  réutilisable si Gus veut la fidélité partout plus tard (police : recalculer un nouvel atlas si
+  besoin d'un charset différent ; bordure : `graphics/text_window/std.png` est probablement
+  l'asset pour ces fenêtres-menu simples, pas encore décodé).
+
+**Méthode utile découverte cette session** : Godot est installé en CLI
+(`/Applications/Godot.app/Contents/MacOS/Godot`). `--editor --headless --quit` force l'import
+des nouveaux assets sans ouvrir l'UI. Une scène `Node2D` temporaire avec un script qui instancie
+l'UI à tester, attend quelques frames/`await create_timer`, puis
+`get_viewport().get_texture().get_image().save_png(...)` permet de **voir réellement le rendu**
+sans dépendre de l'utilisateur — beaucoup plus fiable que deviner les valeurs d'enum Godot
+(a détecté un bug réel : `TextureRect.stretch_mode=1` = `TILE`, pas `SCALE`, ce qui répétait le
+fond de l'écran de capture au lieu de l'étirer). Toujours nettoyer les fichiers `_tmp_*` après.
 
 ### Fait cette session (pour référence)
 - ✅ Texte progressif (effet machine à écrire) + appui touche = affichage instantané du reste.

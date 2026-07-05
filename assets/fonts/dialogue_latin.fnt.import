@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://k5wcqx4vbwf"
+path="res://.godot/imported/dialogue_latin.fnt-2ff7913d661c84bfb4d9112e1fa0c684.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/dialogue_latin.fnt"
+dest_files=["res://.godot/imported/dialogue_latin.fnt-2ff7913d661c84bfb4d9112e1fa0c684.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2
