@@ -1,0 +1,30 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/battle_transition.gd" id="1_script"]
+
+[node name="BattleTransition" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Flash" type="ColorRect" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(1, 1, 1, 1)
+
+[node name="CurtainLeft" type="ColorRect" parent="Root"]
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="CurtainRight" type="ColorRect" parent="Root"]
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)

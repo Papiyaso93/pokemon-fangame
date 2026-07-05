@@ -18,13 +18,17 @@ l'entrée (volontaire ou forcé si 0 balls) → choix du partenaire parmi les ca
 de secours si bredouille → `PlayerData.starter_species` rempli.
 
 **Dans l'ordre logique des prochaines étapes :**
-1. **`npc_worker_m.gd` est un placeholder** — il se contente d'annoncer que l'étape n'est pas
-   développée et de mettre `intro_complete = true`. Il faut maintenant lui faire dire quelque
-   chose de cohérent avec `PlayerData.starter_species` (déjà rempli à ce moment !) — par ex.
-   confirmer/présenter le partenaire choisi, transition vers la suite du jeu.
-2. **Appliquer l'apparence choisie au joueur** — jamais fait. `player.tscn` charge en dur
-   `red_normal.png` ; il faut lire `PlayerData.appearance` et charger le bon spritesheet parmi
-   les 4 (même format 144×32/9 frames, donc juste changer la texture source des `AtlasTexture`).
+1. ✅ **FAIT** — `npc_worker_m.gd` développé. Rappel important : cette 1ère discussion a lieu
+   **avant** la visite (c'est elle qui met `intro_complete = true` et débloque la sortie vers
+   la Zone Safari, voir `gate_check()`), donc `PlayerData.starter_species` est encore vide à ce
+   moment — le texte explique les règles (30 Safari Balls, capture libre des Pokémon de base de
+   Kanto, retour pour choisir le partenaire, retour auto si 0 ball), pas un choix déjà fait.
+   Une 2e réplique (starter_species rempli, après le retour) confirme le partenaire choisi.
+2. ✅ **FAIT** — `player.gd::_apply_appearance()` (appelée dans `_ready()`) lit
+   `PlayerData.appearance` et remplace la texture `atlas` de chaque `AtlasTexture` du
+   `SpriteFrames` par le bon spritesheet parmi les 4 (même layout 144×32/9 frames que
+   `red_normal.png`, donc pas besoin de reconstruire les régions). **À tester en jeu** :
+   choisir chacune des 4 apparences à la création de perso et vérifier le sprite en overworld.
 3. **Roster réel de la Zone Safari** (gros chantier de contenu, pas du code) : Gus veut les
    « bébés » Pokémon de la 1ère génération (Pichu au lieu de Pikachu, Toudoudou au lieu de
    Rondoudou, etc. — seules certaines espèces ont un bébé, sinon garder la forme de base gen 1),

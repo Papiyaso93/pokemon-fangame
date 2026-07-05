@@ -1,8 +1,67 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/encounter.gd" id="1_script"]
-[ext_resource type="Theme" path="res://scenes/ui/ui_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" path="res://assets/pokemon/rattata_front.png" id="3_sprite"]
+[ext_resource type="Texture2D" path="res://assets/pokemon/rattata_front.png" id="2_sprite"]
+[ext_resource type="Texture2D" path="res://assets/ui/battle_bg_grass.png" id="3_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/enemy_mon_shadow.png" id="4_shadow"]
+[ext_resource type="Texture2D" path="res://assets/ui/textbox_std.png" id="5_textbox"]
+
+[sub_resource type="StyleBoxFlat" id="SafariBoxStyle"]
+bg_color = Color(1, 1, 0.870588, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.12549, 0.223529, 0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="ActionBtn_normal"]
+bg_color = Color(1, 1, 0.870588, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.12549, 0.223529, 0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="ActionBtn_hover"]
+bg_color = Color(0.984314, 0.909804, 0.560784, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.12549, 0.223529, 0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+[sub_resource type="Theme" id="ActionTheme"]
+Button/styles/normal = SubResource("ActionBtn_normal")
+Button/styles/hover = SubResource("ActionBtn_hover")
+Button/styles/pressed = SubResource("ActionBtn_hover")
+Button/styles/focus = SubResource("ActionBtn_hover")
+Button/colors/font_color = Color(0.12549, 0.223529, 0, 1)
+Button/colors/font_hover_color = Color(0.12549, 0.223529, 0, 1)
+Button/font_sizes/font_size = 20
 
 [node name="Encounter" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -10,55 +69,102 @@ script = ExtResource("1_script")
 [node name="Root" type="Control" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme = ExtResource("2_theme")
 
-[node name="Dim" type="ColorRect" parent="Root"]
+[node name="Background" type="TextureRect" parent="Root"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.5)
+texture = ExtResource("3_bg")
+expand_mode = 1
+stretch_mode = 0
 
-[node name="Center" type="CenterContainer" parent="Root"]
-anchor_right = 1.0
-anchor_bottom = 1.0
+[node name="Shadow" type="TextureRect" parent="Root"]
+anchor_left = 0.56
+anchor_top = 0.5
+anchor_right = 0.84
+anchor_bottom = 0.58
+texture = ExtResource("4_shadow")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Panel" type="VBoxContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(320, 0)
-alignment = 1
-theme_override_constants/separation = 12
-
-[node name="Sprite" type="TextureRect" parent="Root/Center/Panel"]
-custom_minimum_size = Vector2(128, 128)
-layout_mode = 2
-size_flags_horizontal = 4
-texture = ExtResource("3_sprite")
+[node name="Sprite" type="TextureRect" parent="Root"]
+anchor_left = 0.55
+anchor_top = 0.14
+anchor_right = 0.85
+anchor_bottom = 0.54
+texture = ExtResource("2_sprite")
 expand_mode = 1
 stretch_mode = 5
 texture_filter = 1
 
-[node name="Label" type="Label" parent="Root/Center/Panel"]
+[node name="SafariBox" type="PanelContainer" parent="Root"]
+anchor_left = 0.03
+anchor_top = 0.04
+anchor_right = 0.32
+anchor_bottom = 0.14
+theme_override_styles/panel = SubResource("SafariBoxStyle")
+
+[node name="BallsLabel" type="Label" parent="Root/SafariBox"]
 layout_mode = 2
 horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.12549, 0.223529, 0, 1)
+
+[node name="MessageBox" type="NinePatchRect" parent="Root"]
+anchor_left = 0.03
+anchor_top = 0.78
+anchor_right = 0.66
+anchor_bottom = 0.97
+texture = ExtResource("5_textbox")
+texture_filter = 1
+patch_margin_left = 8
+patch_margin_top = 8
+patch_margin_right = 8
+patch_margin_bottom = 8
+
+[node name="Label" type="Label" parent="Root/MessageBox"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = -16.0
+offset_bottom = -10.0
+theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
+theme_override_font_sizes/font_size = 20
 autowrap_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
+vertical_alignment = 1
 
-[node name="BallsLabel" type="Label" parent="Root/Center/Panel"]
+[node name="ActionBox" type="NinePatchRect" parent="Root"]
+anchor_left = 0.69
+anchor_top = 0.78
+anchor_right = 0.97
+anchor_bottom = 0.97
+texture = ExtResource("5_textbox")
+texture_filter = 1
+patch_margin_left = 8
+patch_margin_top = 8
+patch_margin_right = 8
+patch_margin_bottom = 8
+
+[node name="Buttons" type="VBoxContainer" parent="Root/ActionBox"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+theme = SubResource("ActionTheme")
+theme_override_constants/separation = 8
+
+[node name="Throw" type="Button" parent="Root/ActionBox/Buttons"]
 layout_mode = 2
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+size_flags_vertical = 3
+text = "SAFARI BALL"
 
-[node name="Buttons" type="HBoxContainer" parent="Root/Center/Panel"]
+[node name="Flee" type="Button" parent="Root/ActionBox/Buttons"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 20
+size_flags_vertical = 3
+text = "FUIR"
 
-[node name="Throw" type="Button" parent="Root/Center/Panel/Buttons"]
-custom_minimum_size = Vector2(180, 50)
-text = "Lancer une Safari Ball"
-
-[node name="Flee" type="Button" parent="Root/Center/Panel/Buttons"]
-custom_minimum_size = Vector2(100, 50)
-text = "Fuir"
-
-[connection signal="pressed" from="Root/Center/Panel/Buttons/Throw" to="." method="_on_throw_pressed"]
-[connection signal="pressed" from="Root/Center/Panel/Buttons/Flee" to="." method="_on_flee_pressed"]
+[connection signal="pressed" from="Root/ActionBox/Buttons/Throw" to="." method="_on_throw_pressed"]
+[connection signal="pressed" from="Root/ActionBox/Buttons/Flee" to="." method="_on_flee_pressed"]

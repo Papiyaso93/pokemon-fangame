@@ -9,6 +9,7 @@ const TURN_TIME := 0.1
 
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const EncounterScene := preload("res://scenes/ui/encounter.tscn")
+const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
@@ -34,6 +35,7 @@ const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 
 func _ready() -> void:
 	add_to_group("player")
+	_apply_appearance()
 	_read_map_meta()
 	_update_safari_state()
 	# Arrivée via une transition : on se place au bon endroit de la nouvelle map.
@@ -46,6 +48,21 @@ func _ready() -> void:
 		Transitions.pending = false
 	move_target = position
 	_play("face")
+
+# Le spritesheet en dur dans player.tscn est red_normal ; les 4 apparences
+# (voir PlayerData.APPEARANCES) partagent le même format 144×32/9 frames,
+# donc il suffit de changer la texture source de chaque AtlasTexture.
+func _apply_appearance() -> void:
+	var path := "res://assets/characters/%s.png" % PlayerData.appearance
+	if not ResourceLoader.exists(path):
+		return
+	var tex: Texture2D = load(path)
+	var sf: SpriteFrames = anim.sprite_frames
+	for anim_name in sf.get_animation_names():
+		for i in range(sf.get_frame_count(anim_name)):
+			var frame_tex := sf.get_frame_texture(anim_name, i)
+			if frame_tex is AtlasTexture:
+				(frame_tex as AtlasTexture).atlas = tex
 
 func _read_map_meta() -> void:
 	var root := get_parent()
@@ -293,8 +310,13 @@ func _move_toward_target(delta: float) -> void:
 
 func _start_encounter() -> void:
 	is_busy = true
+	var transition := BattleTransitionScene.instantiate()
+	get_tree().current_scene.add_child(transition)
+	await transition.play_close()
 	var encounter := EncounterScene.instantiate()
 	get_tree().current_scene.add_child(encounter)
+	await transition.play_open()
+	transition.queue_free()
 	await encounter.finished
 	encounter.queue_free()
 	if SafariState.balls <= 0:

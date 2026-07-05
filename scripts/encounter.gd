@@ -7,18 +7,18 @@ const SPECIES_NAME := "Rattata"
 const SPECIES_CATCH_RATE := 255   # taux réel Rattata (255/255, le plus facile)
 const SAFARI_BALL_MULTIPLIER := 1.5   # bonus Safari Ball (pret sBallCatchBonuses = 15/10)
 
-@onready var sprite: TextureRect = $Root/Center/Panel/Sprite
-@onready var label: Label = $Root/Center/Panel/Label
-@onready var balls_label: Label = $Root/Center/Panel/BallsLabel
-@onready var throw_button: Button = $Root/Center/Panel/Buttons/Throw
-@onready var flee_button: Button = $Root/Center/Panel/Buttons/Flee
+@onready var sprite: TextureRect = $Root/Sprite
+@onready var label: Label = $Root/MessageBox/Label
+@onready var balls_label: Label = $Root/SafariBox/BallsLabel
+@onready var throw_button: Button = $Root/ActionBox/Buttons/Throw
+@onready var flee_button: Button = $Root/ActionBox/Buttons/Flee
 
 func _ready() -> void:
 	label.text = "Un %s sauvage apparaît !" % SPECIES_NAME
 	_update_balls_label()
 
 func _update_balls_label() -> void:
-	balls_label.text = "Safari Balls : %d" % SafariState.balls
+	balls_label.text = "Safari Balls\n× %d" % SafariState.balls
 
 func _on_throw_pressed() -> void:
 	throw_button.disabled = true
