@@ -10,7 +10,14 @@ const TURN_TIME := 0.1
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const EncounterScene := preload("res://scenes/ui/encounter.tscn")
 const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
+const LocationBannerScene := preload("res://scenes/ui/location_banner.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
+
+# Cartes qui gèrent leurs connexions en mode "fluide" (pas de rechargement de
+# scène : les cartes voisines sont chargées en recouvrement, positionnées au
+# bon endroit, dès l'arrivée sur la carte). Testé d'abord sur cette paire
+# avant extension à tout Kanto — voir HANDOFF.md.
+const SEAMLESS_MAPS := ["pallet_town", "route1"]
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -33,6 +40,10 @@ var is_jumping := false
 var jump_total_dist := 0.0
 const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 
+var origin_map_name := ""      # nom de la carte de cette scène (celle avec Player/Camera)
+var current_map_name := ""     # nom de la carte "effective" sous les pieds du joueur
+var neighbor_zones: Array = []   # {name, rect (Rect2, coords locales à cette scène), dir}
+
 func _ready() -> void:
 	add_to_group("player")
 	_apply_appearance()
@@ -48,6 +59,14 @@ func _ready() -> void:
 		Transitions.pending = false
 	move_target = position
 	_play("face")
+
+	origin_map_name = get_tree().current_scene.scene_file_path.get_file().get_basename()
+	current_map_name = origin_map_name
+	# Différé : l'arbre de scène est encore en cours de construction pendant
+	# ce _ready() (change_scene_to_file en cours), on ne peut pas encore lui
+	# ajouter/retirer des nœuds à ce moment précis.
+	call_deferred("_load_neighbor_overlays")
+	call_deferred("_show_location_banner", current_map_name)
 
 # Le spritesheet en dur dans player.tscn est red_normal ; les 4 apparences
 # (voir PlayerData.APPEARANCES) partagent le même format 144×32/9 frames,
@@ -76,6 +95,105 @@ func _read_map_meta() -> void:
 		grass = root.get_meta("grass")
 	if root and root.has_meta("warps"):
 		warps = root.get_meta("warps")
+
+# ── Transitions fluides (voir HANDOFF.md) ──────────────────────────────────
+# Pour les cartes listées dans SEAMLESS_MAPS : au lieu de recharger la scène
+# en franchissant un bord connecté, on charge les calques (Below/Above/
+# Collision) de la carte voisine directement dans la scène courante,
+# positionnés au bon endroit — le joueur continue simplement sa marche, sans
+# écran noir. Le Player/Camera de la carte voisine (générés par
+# import_map.gd) ne servent à rien ici et sont jetés.
+
+func _load_neighbor_overlays() -> void:
+	if origin_map_name not in SEAMLESS_MAPS:
+		return
+	var root := get_parent()
+	for c in connections:
+		var target := String(c.get("target", ""))
+		if target not in SEAMLESS_MAPS:
+			continue
+		var dname := String(c.get("dir", ""))
+		var off := int(c.get("offset", 0))
+		_attach_neighbor(root, target, dname, off)
+
+func _attach_neighbor(root: Node2D, target: String, dname: String, off: int) -> void:
+	var path := "res://scenes/maps/%s.tscn" % target
+	if not ResourceLoader.exists(path):
+		return
+	var packed := load(path) as PackedScene
+	var neighbor := packed.instantiate()
+	var n_size: Vector2i = neighbor.get_meta("map_size", Vector2i.ZERO)
+
+	# Même calcul que _entry_tile()/_try_transition(), mais pour placer toute
+	# la carte voisine dans l'espace local de la carte courante au lieu de
+	# calculer juste une case d'arrivée.
+	var world_off: Vector2
+	match dname:
+		"up":
+			world_off = Vector2(off * TILE_SIZE, -n_size.y * TILE_SIZE)
+		"down":
+			world_off = Vector2(off * TILE_SIZE, map_size.y * TILE_SIZE)
+		"left":
+			world_off = Vector2(-n_size.x * TILE_SIZE, off * TILE_SIZE)
+		_:
+			world_off = Vector2(map_size.x * TILE_SIZE, off * TILE_SIZE)
+
+	for layer_name in ["Below", "Above", "Collision"]:
+		var node := neighbor.get_node_or_null(layer_name)
+		if node == null:
+			continue
+		neighbor.remove_child(node)
+		node.position += world_off
+		node.owner = null
+		root.add_child(node)
+		if layer_name == "Below":
+			root.move_child(node, 0)   # doit rester derrière le joueur
+	neighbor.queue_free()   # Player/Camera de la carte voisine : inutiles ici
+
+	var cam := $Camera2D
+	match dname:
+		"up":
+			cam.limit_top = int(world_off.y)
+		"down":
+			cam.limit_bottom = int(world_off.y + n_size.y * TILE_SIZE)
+		"left":
+			cam.limit_left = int(world_off.x)
+		_:
+			cam.limit_right = int(world_off.x + n_size.x * TILE_SIZE)
+
+	neighbor_zones.append({
+		"name": target,
+		"rect": Rect2(world_off, Vector2(n_size) * TILE_SIZE),
+		"dir": dname,
+	})
+
+# Vrai si la case visée est dans la carte d'origine OU dans une carte voisine
+# déjà chargée en recouvrement (donc pas besoin de transition/téléportation).
+func _is_within_loaded_world(tgt: Vector2i) -> bool:
+	if tgt.x >= 0 and tgt.y >= 0 and tgt.x < map_size.x and tgt.y < map_size.y:
+		return true
+	var p := Vector2(tgt) * TILE_SIZE
+	for n in neighbor_zones:
+		if n.rect.has_point(p):
+			return true
+	return false
+
+# Appelé après chaque pas terminé : détecte si le joueur vient de passer sous
+# les pieds d'une carte voisine (ou d'y revenir), pour le bandeau de nom de lieu.
+func _update_current_zone() -> void:
+	var new_name := origin_map_name
+	for n in neighbor_zones:
+		if n.rect.has_point(position):
+			new_name = n.name
+			break
+	if new_name != current_map_name:
+		current_map_name = new_name
+		_show_location_banner(current_map_name)
+
+func _show_location_banner(scene_id: String) -> void:
+	var banner := LocationBannerScene.instantiate()
+	get_tree().current_scene.add_child(banner)
+	banner.show_name(MapNames.get_french_name(scene_id))
 
 # Démarre une nouvelle visite (balls/captures à zéro) seulement à la première
 # entrée dans une des 4 maps de la Zone Safari. La sortie (et le choix du
@@ -218,10 +336,13 @@ func _check_input() -> void:
 	facing = want
 	state = MOVING
 
-	# Bord de map franchi ? -> transition si connexion vers une scène existante.
+	# Bord de map franchi ? -> transition si connexion vers une scène existante,
+	# sauf si une carte voisine est déjà chargée en recouvrement à cet endroit
+	# (transition fluide, voir _load_neighbor_overlays) : dans ce cas on laisse
+	# le joueur continuer normalement, ses tuiles sont déjà là.
 	var cur := Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))
 	var tgt := cur + Vector2i(int(dir.x), int(dir.y))
-	if tgt.x < 0 or tgt.y < 0 or tgt.x >= map_size.x or tgt.y >= map_size.y:
+	if not _is_within_loaded_world(tgt):
 		_try_transition(dir, cur)
 		return
 
@@ -298,6 +419,8 @@ func _move_toward_target(delta: float) -> void:
 		if is_jumping:
 			is_jumping = false
 			anim.position.y = 0.0
+		if not neighbor_zones.is_empty():
+			_update_current_zone()
 		if pending_encounter_check:
 			pending_encounter_check = false
 			if randf() < ENCOUNTER_CHANCE:

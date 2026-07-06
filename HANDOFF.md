@@ -421,7 +421,10 @@ intenable, et que les données pret contiennent déjà layout + collision + calq
 - ✅ **Joueur ISO** : déplacement, animations, tap-to-turn, collisions, **rebords/ledges**
   (saut 2 cases à sens unique + arc visuel — voir section Joueur).
 - ✅ **Kanto extérieur entièrement navigable à pied** (transitions de bord + warps ponctuels).
-  Limitation connue : `change_scene` = « téléport », pas de défilement continu (TODO seamless).
+  Transitions **seamless** (pas de téléportation/écran noir) sur `pallet_town ↔ route1`
+  uniquement pour l'instant (voir section dédiée plus bas, `SEAMLESS_MAPS` dans `player.gd`) ;
+  partout ailleurs, `change_scene` fait encore un « téléport » classique. Extension du
+  périmètre = ajouter les noms de cartes à `SEAMLESS_MAPS`.
 - ✅ **5 grottes génériques** (Diglett, Mt Sélénite, Souterrain, Écume, Route Victoria) :
   petite pièce 9×11 réutilisée telle quelle (vraies tuiles cave FRLG extraites de Mt Moon),
   chacune avec 2 portes reliant les vrais points de passage obligatoires de Kanto (voir
@@ -457,15 +460,98 @@ d'atterrissage inventée (ex. « +1 case au sud de la porte ») : **vérifier sa
 de l'utiliser — plusieurs fois une case voisine tombait dans le bâtiment/mur (voir historique
 de session : bugs Forêt de Jade nord + portes Safrania 5/6).
 
-## ▶ TODO — transitions SEAMLESS (défilement continu FRLG)
-Le `change_scene` actuel fait un « téléport » (recharge la scène ; pas de continuité ; gris
-au-delà du bord). La vraie façon FRLG à implémenter :
-- **Joueur persistant** + un **gestionnaire de monde** qui charge la map courante ET ses
-  **voisines** (instanciées à leur offset en pixels ; ex. Route 1 au-dessus de Pallet).
-- Pas de rechargement : marche continue, caméra qui défile ; quand le joueur traverse dans une
-  voisine, elle devient « courante », on charge SES voisines et on décharge les lointaines.
-  Collision OK (chaque scène garde son calque Collision). Caméra : limites = boîte englobante
-  des maps chargées. → Refonte : le joueur sort des scènes de map et devient persistant.
+## ✅ Transitions SEAMLESS (défilement continu FRLG) — implémenté, testé sur Bourg Palette ↔ Route 1
+
+**Décision de rollout (validée avec Gus)** : construire un système générique mais ne
+l'activer que sur une paire de cartes à la fois, pour isoler les bugs. Première paire :
+`pallet_town` ↔ `route1`. Voir `player.gd`, const `SEAMLESS_MAPS` — pour étendre à d'autres
+cartes, **juste ajouter leurs noms à cette liste** (aucune autre modif nécessaire, le système
+lit les connexions déjà présentes dans les métadonnées de chaque carte).
+
+### Principe (différent de ce qui était prévu initialement)
+Le plan d'origine envisageait un joueur persistant + un gestionnaire de monde séparé (gros
+refactor). **Solution retenue, plus légère** : le joueur reste embarqué dans sa carte comme
+avant (aucun changement de `import_map.gd`/architecture des scènes), mais au chargement, pour
+chaque connexion dont la cible est aussi dans `SEAMLESS_MAPS`, on **extrait les calques
+Below/Above/Collision de la carte voisine et on les rattache directement dans la scène
+courante**, positionnés au bon décalage — le Player/Camera de la carte voisine (générés par
+`import_map.gd` dans son propre fichier `.tscn`) ne servent à rien ici et sont jetés
+(`queue_free()`). Le joueur continue simplement sa marche ; ses coordonnées locales deviennent
+négatives/hors bornes d'origine, ce qui est normal et pris en charge.
+
+### Détail technique (`player.gd`)
+- `_load_neighbor_overlays()` (appelée via `call_deferred` depuis `_ready()` — **important**,
+  voir piège ci-dessous) : pour chaque connexion vers une carte dans `SEAMLESS_MAPS`, appelle
+  `_attach_neighbor()`.
+- `_attach_neighbor(root, target, dname, off)` : calcule le décalage monde de la carte voisine
+  à partir de sa direction (`dname`) et de son `offset` (mêmes données que celles déjà utilisées
+  par `_try_transition()`/`_entry_tile()` pour les téléportations à l'ancienne, donc formules
+  dérivées et cohérentes avec l'existant, pas inventées) :
+  - `up` : voisin à `(off*TILE, -n_size.y*TILE)`
+  - `down` : voisin à `(off*TILE, map_size.y*TILE)`
+  - `left` : voisin à `(-n_size.x*TILE, off*TILE)`
+  - `right` : voisin à `(map_size.x*TILE, off*TILE)`
+  Puis extrait `Below`/`Above`/`Collision` de la scène voisine instanciée, les repositionne, et
+  les rattache à `root` (la carte courante) : `Below` inséré à l'index 0 (doit rester **derrière**
+  le joueur), `Above`/`Collision` ajoutés normalement (après, donc **devant** le joueur pour
+  `Above`). Étend aussi les limites de la `Camera2D` du joueur (`limit_top/bottom/left/right`)
+  pour qu'elle puisse suivre le joueur dans le territoire voisin.
+- `_is_within_loaded_world(tgt)` : remplace l'ancien test brut `tgt.x < 0 or ...` dans
+  `_check_input()` — vrai si la case visée est dans la carte d'origine OU dans le rectangle
+  d'une carte voisine déjà rattachée (auquel cas on laisse le mouvement normal se faire, la
+  collision/le rendu sont déjà là) ; sinon, comportement inchangé (`_try_transition`, qui peut
+  déclencher l'ancien système de téléportation si une connexion existe mais n'est pas seamless).
+- `_update_current_zone()` (appelée après chaque pas terminé) : détecte dans quel rectangle
+  (origine ou voisin) se trouve la position du joueur, et si ça a changé, déclenche le bandeau
+  de nom de lieu (voir section dédiée).
+
+### Limitation connue (acceptée pour ce périmètre de test)
+Les données `ledges`/`grass` (rebords, hautes herbes) restent celles de la carte d'origine
+uniquement — une fois le joueur dans le rectangle de la carte voisine, ces tableaux ne sont pas
+fusionnés/switchés, donc un rebord ou une case d'herbe **dans route1 lui-même** (pas juste à la
+frontière) ne serait pas détecté correctement. Sans conséquence visible aujourd'hui (les
+rencontres sauvages hors Zone Safari ne sont pas encore branchées : `pending_encounter_check`
+exige `SafariState.active`), mais **à traiter avant d'activer la seamless sur des cartes avec
+rebords/herbes actifs**. De même, si le joueur va assez loin dans route1 pour atteindre SA
+propre frontière nord (vers Viridian, pas dans `SEAMLESS_MAPS`), il sera bloqué comme un mur
+plutôt que de téléporter — attendu, pas grave, juste à garder en tête en étendant la liste.
+
+### ⚠️ Pièges Godot rencontrés cette session (transitions seamless)
+1. **`add_child`/`remove_child` direct dans `_ready()` → erreur "Parent node is busy"** :
+   l'arbre de scène est encore en cours de construction pendant `_ready()` (le nœud vient
+   d'entrer dans l'arbre). Fix : appeler `_load_neighbor_overlays()` via
+   `call_deferred("_load_neighbor_overlays")` plutôt que directement.
+2. **`get_name()` est déjà une méthode native de `Node`** (retourne le nom du nœud) — l'autoload
+   `map_names.gd` avait une méthode `get_name(scene_id)` qui écrasait la méthode native avec une
+   signature incompatible, provoquant une erreur de compilation à l'autoload. Renommé en
+   `get_french_name()`.
+3. **Reproduire `change_scene_to_file()` dans un harnais de test est piégeux** : appeler
+   `change_scene_to_file()` depuis la coroutine d'un nœud qui va lui-même être libéré par ce
+   changement de scène provoque un blocage silencieux (le nœud appelant est détruit pendant que
+   sa propre coroutine est encore suspendue en `await`). Et reproduire manuellement
+   `add_child()` + `current_scene = ...` échoue aussi (`set_current_scene` exige que le nœud
+   soit déjà enfant de `root`, donc l'ordre est piégeux). **Méthode qui a marché** : lancer
+   directement la carte à tester comme scène de démarrage
+   (`godot --path . res://scenes/maps/X.tscn`) et injecter la logique de test via un **autoload
+   temporaire** (ligne ajoutée dans `project.godot`, retirée après coup) plutôt que via une
+   scène `_tmp_*.tscn` classique — évite complètement le problème de self-destruction.
+
+## ✅ Bandeau du nom de lieu (`location_banner.gd`/`.tscn`)
+Fidèle FRLG (pret `src/map_name_popup.c`) : se déroule verticalement depuis le haut-gauche de
+l'écran (même fenêtre "standard" `assets/ui/std_window.png` que les menus de choix — **pas** le
+cadre ondulé des dialogues, ce sont deux éléments distincts dans le vrai jeu), reste affiché
+~1.8s, puis se réenroule. Déclenché par `player.gd` : à chaque `_ready()` (donc à chaque
+chargement/téléportation de carte) ET à chaque changement de zone détecté par
+`_update_current_zone()` (pour les cartes en mode seamless). Texte = police système par défaut
+de Godot (pas `dialogue_latin.fnt` — même bug de rendu déjà rencontré sur `PanelContainer` +
+`StyleBoxTexture`, voir plus haut).
+
+**Noms français** : `scripts/map_names.gd` (autoload `MapNames`), dictionnaire nom-de-scène →
+nom français **vérifié via recherche web** (Poképédia/Pokébip), pas improvisé. Attention :
+`get_name()` est déjà une méthode native de `Node`, la fonction de lookup s'appelle
+`get_french_name()`. Si une carte est ajoutée à `MAPS` (import_map.gd) sans entrée dans
+`MapNames.NAMES`, le bandeau affichera le nom de fichier brut (fallback dans
+`get_french_name()`) — penser à compléter le dictionnaire à chaque nouvelle carte.
 
 ## Générer la suite de Kanto (token-efficient)
 Ajouter les maps dans `MAPS` (les deux fichiers), générer en **batch** (plusieurs d'un coup),
