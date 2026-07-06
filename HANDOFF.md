@@ -341,6 +341,18 @@ plus bas), pas juste "ça compile".
 dans `scripts/safari_entrance_gate.gd::_handle_return_from_safari()`, détection herbes dans
 `player.gd` (`_is_grass`, `pending_encounter_check`, `ENCOUNTER_CHANCE=0.10`).
 
+**✅ Fix : joueur qui "marche sur place" juste avant le rideau de rencontre** —
+`player.gd::_move_toward_target()` mettait `is_moving = false` puis appelait directement
+`_start_encounter()` sans jamais repasser l'animation en `face` : l'anim `walk` avait été lancée
+au début du pas (`_check_input()`) et ne se remet en `face` normalement que via le prochain
+passage dans `_check_input()` (frame suivante) — sauf que `_start_encounter()` met `is_busy = true`
+dans le même appel, ce qui bloque `_physics_process` avant qu'il n'y repasse. Résultat : le sprite
+restait bloqué sur l'animation de marche en boucle pendant tout le rideau de transition. **Fix** :
+`_play("face")` ajouté en toute première ligne de `_start_encounter()`. Vérifié que les autres
+appels qui posent `is_busy = true` (warp, `_try_transition`, dialogue, pause) se déclenchent tous
+alors que `is_moving` est déjà `false` depuis une frame précédente (donc `face` déjà affiché) —
+pas de trou équivalent ailleurs.
+
 ---
 
 ## ⚠️ PIÈGE GODOT — UI ajoutée dynamiquement à une map = toujours `CanvasLayer`
@@ -1065,6 +1077,212 @@ empirique : **+18% sur toutes les tailles de police déjà réduites** (16→19 
 - **`encounter.gd`** : tout le texte s'affichait d'un coup (`label.text = ...` direct), pas
   cohérent avec `dialogue_box.gd` qui a déjà l'effet machine à écrire partout ailleurs. Ajout de
   `_type_text(text)` (même `CHAR_DELAY = 0.02` que `dialogue_box.gd`), utilisé par `_say()` (les
+
+## ✅ Écran de rencontre — repositionnement fidèle + fenêtre d'action séparée (06/07/2026)
+
+Suite au retour de Gus comparant l'écran actuel à de vraies captures FRLG (Bulbizarre/Carapuce,
+Onix/Charmander) : positions approximatives, boutons mélangés dans la boîte de message, style de
+boîte pas identique, texte trop petit. Recherche faite dans `kanto-pipeline/pokefirered` avant de
+retoucher quoi que ce soit (pas de réglage à l'œil) :
+
+- **Positions réelles retrouvées dans le code décompilé** (combat simple, écran natif 240×160,
+  `src/battle_anim_mons.c::sBattlerCoords` et `src/battle_interface.c::InitBattlerHealthboxCoords`) :
+  - Sprite adversaire : centre `(176, 40)` → fraction d'écran `(0.7333, 0.25)`.
+  - Sprite joueur (dos) : centre `(72, 80)` → `(0.30, 0.50)`.
+  - Carte adversaire (healthbox) : centre `(44, 30)` → `(0.1833, 0.1875)`.
+  - Carte joueur (même emplacement que `SafariBox` avant d'avoir un vrai partenaire) : centre
+    `(158, 88)` → `(0.6583, 0.55)`.
+  Toutes les ancres de `encounter.tscn` (`Sprite`, `PlayerSprite`, `HealthBox`, `SafariBox`)
+  recalées sur ces centres, tailles de boîte conservées.
+- **⚠️ La grande ellipse pâle sous chaque combattant (`Shadow`/`PlayerShadow`) n'est PAS
+  officiellement dans FireRed/LeafGreen** — vérifié en décodant `terrain.bin`/`anim.bin` pixel par
+  pixel (script `/private/tmp/.../decode_terrain.py`, jetable) avec la vraie palette : aucune
+  ellipse n'est dessinée dans le tilemap de fond ; le seul asset "ombre" du repo entier
+  (`graphics/battle_interface/enemy_mon_shadow.png`) ne fait que **32×8px** (bien trop petit),
+  et n'existe que pour l'adversaire (commentaire pret : "The player's shadow is never seen").
+  Gus confirme que ses captures viennent bien de Rouge Feu — la grande ellipse reste donc un
+  **choix perso non documenté officiellement** ; ses ancres ont été recalées à l'œil sous les
+  nouvelles positions de sprite (adversaire : ellipse entièrement visible juste sous les pieds ;
+  joueur : ellipse volontairement coupée par `BottomBox`, comme sur les captures de Gus). À
+  revoir si Gus retrouve la vraie origine de cet élément.
+- **Fenêtre d'action séparée de la boîte de message** (`ActionWindow`, nouveau nœud) : les
+  boutons Ball/Appât/Pierre/Fuite ne sont plus dans `BottomBox` (qui ne contient plus que le
+  message) — même principe déjà établi pour `class_choice`/`partner_choice` (jamais mélanger
+  question et options dans la même fenêtre). Réutilise **`square_window.png`** (le style actuel
+  de toutes les fenêtres de choix, pas `std_window.png`/`dialogue_frame.png`, abandonnés) +
+  `choice_arrow.png`/`choice_arrow_blank.png` au survol (icône réservée par défaut pour ne pas
+  faire varier la largeur des boutons), exactement comme `class_choice.gd`. Ajoutée comme
+  simple `PanelContainer` enfant de `Root` (pas un `CanvasLayer` séparé) : `encounter.tscn` est
+  déjà lui-même un `CanvasLayer` racine, et un `CanvasLayer` imbriqué dans un autre ne se rend
+  pas correctement (piège déjà documenté plus haut pour `save_slots`/`title_screen`).
+- **`BottomBox` reconstruite en 3 couches imbriquées** (`BottomBox` or → `Mid` crème → `Inner`
+  marine + `Label`) pour un rendu à liseré double plus proche du vrai `textbox.png` FRLG (bordure
+  or, fin liseré clair, fond marine) — un seul `StyleBoxFlat` ne permet qu'une seule couleur de
+  bordure, d'où les 3 `PanelContainer` imbriqués plutôt qu'un seul.
+- **Toutes les tailles de police remontées à 31** (`HealthBox`, `SafariBox`, message, à la
+  parité de `dialogue_box.tscn`) — avant : 19 (cartes) / 21 (message et boutons), sensiblement
+  plus petit que le reste du jeu, repéré par Gus sur capture. Boutons d'action à 26 (un cran
+  en dessous, cohérent avec la capture de référence où le texte d'action est visiblement plus
+  petit que le message).
+- **Non fait / à valider en jeu** (Godot éditeur ouvert en parallèle, pas de test headless) :
+  toutes ces valeurs sont un premier jet basé sur les vraies coordonnées pret + mesure à l'œil
+  pour l'ellipse — à confirmer visuellement par Gus, notamment le fait que `PlayerShadow`
+  dépasse bien sous `BottomBox` sans clipping bizarre, et que `SafariBox`/`HealthBox` ne
+  débordent pas avec le texte en 31.
+
+### ✅ Itérations visuelles post-retours Gus (même session)
+- Boutons gris moches sur `ActionWindow` : `ActionBtnTheme` ne définissait pas de style de
+  bouton → Godot retombait sur le style gris par défaut du moteur. Fix : `StyleBoxEmpty`
+  (`ActionBtn_empty`) sur `normal/hover/pressed/focus/disabled`, comme `Btn_empty` dans
+  `class_choice.tscn` — laisse voir le fond blanc de `square_window.png`, texte en encre foncée
+  via `dialogue_latin.fnt` (le thème `game_theme` fixe juste `font_color=blanc`, un no-op de
+  teinte qui préserve l'encre déjà foncée de cette police, voir règle documentée plus haut).
+- Repositionnements empiriques suite à captures de Gus (le sprite adversaire dérivé des
+  coordonnées pret paraissait trop haut en vrai rendu — écart entre la sémantique exacte de
+  `CreateSprite(x,y)` en C et mon hypothèse "centre visuel", pas creusé plus loin) : joueur
+  descendu jusqu'à toucher `BottomBox` (pieds à `bottom=0.78`), adversaire descendu (centre
+  `y` 0.25→0.33), `SafariBox` déplacée du milieu d'écran vers juste au-dessus d'`ActionWindow`
+  (même largeur qu'elle) plutôt que sa position dérivée de pret (jugée "en plein milieu").
+- **⚠️ Piège `TextureRect.stretch_mode` sur `Shadow`/`PlayerShadow`** : élargir l'ancre du
+  `TextureRect` ne changeait rien visuellement — `stretch_mode = 5` (`KEEP_ASPECT_CENTERED`)
+  verrouille le ratio natif de la texture et centre dedans, indépendamment de la taille du
+  conteneur. Repassé à `stretch_mode = 0` (`SCALE`, remplit vraiment le rectangle d'ancrage,
+  déforme si besoin) pour que l'ellipse suive réellement les ancres. **Sprite/PlayerSprite
+  restent en `stretch_mode = 5`** (aspect gardé intentionnellement pour les sprites Pokémon/
+  joueur, pas de déformation) — ne pas appliquer ce fix par réflexe à tout `TextureRect` de la
+  scène, seulement à `Shadow`/`PlayerShadow`.
+- Ellipse adversaire remontée et élargie en 3 passes successives (retours itératifs de Gus sur
+  captures) : centre final `y≈0.40`, largeur `≈0.52` (contre `y≈0.55`/`0.36` au premier jet) ;
+  ellipse joueur élargie à `≈0.52` sans toucher sa position verticale (demande explicite de
+  Gus de ne pas y toucher).
+- **Ellipse toujours pas retrouvée officiellement dans `pokefirered`** malgré une recherche
+  poussée (décodage pixel par pixel de `terrain.bin`/`anim.bin` avec le vrai découpage en blocs
+  VRAM 32×32, confirmé via `LZDecompressVram` dans `src/battle_bg.c`) — Gus a laissé tomber la
+  piste pour l'instant, on garde `platform.png` (asset perso) ajusté à l'œil.
+- **Transition de retour de combat** (`player.gd::_start_encounter()`) : avant, l'écran de
+  capture disparaissait d'un coup (`encounter.queue_free()` direct) au retour sur la map — cut
+  brutal signalé par Gus. 1ère tentative : réutiliser `battle_transition.gd` (rideau flash +
+  fermeture, comme l'entrée en combat) — rejetée par Gus, trop pour un simple retour. **Fix
+  retenu** : simple fondu noir via l'autoload `ScreenFade` (`fade_out()` → `encounter.queue_free()`
+  → `fade_in()`), le même mécanisme déjà utilisé pour les warps/entrées de bâtiment — cohérent
+  avec le reste du jeu, pas de nouvel effet inventé. Le cas 0 Safari Ball (dialogue + 2e
+  `ScreenFade.fade_out()` + warp vers `safari_entrance`) reste inchangé après.
+
+## ✅ Menu pause : Reprendre/Sauvegarder/Quitter (nouvel ordre + action Quitter)
+
+`pause_menu.tscn`/`pause_menu.gd` réordonnés (Reprendre, Sauvegarder, Quitter — avant :
+Sauvegarder, Reprendre seulement). Nouveau bouton **Quitter** : fondu noir (`ScreenFade`) puis
+`change_scene_to_file` vers `title_screen.tscn` — pas de sauvegarde automatique, cohérent avec
+la règle déjà en place (sauvegarde toujours volontaire).
+
+**⚠️ Bug corrigé juste après (signalé par Gus, testé) : écran noir bloqué après "Quitter".**
+`ScreenFade.fade_out()` assombrit l'écran mais **rien n'appelait `fade_in()`** une fois sur
+`title_screen.tscn` — contrairement aux cartes, où c'est `player.gd::_load_world()` qui s'en
+charge après chaque warp, `title_screen.gd` n'avait jamais eu besoin de ça (c'est normalement
+la toute première scène chargée au lancement du jeu, jamais atteinte via un fondu avant
+aujourd'hui). **Fix** : `ScreenFade.fade_in()` ajouté en tête de `title_screen.gd::_ready()` —
+sans effet si l'alpha est déjà à 0 (démarrage normal), corrige le cas "Quitter". **Règle à
+retenir** : toute future scène qui peut être atteinte à la fois au démarrage ET via un
+`ScreenFade.fade_out()` doit appeler `fade_in()` dans son propre `_ready()`.
+
+## ✅ Flèche de sélection ajoutée à `save_slots.tscn`
+
+Signalé par Gus : la modale de sauvegarde/chargement n'avait pas la flèche `choice_arrow.png`
+au survol contrairement aux autres menus de choix. Les boutons de cet écran sont créés
+**dynamiquement en code** (`save_slots.gd::_build_row()`, pas dans le `.tscn`, un par slot +
+un "Supprimer" par slot rempli) — nouvelle fonction `_setup_arrow(btn)` (icône
+`choice_arrow_blank.png`/`choice_arrow.png` au survol, `icon_alignment`/`expand_icon`) appliquée
+à chaque bouton créé (`slot_button`, `delete_button`) et au bouton statique `Back` (Revenir) en
+`_ready()`. Seul le `Label` de titre ("Sauvegarder"/"Charger une partie"/"Nouvelle partie") n'a
+pas de flèche, comme demandé (ce n'est pas une action cliquable).
+
+**⚠️ Tentative abandonnée : flèche collée au texte centré de "Revenir".** Contrairement aux
+lignes de slots (texte aligné à gauche, flèche `Button.icon` déjà collée dessus), "Revenir" a un
+texte **centré** — la flèche native (`icon_alignment`) reste ancrée au bord gauche du bouton,
+loin du texte. Essayé sans succès :
+1. `alignment = LEFT` sur le bouton (aligne texte à gauche comme les slots) — rejeté par Gus,
+   il voulait garder "Revenir" centré.
+2. `icon_alignment = CENTER` au lieu de `LEFT` — la flèche devient invisible (cause exacte non
+   identifiée, semble se superposer sous le label plutôt que se placer à côté).
+3. Repris le pattern `Content` (`HBoxContainer`) + `Icon`/`Label`/`Spacer` déjà utilisé par
+   `title_screen.gd` pour ce même problème (bouton avec texte centré + icône) — toujours rendu
+   avec la flèche au bord gauche du bouton en jeu, cause non comprise (fonctionne pourtant sur
+   `title_screen.tscn` avec une structure identique).
+**Décision de Gus** : laissé en l'état (flèche à gauche via `_setup_arrow(back_button)`, comme
+avant ces tentatives) plutôt que de continuer à bricoler sans piste fiable. À reprendre
+seulement avec une vraie nouvelle piste (ex. tester en isolant une scène minimale, comme
+recommandé ailleurs dans ce document pour d'autres bugs de rendu Godot non élucidés).
+
+## ✅ Écran de rencontre — 2 retours post-test (alignement + blocage testeur)
+
+- **`HealthBox` alignée avec `BottomBox`** : les deux `anchor_left` étaient légèrement décalés
+  (0.0183 vs 0.03, hérité du recalage sur les coordonnées pret qui ne visait pas cet
+  alignement). Mis à `0.03` des deux côtés (largeur de `HealthBox` conservée).
+- **⚠️ Bug UX corrigé : message "Un Rattata sauvage apparaît !" bloquait un testeur.**
+  `_wait_for_continue()` attendait un appui `ui_accept` avant d'enchaîner sur "Que veux-tu
+  faire ?" (fidèle FRLG à l'origine) — un testeur ne l'a pas compris et est resté bloqué, aucune
+  autre étape de cette séquence ne demande d'appui. **Fix** : remplacé par une simple pause
+  chronométrée (`get_tree().create_timer(1.3).timeout`, même ordre de grandeur que les autres
+  messages de `encounter.gd`), enchaîne seul sans action requise. Fonction `_wait_for_continue()`
+  supprimée (plus aucun appelant).
+- **Accéléré le texte à l'appui, comme `dialogue_box.gd`** : demandé par Gus juste après (il a
+  remarqué qu'un appui pendant la frappe n'accélérait rien ici, contrairement aux PNJ). Le
+  mécanisme `skip_requested`/`typing` existait déjà dans `_type_text()` mais rien ne l'activait
+  depuis la suppression de `_wait_for_continue()`. Ajout de `_unhandled_input()` (même pattern
+  que `dialogue_box.gd`) : un appui `ui_accept` pendant que `typing == true` affiche le texte
+  en cours instantanément — vaut pour **tous** les messages de cet écran (apparition, capture,
+  appât/pierre, fuite...), pas seulement celui d'ouverture.
+- **Flèche de continuation + saut du délai, pour être iso avec `dialogue_box.gd`** : Gus a
+  remarqué qu'un 2e appui (une fois le texte complet affiché) ne faisait rien — il fallait
+  attendre le délai fixe (1.3-1.5s) comme pour tous les PNJ. Nouvelle fonction
+  `_wait_or_continue(duration)` : affiche `continue_arrow` (même asset `down_arrow_3/4.png`
+  clignotant que `dialogue_box.gd`, nouveau nœud `Arrow` sous `BottomBox/Mid/Inner`, en second
+  enfant du `PanelContainer` ancré en bas-droite — un `PanelContainer` redimensionne bien
+  chaque enfant indépendamment selon ses propres ancres, comme un `Control` classique, donc
+  `Label` et `Arrow` coexistent sans conflit) et attend soit le délai, soit
+  `advance_requested` (mis à `true` par `_unhandled_input` sur un appui pendant que
+  `waiting == true`). `_say()` et le délai de `play_entrance()` utilisent maintenant cette
+  fonction au lieu d'un simple `create_timer(...).timeout`.
+- **⚠️ Bug corrigé juste après (signalé par Gus) : flèche énorme, centrée dans la boîte.**
+  `Label` et `Arrow` étaient tous les deux enfants directs du `PanelContainer` `Inner` —
+  **un `Container` (dont `PanelContainer`) redimensionne TOUS ses enfants pour remplir tout le
+  rectangle disponible, sans respecter leurs ancres individuelles** (contrairement à
+  `dialogue_box.tscn`, dont la racine `Panel` est un `NinePatchRect`, un `Control` classique, pas
+  un `Container` — d'où les ancres bas-droite qui y fonctionnaient). Résultat : `Arrow` était
+  étiré à la taille entière du panneau. **Fix** : nouveau nœud `Content` (`Control` nu, pas un
+  `Container`) inséré comme unique enfant d'`Inner`, avec `Label`/`Arrow` déplacés dedans — un
+  `Control` respecte les ancres de ses enfants librement, contrairement à un `Container`.
+  **Règle à retenir** : ne jamais mettre plusieurs enfants avec des ancres différentes
+  directement dans un `PanelContainer`/`Container` — toujours passer par un `Control`
+  intermédiaire si plusieurs éléments doivent coexister à des positions différentes dans la
+  même zone.
+
+## ✅ `scripts/typewriter.gd` — effet machine à écrire mutualisé
+
+Gus a demandé de vérifier si la boîte de dialogue PNJ et celle de l'écran de combat étaient
+identiques (taille de police, vitesse de frappe) — confirmé identiques (31, `CHAR_DELAY=0.02`)
+mais dupliquées dans `dialogue_box.gd` (accumulation dans `_process`) et `encounter.gd` (boucle
+`await create_timer` par caractère), avec le risque qu'elles divergent un jour sans que ça se
+remarque. Extrait en composant partagé à la demande de Gus ("pour être clean, éviter des
+surprises plus tard") :
+
+- **`Typewriter`** (`class_name`, `extends RefCounted`) : `start(text)` / `skip()` /
+  `update(delta)` (à appeler depuis le `_process()` de l'appelant, pas de `_process` propre —
+  un `RefCounted` n'est pas un `Node`) / signal `completed`. Un seul `CHAR_DELAY` (0.02),
+  une seule logique de révélation caractère par caractère.
+- **`dialogue_box.gd`** : `current_text`/`revealed`/`char_timer`/`typing` supprimés, remplacés
+  par une instance `typewriter` ; `_show_page()` appelle `typewriter.start(...)`, la logique
+  qui suivait (afficher la flèche, émettre `page_typed`) déplacée dans un nouveau callback
+  `_on_page_typed()` connecté au signal `completed`.
+- **`encounter.gd`** : `typing`/`skip_requested`/`CHAR_DELAY` supprimés, `_type_text()` devient
+  un simple wrapper (`typewriter.start(text)` puis `await typewriter.completed`) — tous les
+  appelants existants (`_say()`, `play_entrance()`, etc.) inchangés, toujours `await`-ables
+  pareil qu'avant.
+- **Non partagé, volontairement** : la logique de flèche de continuation reste distincte dans
+  les deux fichiers (comportement différent : `dialogue_box.gd` attend toujours un appui pour
+  avancer, `encounter.gd` avance seul après un délai sauf appui — cf. entrée précédente sur le
+  blocage testeur). Seul l'effet de frappe caractère par caractère était vraiment dupliqué à
+  l'identique.
   messages type "Gotcha !"/"Vous lancez un appât !") et par le message d'apparition + "Que
   veux-tu faire ?". Un appui pendant la frappe l'affiche instantanément (`skip_requested`, même
   logique que `dialogue_box.gd`) plutôt que de sauter à l'étape suivante par erreur.

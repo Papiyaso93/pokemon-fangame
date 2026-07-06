@@ -14,6 +14,13 @@ const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 var slots_screen: Node = null
 
 func _ready() -> void:
+	# Reprend le fondu (ScreenFade autoload) si l'écran-titre est atteint via
+	# un fondu sortant (ex. "Quitter" du menu pause) — sans ça l'écran reste
+	# noir, rien d'autre n'appelle fade_in() ici (contrairement aux cartes, où
+	# c'est player.gd::_load_world() qui s'en charge). Sans effet si l'alpha
+	# est déjà à 0 (démarrage normal du jeu).
+	ScreenFade.fade_in()
+
 	# Flèche affichée dans un TextureRect dédié (pas Button.icon) : Button
 	# centre son texte uniquement dans l'espace restant après l'icône, ce qui
 	# décale visuellement le texte vers la droite (marges gauche/droite

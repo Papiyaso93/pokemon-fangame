@@ -10,7 +10,6 @@ extends CanvasLayer
 signal finished
 signal page_typed   # émis quand le texte de la page en cours a fini de s'afficher
 
-const CHAR_DELAY := 0.02   # secondes entre chaque caractère
 const ARROW_BLINK := 0.3   # secondes entre les 2 frames de la flèche
 
 @onready var panel: NinePatchRect = $Panel
@@ -25,10 +24,7 @@ var active := false
 var pages: Array[String] = []
 var page_idx := 0
 
-var current_text := ""
-var revealed := 0
-var typing := false
-var char_timer := 0.0
+var typewriter: Typewriter
 
 var arrow_frame := 0
 var arrow_timer := 0.0
@@ -40,6 +36,8 @@ const ARROW_TEXTURES := [
 func _ready() -> void:
 	visible = false
 	arrow.visible = false
+	typewriter = Typewriter.new(label)
+	typewriter.completed.connect(_on_page_typed)
 
 func say(lines: Array[String]) -> void:
 	queue = lines.duplicate()
@@ -59,11 +57,11 @@ func _show_next() -> void:
 	_show_page()
 
 func _show_page() -> void:
-	current_text = pages[page_idx]
-	revealed = 0
-	typing = true
-	char_timer = 0.0
-	label.text = ""
+	typewriter.start(pages[page_idx])
+
+func _on_page_typed() -> void:
+	arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
+	page_typed.emit()
 
 # Découpe le texte en pages d'au maximum MAX_LINES_PER_PAGE lignes, selon la
 # largeur réelle du Label et de la police en cours — pour que le joueur voie
@@ -102,16 +100,8 @@ func _paginate(text: String) -> Array[String]:
 	return result
 
 func _process(delta: float) -> void:
-	if typing:
-		char_timer += delta
-		while char_timer >= CHAR_DELAY and revealed < current_text.length():
-			char_timer -= CHAR_DELAY
-			revealed += 1
-			label.text = current_text.substr(0, revealed)
-		if revealed >= current_text.length():
-			typing = false
-			arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
-			page_typed.emit()
+	if typewriter.typing:
+		typewriter.update(delta)
 	elif arrow.visible:
 		arrow_timer += delta
 		if arrow_timer >= ARROW_BLINK:
@@ -123,12 +113,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not active:
 		return
 	if event.is_action_pressed("ui_accept"):
-		if typing:
-			revealed = current_text.length()
-			label.text = current_text
-			typing = false
-			arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
-			page_typed.emit()
+		if typewriter.typing:
+			typewriter.skip()
 		elif page_idx + 1 < pages.size():
 			page_idx += 1
 			_show_page()

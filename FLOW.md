@@ -61,7 +61,8 @@ Système de sauvegarde en place (tranché avec Gus le 06/07/2026) :
   (nom FR), temps de jeu (format `H:MM`) ; bouton supprimer sur chaque slot
   rempli ; bouton "Revenir".
 - ✅ **Sauvegarde manuelle** via un mini-menu pause (touche `ui_cancel`/Échap,
-  `scripts/pause_menu.gd`) : Sauvegarder / Reprendre. "Sauvegarder" ouvre
+  `scripts/pause_menu.gd`) : Reprendre / Sauvegarder / Quitter (ordre fixé le 06/07/2026).
+  "Quitter" ramène à l'écran-titre (fondu noir, pas de sauvegarde automatique). "Sauvegarder" ouvre
   l'écran de slots pour que le joueur **choisisse délibérément** où
   sauvegarder — écraser une partie existante ou en garder une de côté en
   utilisant un slot différent (demandé par Gus, plus besoin d'écraser
@@ -189,6 +190,10 @@ petit choix Oui/Non réutilisable).
     placeholder (niveau 5 fixe). Le vrai roster (bébés Pokémon 1ère génération,
     taux d'apparition/capture par sous-zone) reste à définir avec l'ami de Gus
     — voir `HANDOFF.md` pour le détail technique.
+
+- Positionnement de l'écran de capture (sprites, cartes d'infos, fenêtre d'action séparée du
+  message) recalé sur les vraies coordonnées FRLG le 06/07/2026 — voir `HANDOFF.md` pour le
+  détail, à valider visuellement par Gus.
 
 Fichiers : `scripts/encounter.gd`, `scripts/safari_state.gd`,
 `scripts/partner_choice.gd`.

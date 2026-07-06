@@ -48,7 +48,7 @@ theme_override_constants/separation = 8
 
 [node name="Yes" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(100, 0)
 icon_alignment = 0
 expand_icon = false
 alignment = 0
@@ -56,7 +56,7 @@ text = "Oui"
 
 [node name="No" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(100, 0)
 icon_alignment = 0
 expand_icon = false
 alignment = 0

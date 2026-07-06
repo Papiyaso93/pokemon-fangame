@@ -67,3 +67,12 @@ func _on_slot_chosen_for_save(slot: int) -> void:
 
 func _on_resume_pressed() -> void:
 	closed.emit()
+
+# Retour à l'écran-titre, fondu noir comme un warp normal (pas de sauvegarde
+# automatique — si le joueur veut garder sa progression, il doit sauvegarder
+# avant). Pas d'appel à `closed` : la scène change entièrement, `player.gd`
+# (et ce menu avec) sera libéré avec le reste de la carte.
+func _on_quit_pressed() -> void:
+	window.visible = false
+	await ScreenFade.fade_out()
+	get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn")

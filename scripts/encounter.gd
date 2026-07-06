@@ -10,13 +10,20 @@ const SPECIES_LEVEL := 5
 const SPECIES_CATCH_RATE := 255.0     # taux réel Rattata (255/255, le plus facile)
 const SPECIES_FLEE_RATE := 30.0       # placeholder (pas de vraie donnée Safari par espèce encore)
 const SAFARI_BALL_MULTIPLIER := 1.5   # bonus Safari Ball (pret sBallCatchBonuses = 15/10)
-const CHAR_DELAY := 0.02   # même vitesse que dialogue_box.gd, effet machine à écrire
 
 # Fidèle pret src/battle_main.c (HandleAction_ThrowBait/ThrowRock) :
 # l'appât DIMINUE le taux de capture (mais aussi la fuite), le caillou
 # l'AUGMENTE (mais aussi la fuite) — contre-intuitif mais réel.
 const BASE_CATCH_FACTOR := SPECIES_CATCH_RATE * 100.0 / 1275.0
 const BASE_ESCAPE_FACTOR := maxf(2.0, SPECIES_FLEE_RATE * 100.0 / 1275.0)
+
+const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
+const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
+const CONTINUE_ARROW_TEXTURES := [
+	preload("res://assets/ui/down_arrow_3.png"),
+	preload("res://assets/ui/down_arrow_4.png"),
+]
+const ARROW_BLINK := 0.3   # même vitesse que dialogue_box.gd
 
 @onready var sprite: TextureRect = $Root/Sprite
 @onready var shadow: TextureRect = $Root/Shadow
@@ -29,16 +36,18 @@ const BASE_ESCAPE_FACTOR := maxf(2.0, SPECIES_FLEE_RATE * 100.0 / 1275.0)
 @onready var hp_fill: ColorRect = $Root/HealthBox/VBox/HPBarBg/HPBarFill
 @onready var safari_box: PanelContainer = $Root/SafariBox
 @onready var balls_label: Label = $Root/SafariBox/BallsLabel
-@onready var label: Label = $Root/BottomBox/HBox/Label
-@onready var ball_button: Button = $Root/BottomBox/HBox/Buttons/Ball
-@onready var bait_button: Button = $Root/BottomBox/HBox/Buttons/Bait
-@onready var rock_button: Button = $Root/BottomBox/HBox/Buttons/Rock
-@onready var run_button: Button = $Root/BottomBox/HBox/Buttons/Run
+@onready var label: Label = $Root/BottomBox/Mid/Inner/Content/Label
+@onready var continue_arrow: TextureRect = $Root/BottomBox/Mid/Inner/Content/Arrow
+@onready var ball_button: Button = $Root/ActionWindow/Buttons/Ball
+@onready var bait_button: Button = $Root/ActionWindow/Buttons/Bait
+@onready var rock_button: Button = $Root/ActionWindow/Buttons/Rock
+@onready var run_button: Button = $Root/ActionWindow/Buttons/Run
 
 var catch_factor := BASE_CATCH_FACTOR
 var bait_counter := 0
 var rock_counter := 0
 var intro_message := ""
+var typewriter: Typewriter
 
 const ESCAPE_MESSAGES := [
 	"Aïe ! Le Pokémon sauvage s'est échappé d'un coup !",
@@ -48,6 +57,7 @@ const ESCAPE_MESSAGES := [
 ]
 
 func _ready() -> void:
+	typewriter = Typewriter.new(label)
 	name_label.text = SPECIES_NAME.to_upper()
 	level_label.text = "N.%d" % SPECIES_LEVEL
 	gender_label.text = "♂" if randf() < 0.5 else "♀"
@@ -56,6 +66,10 @@ func _ready() -> void:
 	label.text = ""
 	_update_balls_label()
 	_set_buttons_enabled(false)
+	for btn in [ball_button, bait_button, rock_button, run_button]:
+		btn.icon = BlankTexture
+		btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
+		btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
 
 	var back_path := "res://assets/characters/%s_back.png" % PlayerData.appearance
 	if ResourceLoader.exists(back_path):
@@ -88,24 +102,13 @@ func play_entrance() -> void:
 	_type_text(intro_message)   # tape pendant que l'animation joue, pas d'attente ici
 	await tw.finished
 
-	# Fidèle FRLG : le message d'apparition reste affiché (rideau déjà ouvert,
-	# Pokémon déjà visible) jusqu'à un appui du joueur, avant de proposer le
-	# menu d'action.
-	await _wait_for_continue()
+	# Le message d'apparition enchaîne seul après un court délai (pas d'appui
+	# requis, cf. plus bas) — mais un appui pendant ce délai fait quand même
+	# passer à la suite immédiatement, avec la même flèche de continuation que
+	# dialogue_box.gd, pour rester iso avec les discussions PNJ.
+	await _wait_or_continue(1.3)
 	await _type_text("Que veux-tu faire ?")
 	_set_buttons_enabled(true)
-
-# Un appui pendant que le texte tape encore l'affiche instantanément (comme
-# dialogue_box.gd) au lieu de passer directement à la suite ; il faut un
-# 2e appui, une fois le texte complet, pour continuer.
-func _wait_for_continue() -> void:
-	while true:
-		await get_tree().process_frame
-		if Input.is_action_just_pressed("ui_accept"):
-			if typing:
-				skip_requested = true
-			else:
-				break
 
 func _set_buttons_enabled(enabled: bool) -> void:
 	ball_button.disabled = not enabled or SafariState.balls <= 0
@@ -113,30 +116,65 @@ func _set_buttons_enabled(enabled: bool) -> void:
 	rock_button.disabled = not enabled
 	run_button.disabled = not enabled
 
+# Même comportement que dialogue_box.gd (via le composant partagé Typewriter) :
+# un appui pendant la frappe affiche le reste du texte instantanément ; un
+# appui pendant la pause qui suit (flèche visible) passe à la suite tout de
+# suite au lieu d'attendre le délai. Vaut pour tous les messages de cet écran
+# (apparition, capture, appât/pierre...).
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("ui_accept"):
+		return
+	if typewriter.typing:
+		typewriter.skip()
+		get_viewport().set_input_as_handled()
+	elif waiting:
+		advance_requested = true
+		get_viewport().set_input_as_handled()
+
 func _update_balls_label() -> void:
 	balls_label.text = "SAFARI BALLS\nNb : %d" % SafariState.balls
 
-# Effet machine à écrire (même vitesse que dialogue_box.gd). skip_requested
-# permet d'afficher le texte instantanément sur un appui (voir _wait_for_continue).
-var typing := false
-var skip_requested := false
+# État de la pause "flèche de continuation" après un texte complet (voir
+# _wait_or_continue) — waiting=true tant que la flèche est affichée,
+# advance_requested passe à true sur un appui pour couper court au délai.
+var waiting := false
+var advance_requested := false
+var arrow_frame := 0
+var arrow_timer := 0.0
+
+func _process(delta: float) -> void:
+	if typewriter.typing:
+		typewriter.update(delta)
+	if not waiting:
+		return
+	arrow_timer += delta
+	if arrow_timer >= ARROW_BLINK:
+		arrow_timer = 0.0
+		arrow_frame = 1 - arrow_frame
+		continue_arrow.texture = CONTINUE_ARROW_TEXTURES[arrow_frame]
 
 func _type_text(text: String) -> void:
-	typing = true
-	skip_requested = false
-	label.text = ""
-	for i in range(1, text.length() + 1):
-		if skip_requested:
-			label.text = text
-			break
-		label.text = text.substr(0, i)
-		await get_tree().create_timer(CHAR_DELAY).timeout
-	typing = false
-	skip_requested = false
+	typewriter.start(text)
+	await typewriter.completed
+
+# Affiche la flèche de continuation (comme dialogue_box.gd) et attend soit le
+# délai indiqué, soit un appui du joueur — le premier des deux qui arrive.
+func _wait_or_continue(duration: float) -> void:
+	waiting = true
+	advance_requested = false
+	arrow_frame = 0
+	continue_arrow.texture = CONTINUE_ARROW_TEXTURES[0]
+	continue_arrow.visible = true
+	var elapsed := 0.0
+	while elapsed < duration and not advance_requested:
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+	waiting = false
+	continue_arrow.visible = false
 
 func _say(text: String, wait := 1.3) -> void:
 	await _type_text(text)
-	await get_tree().create_timer(wait).timeout
+	await _wait_or_continue(wait)
 
 # Formule réelle FRLG (pret src/battle_script_commands.c, Cmd_handleballthrow) :
 # odds = (catchRate * ballMultiplier/10) * facteur HP (toujours 1/3, jamais blessé

@@ -541,6 +541,7 @@ func _move_toward_target(delta: float) -> void:
 		anim.position.y = -JUMP_ARC_HEIGHT * sin(progress * PI)
 
 func _start_encounter() -> void:
+	_play("face")
 	is_busy = true
 	var transition := BattleTransitionScene.instantiate()
 	get_tree().current_scene.add_child(transition)
@@ -551,7 +552,14 @@ func _start_encounter() -> void:
 	transition.queue_free()
 	await encounter.play_entrance()
 	await encounter.finished
+
+	# Simple fondu noir (comme une entrée de bâtiment via ScreenFade), pas le
+	# rideau flash+fermeture de l'entrée en combat — demandé par Gus, le rideau
+	# de combat faisait trop pour un simple retour sur la map.
+	await ScreenFade.fade_out()
 	encounter.queue_free()
+	await ScreenFade.fade_in()
+
 	if SafariState.balls <= 0:
 		var dialogue := DialogueBoxScene.instantiate()
 		get_tree().current_scene.add_child(dialogue)
