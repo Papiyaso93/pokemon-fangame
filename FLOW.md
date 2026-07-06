@@ -119,9 +119,12 @@ ou quête n'existe après la Zone Safari**. Tout le reste est à construire :
 
 - ✅ **Transitions fluides entre cartes connectées** (pas d'écran noir en passant d'une carte à
   une autre directement reliée) + **bandeau du nom de lieu** en français à chaque changement de
-  carte, style fidèle au vrai jeu. Testé et validé sur Bourg Palette ↔ Route 1 uniquement pour
-  l'instant — le reste de Kanto utilise encore l'ancien système de téléportation (pas de
-  régression, juste pas encore étendu). Voir `HANDOFF.md` pour le détail technique.
+  carte, style fidèle au vrai jeu. Étendu à **tout Kanto extérieur** (plus seulement Bourg
+  Palette ↔ Route 1) : 37 zones se chargent en continu autour du joueur, quel que soit son point
+  de départ. Seules les cartes qui ne s'atteignent pas par un bord dans le vrai jeu (Safrania via
+  ses portes, Forêt de Jade et les 4 sous-zones de la Zone Safari via leurs warps internes)
+  restent en téléportation classique — comportement fidèle, pas une lacune. Voir `HANDOFF.md`
+  pour le détail technique.
 
 - ❌ Système de sauvegarde (voir section 2)
 - ❌ Équipe Pokémon (party) : affichage, soin, échange d'ordre

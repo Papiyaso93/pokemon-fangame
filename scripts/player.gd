@@ -13,11 +13,9 @@ const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
 const LocationBannerScene := preload("res://scenes/ui/location_banner.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
-# Cartes qui gèrent leurs connexions en mode "fluide" (pas de rechargement de
-# scène : les cartes voisines sont chargées en recouvrement, positionnées au
-# bon endroit, dès l'arrivée sur la carte). Testé d'abord sur cette paire
-# avant extension à tout Kanto — voir HANDOFF.md.
-const SEAMLESS_MAPS := ["pallet_town", "route1"]
+# Directions opposées, utilisé pour valider la réciprocité d'une connexion
+# avant de charger une carte voisine en mode fluide (voir _load_world()).
+const OPPOSITE_DIR := {"up": "down", "down": "up", "left": "right", "right": "left"}
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -42,7 +40,15 @@ const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 
 var origin_map_name := ""      # nom de la carte de cette scène (celle avec Player/Camera)
 var current_map_name := ""     # nom de la carte "effective" sous les pieds du joueur
-var neighbor_zones: Array = []   # {name, rect (Rect2, coords locales à cette scène), dir}
+var last_banner_name := ""     # dernier nom FRANÇAIS affiché (évite les doublons entre
+                                # cartes scindées en plusieurs scènes, ex. route21_north/south)
+
+# Toutes les cartes chargées en recouvrement (origine incluse, en zones[0]) :
+# {name, rect (Rect2 monde, coords locales à cette scène), size (Vector2i,
+# tuiles), ledges, grass, warps (tuiles locales à cette carte), connections}.
+# Peuplé par _load_world() en suivant les connexions de proche en proche
+# (BFS), pas juste les voisins immédiats — voir HANDOFF.md.
+var zones: Array = []
 
 func _ready() -> void:
 	add_to_group("player")
@@ -65,7 +71,7 @@ func _ready() -> void:
 	# Différé : l'arbre de scène est encore en cours de construction pendant
 	# ce _ready() (change_scene_to_file en cours), on ne peut pas encore lui
 	# ajouter/retirer des nœuds à ce moment précis.
-	call_deferred("_load_neighbor_overlays")
+	call_deferred("_load_world")
 	call_deferred("_show_location_banner", current_map_name)
 
 # Le spritesheet en dur dans player.tscn est red_normal ; les 4 apparences
@@ -97,103 +103,159 @@ func _read_map_meta() -> void:
 		warps = root.get_meta("warps")
 
 # ── Transitions fluides (voir HANDOFF.md) ──────────────────────────────────
-# Pour les cartes listées dans SEAMLESS_MAPS : au lieu de recharger la scène
-# en franchissant un bord connecté, on charge les calques (Below/Above/
-# Collision) de la carte voisine directement dans la scène courante,
-# positionnés au bon endroit — le joueur continue simplement sa marche, sans
-# écran noir. Le Player/Camera de la carte voisine (générés par
-# import_map.gd) ne servent à rien ici et sont jetés.
-
-func _load_neighbor_overlays() -> void:
-	if origin_map_name not in SEAMLESS_MAPS:
-		return
+# Au lieu de recharger la scène en franchissant un bord connecté, on charge
+# TOUTES les cartes transitivement connectées par des connexions de bord
+# réciproques (de proche en proche, pas juste les voisins immédiats) : leurs
+# calques Below/Above/Collision sont extraits de leur scène et rattachés
+# directement dans la scène courante, positionnés au bon endroit — le joueur
+# continue simplement sa marche, sans écran noir. Le Player/Camera de chaque
+# carte voisine (générés par import_map.gd) ne servent à rien ici et sont
+# jetés. Les cartes qui n'ont AUCUNE connexion réciproque valide (Safrania,
+# accessible uniquement par portes gardées ; Forêt de Jade et Zone Safari,
+# uniquement par passages internes — fidèle au vrai jeu) restent en dehors de
+# ce système et gardent l'ancien comportement de téléportation.
+func _load_world() -> void:
 	var root := get_parent()
-	for c in connections:
-		var target := String(c.get("target", ""))
-		if target not in SEAMLESS_MAPS:
-			continue
-		var dname := String(c.get("dir", ""))
-		var off := int(c.get("offset", 0))
-		_attach_neighbor(root, target, dname, off)
+	var origin_zone := {
+		"name": origin_map_name,
+		"rect": Rect2(Vector2.ZERO, Vector2(map_size) * TILE_SIZE),
+		"size": map_size,
+		"ledges": ledges,
+		"grass": grass,
+		"warps": warps,
+		"connections": connections,
+	}
+	zones = [origin_zone]
+	var queue: Array = [origin_zone]
+	while not queue.is_empty():
+		var cur: Dictionary = queue.pop_front()
+		for c in cur.connections:
+			var target := String(c.get("target", ""))
+			if target == "" or _zone_by_name(target) != null:
+				continue
+			var dname := String(c.get("dir", ""))
+			var off := int(c.get("offset", 0))
+			var path := "res://scenes/maps/%s.tscn" % target
+			if not ResourceLoader.exists(path):
+				continue
+			var node := (load(path) as PackedScene).instantiate()
+			var n_size: Vector2i = node.get_meta("map_size", Vector2i.ZERO)
+			var n_connections: Array = node.get_meta("connections", [])
+			if not _has_reciprocal_connection(n_connections, cur.name, dname, off):
+				node.queue_free()
+				continue
+			var world_off := _compute_offset(cur.rect, n_size, dname, off)
+			var zone := {
+				"name": target,
+				"rect": Rect2(world_off, Vector2(n_size) * TILE_SIZE),
+				"size": n_size,
+				"ledges": node.get_meta("ledges", []),
+				"grass": node.get_meta("grass", []),
+				"warps": node.get_meta("warps", []),
+				"connections": n_connections,
+			}
+			_attach_layers(root, node, world_off)
+			zones.append(zone)
+			queue.append(zone)
+	_update_camera_bounds()
+	# Si l'arrivée s'est faite par un warp (fondu déclenché avant le
+	# change_scene_to_file), on révèle l'écran maintenant que le monde est
+	# construit. Sans effet si aucun fondu n'était en cours (déjà à alpha 0).
+	await ScreenFade.fade_in()
 
-func _attach_neighbor(root: Node2D, target: String, dname: String, off: int) -> void:
-	var path := "res://scenes/maps/%s.tscn" % target
-	if not ResourceLoader.exists(path):
-		return
-	var packed := load(path) as PackedScene
-	var neighbor := packed.instantiate()
-	var n_size: Vector2i = neighbor.get_meta("map_size", Vector2i.ZERO)
-
-	# Même calcul que _entry_tile()/_try_transition(), mais pour placer toute
-	# la carte voisine dans l'espace local de la carte courante au lieu de
-	# calculer juste une case d'arrivée.
-	var world_off: Vector2
-	match dname:
-		"up":
-			world_off = Vector2(off * TILE_SIZE, -n_size.y * TILE_SIZE)
-		"down":
-			world_off = Vector2(off * TILE_SIZE, map_size.y * TILE_SIZE)
-		"left":
-			world_off = Vector2(-n_size.x * TILE_SIZE, off * TILE_SIZE)
-		_:
-			world_off = Vector2(map_size.x * TILE_SIZE, off * TILE_SIZE)
-
-	for layer_name in ["Below", "Above", "Collision"]:
-		var node := neighbor.get_node_or_null(layer_name)
-		if node == null:
-			continue
-		neighbor.remove_child(node)
-		node.position += world_off
-		node.owner = null
-		root.add_child(node)
-		if layer_name == "Below":
-			root.move_child(node, 0)   # doit rester derrière le joueur
-	neighbor.queue_free()   # Player/Camera de la carte voisine : inutiles ici
-
-	var cam := $Camera2D
-	match dname:
-		"up":
-			cam.limit_top = int(world_off.y)
-		"down":
-			cam.limit_bottom = int(world_off.y + n_size.y * TILE_SIZE)
-		"left":
-			cam.limit_left = int(world_off.x)
-		_:
-			cam.limit_right = int(world_off.x + n_size.x * TILE_SIZE)
-
-	neighbor_zones.append({
-		"name": target,
-		"rect": Rect2(world_off, Vector2(n_size) * TILE_SIZE),
-		"dir": dname,
-	})
-
-# Vrai si la case visée est dans la carte d'origine OU dans une carte voisine
-# déjà chargée en recouvrement (donc pas besoin de transition/téléportation).
-func _is_within_loaded_world(tgt: Vector2i) -> bool:
-	if tgt.x >= 0 and tgt.y >= 0 and tgt.x < map_size.x and tgt.y < map_size.y:
-		return true
-	var p := Vector2(tgt) * TILE_SIZE
-	for n in neighbor_zones:
-		if n.rect.has_point(p):
+# Une connexion cur -> target (direction dname, offset off) n'est utilisée
+# pour la fluidité que si target la confirme en sens inverse (même distance,
+# offset opposé). Filtre les données de connexion "orphelines" trouvées dans
+# les cartes pret (ex. saffron_city déclare des connexions vers route5-8 qui
+# ne sont reciproquées nulle part — ces routes ne rejoignent en réalité que
+# saffron_city_connection, la vraie Safrania n'étant accessible que par portes
+# gardées ; cf. HANDOFF.md).
+func _has_reciprocal_connection(n_connections: Array, from_name: String, dname: String, off: int) -> bool:
+	var opp: String = OPPOSITE_DIR.get(dname, "")
+	for c2 in n_connections:
+		if String(c2.get("target", "")) == from_name and String(c2.get("dir", "")) == opp \
+				and int(c2.get("offset", 0)) == -off:
 			return true
 	return false
 
+# Même calcul que celui utilisé par _entry_tile()/_try_transition() pour une
+# simple case d'arrivée, généralisé pour placer toute une carte dans l'espace
+# local de la scène courante, à partir du rectangle (déjà placé) de la carte
+# qui déclare la connexion — pas forcément l'origine, une carte peut être
+# rattachée en chaîne à une autre carte déjà rattachée.
+func _compute_offset(from_rect: Rect2, n_size: Vector2i, dname: String, off: int) -> Vector2:
+	match dname:
+		"up":
+			return Vector2(from_rect.position.x + off * TILE_SIZE, from_rect.position.y - n_size.y * TILE_SIZE)
+		"down":
+			return Vector2(from_rect.position.x + off * TILE_SIZE, from_rect.position.y + from_rect.size.y)
+		"left":
+			return Vector2(from_rect.position.x - n_size.x * TILE_SIZE, from_rect.position.y + off * TILE_SIZE)
+		_:
+			return Vector2(from_rect.position.x + from_rect.size.x, from_rect.position.y + off * TILE_SIZE)
+
+func _attach_layers(root: Node2D, node: Node, world_off: Vector2) -> void:
+	for layer_name in ["Below", "Above", "Collision"]:
+		var n := node.get_node_or_null(layer_name)
+		if n == null:
+			continue
+		node.remove_child(n)
+		n.position += world_off
+		n.owner = null
+		root.add_child(n)
+		if layer_name == "Below":
+			root.move_child(n, 0)   # doit rester derrière le joueur
+	node.queue_free()   # Player/Camera de la carte voisine : inutiles ici
+
+func _zone_by_name(zone_name: String):
+	for z in zones:
+		if z.name == zone_name:
+			return z
+	return null
+
+# Zone (dict) contenant ce point (coords locales à cette scène), ou null si
+# hors de tout ce qui est chargé.
+func _zone_at_pixel(p: Vector2):
+	for z in zones:
+		if z.rect.has_point(p):
+			return z
+	return null
+
+func _update_camera_bounds() -> void:
+	var cam := $Camera2D
+	var bounds: Rect2 = zones[0].rect
+	for z in zones:
+		bounds = bounds.merge(z.rect)
+	cam.limit_left = int(bounds.position.x)
+	cam.limit_top = int(bounds.position.y)
+	cam.limit_right = int(bounds.position.x + bounds.size.x)
+	cam.limit_bottom = int(bounds.position.y + bounds.size.y)
+
+# Vrai si la case visée est dans une carte déjà chargée (origine ou voisine
+# rattachée) — donc pas besoin de transition/téléportation.
+func _is_within_loaded_world(tgt: Vector2i) -> bool:
+	return _zone_at_pixel(Vector2(tgt) * TILE_SIZE) != null
+
 # Appelé après chaque pas terminé : détecte si le joueur vient de passer sous
-# les pieds d'une carte voisine (ou d'y revenir), pour le bandeau de nom de lieu.
+# les pieds d'une autre carte chargée (ou d'y revenir), pour le bandeau de nom
+# de lieu.
 func _update_current_zone() -> void:
-	var new_name := origin_map_name
-	for n in neighbor_zones:
-		if n.rect.has_point(position):
-			new_name = n.name
-			break
+	var zone = _zone_at_pixel(position)
+	var new_name: String = zone.name if zone != null else origin_map_name
 	if new_name != current_map_name:
 		current_map_name = new_name
-		_show_location_banner(current_map_name)
+		# Certaines cartes sont scindées en plusieurs scènes (ex. route21_north/
+		# route21_south) mais partagent le même nom affiché en français : ne
+		# montrer le bandeau que si le nom affiché change réellement, pas juste
+		# l'id de scène interne.
+		if MapNames.get_french_name(current_map_name) != last_banner_name:
+			_show_location_banner(current_map_name)
 
 func _show_location_banner(scene_id: String) -> void:
+	last_banner_name = MapNames.get_french_name(scene_id)
 	var banner := LocationBannerScene.instantiate()
 	get_tree().current_scene.add_child(banner)
-	banner.show_name(MapNames.get_french_name(scene_id))
+	banner.show_name(last_banner_name)
 
 # Démarre une nouvelle visite (balls/captures à zéro) seulement à la première
 # entrée dans une des 4 maps de la Zone Safari. La sortie (et le choix du
@@ -203,28 +265,57 @@ func _update_safari_state() -> void:
 	if scene_name in SafariState.SAFARI_MAPS and not SafariState.active:
 		SafariState.enter()
 
+# Convertit une case (coords locales à cette scène) en case locale à la zone
+# qui la contient, ou null si hors de tout ce qui est chargé.
+func _zone_and_local_tile(tile: Vector2i) -> Array:
+	var zone = _zone_at_pixel(Vector2(tile) * TILE_SIZE)
+	if zone == null:
+		return [null, Vector2i.ZERO]
+	var local: Vector2i = tile - Vector2i(zone.rect.position / TILE_SIZE)
+	return [zone, local]
+
 # Case de hautes herbes ? (Zone Safari — voir SafariState.active pour l'activation)
+# Cherche dans la zone (origine ou voisine chargée) qui contient cette case.
 func _is_grass(tile: Vector2i) -> bool:
-	if tile.x < 0 or tile.y < 0 or tile.x >= map_size.x or tile.y >= map_size.y:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
 		return false
-	var idx := tile.y * map_size.x + tile.x
-	return idx >= 0 and idx < grass.size() and bool(grass[idx])
+	var local: Vector2i = res[1]
+	var size: Vector2i = zone.size
+	if local.x < 0 or local.y < 0 or local.x >= size.x or local.y >= size.y:
+		return false
+	var idx := local.y * size.x + local.x
+	var arr: Array = zone.grass
+	return idx >= 0 and idx < arr.size() and bool(arr[idx])
 
 # Warp ponctuel sur cette case (porte, entrée de grotte...), ou null si aucun.
 func _warp_at(tile: Vector2i) -> Dictionary:
-	for w in warps:
-		if int(w.get("x", -1)) == tile.x and int(w.get("y", -1)) == tile.y:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
+		return {}
+	var local: Vector2i = res[1]
+	for w in zone.warps:
+		if int(w.get("x", -1)) == local.x and int(w.get("y", -1)) == local.y:
 			return w
 	return {}
 
 # Direction du rebord sur cette case ("down"/"up"/"left"/"right"), ou "" si aucun.
 func _ledge_dir_at(tile: Vector2i) -> String:
-	if tile.x < 0 or tile.y < 0 or tile.x >= map_size.x or tile.y >= map_size.y:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
 		return ""
-	var idx := tile.y * map_size.x + tile.x
-	if idx < 0 or idx >= ledges.size():
+	var local: Vector2i = res[1]
+	var size: Vector2i = zone.size
+	if local.x < 0 or local.y < 0 or local.x >= size.x or local.y >= size.y:
 		return ""
-	return String(ledges[idx])
+	var idx := local.y * size.x + local.x
+	var arr: Array = zone.ledges
+	if idx < 0 or idx >= arr.size():
+		return ""
+	return String(arr[idx])
 
 func _entry_tile(from_dir: String, cross: int) -> Vector2i:
 	match from_dir:
@@ -359,10 +450,12 @@ func _check_input() -> void:
 		var target := String(warp.get("target", ""))
 		var path := "res://scenes/maps/%s.tscn" % target
 		if ResourceLoader.exists(path):
+			is_busy = true
 			Transitions.pending = true
 			Transitions.direct = true
 			Transitions.facing = String(warp.get("face", facing))
 			Transitions.direct_tile = Vector2i(int(warp.get("tx", 0)), int(warp.get("ty", 0)))
+			await ScreenFade.fade_out()
 			get_tree().change_scene_to_file(path)
 			return
 
@@ -398,6 +491,7 @@ func _try_transition(dir: Vector2, cur: Vector2i) -> void:
 			var path := "res://scenes/maps/%s.tscn" % target
 			if ResourceLoader.exists(path):
 				var off := int(c.get("offset", 0))
+				is_busy = true
 				Transitions.pending = true
 				Transitions.direct = false
 				Transitions.from_dir = dname
@@ -406,6 +500,7 @@ func _try_transition(dir: Vector2, cur: Vector2i) -> void:
 					Transitions.cross = int(cur.x - off)
 				else:
 					Transitions.cross = int(cur.y - off)
+				await ScreenFade.fade_out()
 				get_tree().change_scene_to_file(path)
 				return
 	_play("face")   # pas de connexion utilisable : mur
@@ -419,7 +514,7 @@ func _move_toward_target(delta: float) -> void:
 		if is_jumping:
 			is_jumping = false
 			anim.position.y = 0.0
-		if not neighbor_zones.is_empty():
+		if zones.size() > 1:
 			_update_current_zone()
 		if pending_encounter_check:
 			pending_encounter_check = false
@@ -454,6 +549,7 @@ func _start_encounter() -> void:
 		Transitions.direct = true
 		Transitions.facing = "south"
 		Transitions.direct_tile = Vector2i(4, 2)   # atterrissage porte nord de safari_entrance
+		await ScreenFade.fade_out()
 		get_tree().change_scene_to_file("res://scenes/maps/safari_entrance.tscn")
 		return
 	is_busy = false
