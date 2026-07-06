@@ -78,6 +78,7 @@ func save_to_slot(n: int) -> void:
 		"player_name": PlayerData.player_name,
 		"gender": PlayerData.gender,
 		"appearance": PlayerData.appearance,
+		"orientation_given": PlayerData.orientation_given,
 		"chosen_class": PlayerData.chosen_class,
 		"intro_complete": PlayerData.intro_complete,
 		"starter_species": PlayerData.starter_species,
@@ -106,6 +107,7 @@ func load_from_slot(n: int) -> void:
 	PlayerData.player_name = String(data.get("player_name", "Red"))
 	PlayerData.gender = String(data.get("gender", "male"))
 	PlayerData.appearance = String(data.get("appearance", "red_normal"))
+	PlayerData.orientation_given = bool(data.get("orientation_given", false))
 	PlayerData.chosen_class = String(data.get("chosen_class", ""))
 	PlayerData.intro_complete = bool(data.get("intro_complete", false))
 	PlayerData.starter_species = String(data.get("starter_species", ""))

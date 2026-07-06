@@ -296,6 +296,24 @@ plus bas), pas juste "ça compile".
     de configuration, pas un écran "in-fiction"), soit on le refait dans le style clair du reste
     du jeu.
 
+  **✅ Vrai fix (session suivante, signalé par Gus sur l'écran de capture) : le halo n'est pas un
+  halo, c'est le fond opaque de la cellule + une ombre portée.** Le contournement ci-dessus
+  (fenêtre blanche assortie) ne marche que si l'écran peut se permettre un fond blanc — impossible
+  sur `encounter.tscn` (`HealthBox`/`SafariBox` en fond crème, `BottomBox` en fond marine, des
+  couleurs fidèles au vrai jeu, non négociables). Inspection pixel par pixel de
+  `dialogue_latin.png` : chaque cellule de glyphe (32×32) contient en réalité 3 zones bien
+  distinctes — encre foncée `(56,56,56,255)`, une **ombre portée décalée** en gris clair
+  `(216,216,216,255)` (pas de l'anti-aliasing, un vrai décalage visible au zoom), et le **fond de
+  la cellule** en blanc opaque `(255,255,255,255)` qui n'a jamais été pensé comme un "halo" à
+  proprement parler. **Fix définitif** : rendu uniquement ce blanc `(255,255,255,255)` transparent
+  (alpha 0) dans `assets/fonts/dialogue_latin.png`, en gardant l'encre et l'ombre intactes.
+  Vérifié avant/après par composition PNG sur fond blanc (aucun changement visuel, les deux
+  scènes qui marchaient déjà continuent de marcher) et sur fond marine (bloc blanc disparu, texte
+  propre avec juste son ombre). **Ce fix corrige tous les écrans d'un coup** (encounter.tscn
+  compris) sans avoir besoin du contournement fenêtre-blanche — mais celui-ci reste utile pour
+  la cohérence visuelle (une fenêtre `std_window.png` reste préférable à un texte nu). Le fichier
+  `.fnt` (métriques/largeurs) n'a pas bougé, seul le PNG a changé (même dimensions, juste l'alpha).
+
   **✅ Marge intérieure des fenêtres `std_window.png`/`dialogue_frame.png`** : signalé par Gus sur
   le bandeau de lieu (texte trop proche de la bordure). Audit de tous les `content_margin_*` du
   projet : `location_banner.tscn` avait `content_margin_top/bottom = 10` (trop juste, corrigé à
@@ -783,6 +801,86 @@ restaurés à l'identique.
 
 ---
 
+## ✅ Refonte de l'intro narrative (Louise / Anselme, choix de classe déplacé à la fin)
+
+Trame complète tranchée avec Gus et son ami le 06/07/2026 — voir `FLOW.md` section 4 pour le
+scénario détaillé avec les dialogues réels. Résumé technique :
+
+- **Changement majeur** : le choix de classe (menu `class_choice.tscn`) ne se fait plus au tout
+  début (chez Louise, `worker_f`) mais **à la toute fin**, une fois que le joueur a un partenaire
+  Pokémon. Entre les deux, Louise et Anselme (`worker_m`) donnent une présentation narrative des
+  2 classes sans forcer de choix.
+- **Nouveau champ `PlayerData.orientation_given`** : remplace l'ancien usage de
+  `chosen_class.is_empty()` comme condition "le joueur a-t-il déjà vu l'intro de Louise" (devenu
+  invalide puisque `chosen_class` reste vide pendant presque toute la partie maintenant). Ajouté
+  à la sérialisation `SaveManager` (`save_to_slot`/`load_from_slot`).
+- **`npc_worker_f.gd` (Louise)** : `_start_auto_intro()` ne fait plus que le discours d'accueil +
+  renvoi vers Anselme (plus d'explication détaillée des classes ni de choix immédiat). Nouvelle
+  fonction publique `ask_final_class_choice()`, appelée par `safari_entrance_gate.gd` juste après
+  le choix du partenaire — réutilise `class_choice.tscn` à l'identique (même boucle
+  repeat/chercheur-indisponible/competiteur qu'avant, juste déclenchée plus tard).
+- **`npc_worker_m.gd` (Anselme)** : `get_lines()` donne maintenant la présentation complète des 2
+  classes + les 30 Safari Balls + le fonctionnement de la capture (avant, cette explication était
+  chez Louise). Nouvelle fonction publique `ask_session_finished() -> bool` : pose la question
+  "tu as fini ?" avec un choix Oui/Non (nouveau composant `yes_no_choice.tscn`/`.gd`, générique,
+  même style que `class_choice.tscn`), affiche la réponse correspondante, et retourne le résultat.
+- **`safari_entrance_gate.gd`** :
+  - `gate_check(warp)` distingue maintenant la porte **nord** (`target == "safari_zone_center"`,
+    bloquée tant que `not PlayerData.intro_complete`) de la porte **sud** (`target ==
+    "fuchsia_city"`, bloquée tant qu'en plus `PlayerData.starter_species` est vide) — avant, une
+    seule condition uniforme s'appliquait aux deux portes, devenue incorrecte puisque
+    `chosen_class` ne se remplit plus au début.
+  - `on_gate_blocked()` : message différent selon l'état (`WAITING_FOR_ANSELME` de Louise avant
+    Anselme, "Ton premier partenaire t'attend !" après), plus un petit **point d'exclamation**
+    animé au-dessus du joueur (`_show_exclamation()`, nouvel asset `assets/ui/exclamation.png`,
+    généré — pas d'équivalent direct trouvé dans les graphics pret `field_effects`, mais c'est un
+    élément UI mineur, pas un asset in-fiction).
+  - `_ready()` : au retour d'une visite Safari, si `SafariState.balls > 0` (retour volontaire),
+    appelle `_ask_if_finished()` (nouvelle fonction, passe par Anselme) au lieu d'enchaîner
+    directement sur le choix du partenaire ; si `balls <= 0` (retour forcé), comportement
+    inchangé (`_handle_return_from_safari()` direct — ce cas était déjà entièrement pris en
+    charge par le code existant, voir plus bas).
+  - `_turn_and_return_to_park()` (nouveau) : si le joueur répond "Non" à Anselme, le fait pivoter
+    (`facing = "north"`, `_play("face")`), petite pause, puis warp scripté (même mécanisme que
+    les warps normaux : `Transitions.direct` + `ScreenFade.fade_out()`) vers
+    `safari_zone_center.tscn` à la tuile (26, 30) — exactement la tuile de la porte d'entrée déjà
+    utilisée par le warp inverse. `SafariState` n'est pas touché, la session continue à
+    l'identique (mêmes balls restantes, mêmes captures).
+  - `_handle_return_from_safari()` : logique de capture/Rattata/partenaire **inchangée**, mais
+    enchaîne maintenant directement sur `louise.ask_final_class_choice()` si le joueur a
+    désormais un partenaire mais pas encore de classe choisie — un seul enchaînement continu,
+    pas besoin que le joueur aille reparler à Louise manuellement.
+- **`encounter.gd`** : `_on_ball_pressed()` vérifie maintenant `SafariState.balls <= 0`
+  **immédiatement après le lancer** (avant `_end_of_round()`), plutôt que de laisser continuer un
+  tour appât/pierre pour rien (le bouton Ball est déjà désactivé à 0 ball, donc ces tours
+  n'avaient plus vraiment de sens). Message dédié affiché dans l'écran de combat lui-même ("Il ne
+  te reste plus aucune Safari Ball !"), avant que `player.gd` n'affiche son propre message de
+  retour ("On te raccompagne à l'entrée.") — 2 messages distincts désormais, demandés par Gus.
+  Le reste du flux 0-ball (transition, spawn, branchement Rattata/partenaire) existait déjà et
+  n'a pas eu besoin d'être retouché.
+- **2 nouveaux PNJ dans `safari_zone_center.tscn`** : un compétiteur aguerri et un assistant du
+  Pr Chen, placés devant le bâtiment d'entrée (tuiles (23,29) et (29,29), ajustable). **Aucune
+  interaction pour l'instant** (juste `npc.tscn` instancié avec un `sprite_name`, pas de script
+  dédié — le `get_lines()` par défaut de `npc.gd` renvoie `[]`). Sprites extraits du vrai jeu
+  (`kanto-pipeline/pokefirered/graphics/object_events/pics/people/cooltrainer_m.png` et
+  `scientist.png`, convertis en RGBA exactement comme `worker_f.png`/`worker_m.png` avant eux) et
+  copiés dans `assets/characters/cooltrainer.png`/`scientist.png`. Prévu pour recevoir une vraie
+  interaction (aperçu de chaque classe) une fois que le système de combat de l'ami de Gus sera
+  disponible et poussé sur le repo — pas de mini-jeu de combat inventé ici pour ne pas avoir à le
+  refaire.
+- **Mis de côté (déjà discuté avec Gus)** : objets de traversée du parc (canne à pêche, etc. —
+  bloqué par l'absence de tout système d'inventaire) et vrai son "objet obtenu" pour "Voilà 30
+  Safari Balls" (bloqué par l'absence de tout système audio dans le projet — aucun fichier son,
+  aucun `AudioStreamPlayer` nulle part). Une **pause** dans le dialogue à ce moment est en place,
+  pas le son.
+- **Question encore ouverte** (voir FLOW.md) : faut-il aussi bloquer la porte sud tant que la
+  classe finale n'est pas choisie chez Louise ? Actuellement non — la porte se débloque dès
+  qu'un partenaire est choisi, avant même de reparler à Louise (qui enchaîne immédiatement de
+  toute façon dans le flux normal, donc ça ne se remarque pas en pratique, mais techniquement
+  rien n'empêche de sortir avant si le joueur y arrivait autrement).
+
+---
+
 ## Gotchas Godot
 - Fichier modifié en externe : Godot garde en cache → **Scène → « Recharger la scène
   sauvegardée »**, ou fermer sans enregistrer + rouvrir, ou **redémarrer Godot** (le plus
@@ -791,3 +889,187 @@ restaurés à l'identique.
 - Régénérer une map écrase `scenes/maps/<map>.tscn` (l'uid change ; `main_scene` est
   référencé par **chemin** dans `project.godot`, donc rien ne casse).
 - Ne **jamais** committer `kanto-pipeline/pokefirered/` (gitignoré).
+
+## ✅ Liste défilante dans `partner_choice.tscn` (débordement d'écran si trop de captures)
+
+Signalé par Gus : avec beaucoup de captures (ex. 9 Rattata), la fenêtre de choix du partenaire
+grossissait sans limite et débordait de l'écran. 3 options envisagées avec Gus (défilement natif
++ flèches indicatrices, boutons flèche un par un, pagination "voir plus") — **défilement natif
+retenu** (aucun clic supplémentaire pour comparer toutes les captures, contrairement à la
+pagination).
+
+- **Structure** : `Window` → `VBox` (nouveau) → `UpArrow` / `Scroll` (`ScrollContainer`,
+  scroll horizontal désactivé) / `DownArrow`. `Buttons` (la liste de boutons, inchangée sinon)
+  déplacée à l'intérieur du `Scroll`.
+- **Hauteur adaptative plafonnée** (`partner_choice.gd::setup()`) : mesure la hauteur naturelle
+  du contenu (`buttons_box.get_combined_minimum_size().y`), l'utilise telle quelle si elle tient
+  dans `MAX_LIST_HEIGHT` (200px, ~5 lignes), sinon plafonne le `ScrollContainer` à cette valeur
+  (le contenu défile au-delà) — donc pas d'espace perdu pour une liste courte, pas de
+  débordement pour une liste longue.
+- **Flèches haut/bas clignotantes** (réutilise l'asset `down_arrow_3.png`/`down_arrow_4.png` déjà
+  utilisé par `dialogue_box.gd` pour la flèche "suite" — `DownArrow` = même texture retournée
+  verticalement pour `UpArrow`, pas de nouvel asset). **Piège évité** : ne pas utiliser
+  `visible` pour les faire apparaître/disparaître pendant le défilement (ça changerait la taille
+  du `VBoxContainer` parent à chaque bascule, donc la fenêtre entière se redimensionnerait de
+  façon visible en scrollant) — utilisé `modulate.a` (0/1) à la place, qui garde l'espace réservé
+  en permanence. Les flèches ne réservent cet espace QUE si la liste est effectivement défilante
+  (`scrollable`, calculé une fois dans `setup()`) ; sinon elles restent à `visible = false` posé
+  dans `_ready()`, sans jamais être basculées.
+
+## ✅ Écran-titre : icône de flèche étirée (piège TextureRect dans un conteneur)
+
+Signalé par Gus (capture d'écran) : la flèche de sélection paraissait plus grosse sur
+l'écran-titre que dans les menus de choix. Cause confirmée : `choice_arrow.png` fait bien 24×24
+partout, mais `title_screen.tscn` utilise un `TextureRect` custom (pas `Button.icon` comme les
+autres écrans, à cause du texte centré demandé par Gus — voir plus haut) placé dans un
+`HBoxContainer` à l'intérieur d'un bouton de 40px de haut. Sans contrainte, un `TextureRect`
+s'étire par défaut (`size_flags_vertical` = FILL) pour remplir la hauteur de sa cellule, et
+`stretch_mode` par défaut (`STRETCH_SCALE`) redimensionne la texture en conséquence — la flèche
+grossissait donc silencieusement. **Fix** : `size_flags_vertical = 4` (SHRINK_CENTER) +
+`stretch_mode = 5` (STRETCH_KEEP_CENTERED) sur les 3 `TextureRect` "Icon" — la texture reste
+maintenant à sa taille native quelle que soit la hauteur de la cellule parente. **À vérifier
+systématiquement pour tout futur `TextureRect` utilisé comme icône dans un conteneur** (le
+`Button.icon` natif ne pose jamais ce problème, seul le `TextureRect` custom introduit pour le
+texte centré y est sujet).
+
+## ✅ Refonte de la création de personnage (nom → genre → apparence, style unifié)
+
+Signalé par Gus : `character_creation.tscn` utilisait encore l'ancien style "boutons sombres
+génériques" (`ui_theme.tres`, fond noir) au lieu du principe boîte de dialogue + fenêtre de choix
+utilisé partout ailleurs — cette dette avait été explicitement laissée de côté lors de la session
+précédente (voir plus haut, "volontairement PAS corrigé") en attendant une décision. Avec le vrai
+fix du halo de police (transparence du fond de cellule, voir plus haut), le fond noir n'est plus
+un problème : `dialogue_latin.fnt` s'affiche correctement sur n'importe quel fond désormais, donc
+plus besoin de refaire tout l'habillage en clair comme envisagé — juste remplacer les composants.
+
+- **Ordre changé** : nom → genre → apparence (avant : genre → nom → apparence).
+- **`scripts/character_creation.gd` devient un orchestrateur pur** (`extends Node`, plus aucun
+  visuel propre) : enchaîne 3 étapes async, chacune = boîte de dialogue (question, tenue ouverte
+  via `page_typed`/`active = false`, exactement le principe déjà utilisé par
+  `npc_worker_f.gd`/`safari_entrance_gate.gd`) + une fenêtre dédiée pour la réponse. Le fond noir
+  vient de `intro.tscn` (déjà présent dans l'arbre, cette scène n'est qu'un enfant ajouté
+  par-dessus) — `character_creation.tscn` n'a donc plus besoin de son propre `ColorRect` de fond.
+- **`scenes/ui/name_entry.tscn`** (nouveau) : simple `LineEdit` + bouton "Valider" dans une
+  fenêtre `std_window.png`. **Compromis assumé** : pas le clavier virtuel du vrai jeu (grille de
+  lettres cliquables), juste un champ de texte standard — saisie clavier physique directe, plus
+  simple et plus rapide pour un jeu PC, le clavier virtuel n'a de sens que pour une manette/GBA.
+- **`scenes/ui/gender_choice.tscn`** (nouveau) : fenêtre de choix Garçon/Fille, calquée à
+  l'identique sur `class_choice.tscn` (même structure, juste les 2 boutons différents).
+- **`scenes/ui/appearance_choice.tscn`** (nouveau) : même principe mais avec des images
+  (`TextureButton`) plutôt que du texte comme options — reprend telle quelle la logique
+  `_face_preview()` déjà existante (aperçu frame sud debout de chaque sprite).
+- **`assets/ui/game_theme.tres`** : ajout de `LineEdit/colors/font_color` (+ `font_selected_color`,
+  `caret_color`) à blanc, pour que `name_entry.tscn` respecte la même règle que le reste
+  (`dialogue_latin.fnt` exige toujours `font_color = Color(1,1,1,1)`, jamais une teinte).
+- **`scenes/ui/ui_theme.tres` supprimé** : plus aucune référence dans le projet une fois
+  `character_creation.tscn` migré, fichier mort retiré plutôt que laissé traîner.
+
+### ✅ `name_entry.tscn` : `LineEdit`/bouton en gris par défaut Godot, corrigé
+Repéré par Gus juste après (screenshot) : `NameEdit`/`Confirm` n'avaient reçu **aucun style**
+(ni `StyleBoxTexture`/`StyleBoxEmpty`, ni via `game_theme.tres` qui ne définit pas de style de
+`LineEdit`) — rendu avec l'apparence grise par défaut de Godot, détonnant avec le reste du jeu.
+**Fix** : `Confirm` reprend `Btn_empty` (transparent, laisse voir la fenêtre blanche derrière,
+identique aux boutons de `class_choice.tscn`). `NameEdit` reçoit un `StyleBoxFlat` dédié (fond
+blanc, bordure bleu-gris `(98,115,123)` — la même couleur que la bordure de `std_window.png`,
+prélevée directement dessus) plutôt que le style `LineEdit` gris par défaut.
+- **Note technique utile pour la suite** : `caret_color` est un vrai aplat de couleur (pas du
+  texte passé par `dialogue_latin.fnt`), donc **la règle "toujours blanc" ne s'applique pas à
+  lui** — sur un fond blanc, un curseur blanc serait invisible. Remis à une couleur sombre
+  localement sur `NameEdit` (`game_theme.tres` garde `caret_color` blanc par défaut, pertinent
+  pour un futur champ de texte sur fond sombre).
+- **Découverte annexe** : depuis le vrai fix du halo de police (fond de cellule transparent, pas
+  juste `font_color`), teinter `font_color` en sombre n'est plus dangereux — ça ne recrée plus
+  jamais de bloc noir, ça assombrit juste l'encre déjà foncée. La règle "toujours blanc" reste un
+  bon défaut par prudence/cohérence, mais n'est plus une contrainte dure comme avant ce fix.
+
+### 📋 Styles de fenêtre du vrai jeu — recherche faite, décision reportée
+Suite à la question de Gus ("Pokémon propose-t-il d'autres options de fenêtre, coins carrés ?") :
+`kanto-pipeline/pokefirered/graphics/text_window/` contient **11 styles réels** différents
+(`std`, `type1` à `type10`), utilisés contextuellement dans le vrai jeu — pas juste `std`/
+`menu_message` déjà exploités. Notamment **`type2`** : liseré noir double, coins nets, beaucoup
+moins "arrondi/pixelisé" que `std_window.png`/`dialogue_frame.png` actuels — correspond
+exactement à la demande de coins carrés. Comparatif visuel généré (composite des 11 types) et
+montré à Gus. **Décision prise** : ne pas généraliser tout de suite (gros chantier, touche
+quasiment tous les écrans) — recontacter Gus avec une vraie maquette avant de basculer quoi que ce
+soit vers `type2` ou un mélange rond/carré selon le contexte (dialogue vs menus de choix).
+
+## ✅ Texte noir/blanc selon le fond + réduction générale des tailles (police + flèche)
+
+Gus a fourni 2 captures du vrai jeu : bandeau de lieu (fond clair → texte **noir**) et boîte de
+combat (fond marine → texte **blanc**). Confirme le mécanisme déjà pressenti : le vrai jeu
+recolore la même police selon le contexte (palette GBA), capacité perdue en figeant tout dans un
+PNG à couleurs fixes. Gus a aussi trouvé le texte et la flèche de sélection trop gros par rapport
+au vrai jeu.
+
+- **Police blanche (`dialogue_latin_white.fnt`/`.png`)** : nouveau variant, encre inversée en
+  blanc `(255,255,255)`, ombre inversée en gris foncé `(40,40,40)`, même fond de cellule
+  transparent que le fix précédent. Généré en inversant précisément les pixels connus (56,56,56)
+  et (216,216,216) de `dialogue_latin.png`, pas une reconstruction depuis zéro. **Seul écran
+  concerné aujourd'hui** : `encounter.tscn` → `BottomBox` (fond marine, `Label` du message +
+  `ActionTheme` des boutons Ball/Appât/Pierre/Fuite) — `HealthBox`/`SafariBox` restent en police
+  sombre (fond crème). Tout le reste du jeu est déjà sur fond blanc/crème (y compris
+  `character_creation` depuis la refonte de la session précédente), donc pas concerné.
+  **Piège évité** : bien recréer le `.fnt.import` à la main avec `scaling_mode=0` (jamais laisser
+  Godot déduire le défaut MSDF, cf. piège déjà documenté plus haut) et un `.png.import` en
+  `importer="skip"` (le PNG n'est qu'une page de police, pas une texture à part).
+- **Réduction ~25% des tailles de police**, appliquée partout : `game_theme.tres`
+  (`default_font_size` 20→16), `dialogue_box.tscn` (32→24, la boîte de dialogue principale reste
+  volontairement un peu plus grande), `location_banner.tscn` (22→16), tous les menus de choix
+  (`class_choice`/`partner_choice`/`pause_menu`/`gender_choice`/`yes_no_choice`, 20→16),
+  `save_slots.tscn` (titre 24→18, lignes 16→14), `title_screen.tscn` (titre du jeu 32→24),
+  `encounter.tscn` (boîtes de stats 18→14, message/boutons 22 et 20→16). `name_entry.tscn`
+  (champ de saisie 24→18 pour matcher). **Premier jet, à valider visuellement** — pas de mesure
+  pixel-perfect possible sans capture directe du vrai jeu à comparer, donc ajustement empirique
+  en attendant le retour de Gus.
+- **Flèche de sélection régénérée plus petite** : `choice_arrow.png`/`choice_arrow_blank.png`
+  passent de 24×24 à 16×16 (même triangle, juste redessiné à cette taille pour rester net plutôt
+  que scalé). Comme les menus de choix utilisent tous `Button.icon` nativement (pas de
+  `TextureRect` custom), le changement de taille est automatique partout **sauf**
+  `title_screen.tscn` (utilise le `TextureRect` custom pour le texte centré, voir plus haut) où
+  les réservations `custom_minimum_size` (`Icon` et `Spacer`) ont dû être mises à jour à la main
+  (24→16).
+
+## ✅ Nouveau style de fenêtre : coins carrés, liseré noir double (remplace std/dialogue_frame partout)
+
+Décision de Gus après comparaison de maquettes : passer **toutes** les boîtes de dialogue et
+fenêtres de choix du style rond (`std_window.png`/`dialogue_frame.png`, bordure bleu-gris/beige)
+à un style carré à liseré noir double, plus "vintage".
+
+- **Tentative de reconstruction fidèle du vrai asset "type2"** (un des 11 styles de fenêtre
+  trouvés dans `graphics/text_window/`) abandonnée : inspection pixel par pixel a révélé des
+  détails décoratifs (petits tirets) qui ne sont pas conçus pour être étirés à une taille
+  arbitraire — une reconstruction en 9-slice donnait un motif de hachures cassé. Documenté ici
+  pour ne pas retenter la même chose sans nouvelle piste.
+- **`assets/ui/square_window.png`** (nouveau, dessiné à la main plutôt que reconstruit) : tuile
+  64×64, bordure extérieure 3px + fond blanc 4px + bordure intérieure 2px, coins durs à 90°,
+  couleur `(30,30,30)`. Conçu dès le départ pour un étirement 9-slice propre (motif uniforme le
+  long de chaque bord, pas de décoration ponctuelle) — vérifié par un rendu de test étiré à
+  500×180 avant de l'appliquer, aucune couture visible.
+- **Remplace `std_window.png` ET `dialogue_frame.png` partout** (les deux anciens fichiers
+  supprimés, plus aucune référence) : `dialogue_box.tscn` (`NinePatchRect`, `patch_margin` 48/24
+  → 12 partout), et en `StyleBoxTexture` (`texture_margin` → 12 partout, `content_margin`
+  **inchangé** dans chaque fichier — c'est un réglage indépendant du visuel de la bordure) dans
+  `class_choice`, `partner_choice`, `pause_menu`, `gender_choice`, `yes_no_choice`, `save_slots`,
+  `title_screen`, `location_banner`, `name_entry`.
+- **Règle pour toute nouvelle fenêtre** : utiliser `square_window.png` avec `texture_margin` = 12
+  sur les 4 côtés (ou `patch_margin` si `NinePatchRect`), jamais recréer un style rond sans
+  décision explicite de Gus.
+
+## ✅ Effet machine à écrire dans `encounter.gd` + 2e passe de taille de police
+
+Gus a testé la réduction ~25% de la session précédente et l'a trouvée encore un peu petite. Comme
+je n'avais pas de mesure fiable au pixel près pour trancher, on est reparti sur un ajustement
+empirique : **+18% sur toutes les tailles de police déjà réduites** (16→19 par défaut, dialogue
+24→28, écran-titre 24→28, etc.) — toujours pas une valeur définitive, à revalider en jouant.
+
+- **`encounter.gd`** : tout le texte s'affichait d'un coup (`label.text = ...` direct), pas
+  cohérent avec `dialogue_box.gd` qui a déjà l'effet machine à écrire partout ailleurs. Ajout de
+  `_type_text(text)` (même `CHAR_DELAY = 0.02` que `dialogue_box.gd`), utilisé par `_say()` (les
+  messages type "Gotcha !"/"Vous lancez un appât !") et par le message d'apparition + "Que
+  veux-tu faire ?". Un appui pendant la frappe l'affiche instantanément (`skip_requested`, même
+  logique que `dialogue_box.gd`) plutôt que de sauter à l'étape suivante par erreur.
+  - Le message d'apparition (`intro_message`) se tape maintenant **en parallèle** de l'animation
+    d'entrée (rebond du sprite, glissement des boîtes) plutôt qu'instantanément avant — appelé
+    sans `await` dans `play_entrance()` pour lancer la frappe en tâche de fond pendant que le
+    `Tween` joue, fidèle à la sensation du vrai jeu (texte qui tape pendant que le Pokémon
+    apparaît, pas avant).

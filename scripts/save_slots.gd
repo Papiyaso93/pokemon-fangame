@@ -40,7 +40,7 @@ func _build_row(n: int) -> Control:
 	slot_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	if summary.empty:
-		slot_button.text = "Emplacement %d — Vide" % (n + 1)
+		slot_button.text = "Emplacement %d - Vide" % (n + 1)
 		slot_button.disabled = mode == "load"
 		if mode == "new":
 			slot_button.pressed.connect(func(): _on_slot_chosen(n))
@@ -48,7 +48,7 @@ func _build_row(n: int) -> Control:
 			slot_button.pressed.connect(func(): slot_chosen.emit(n))
 	else:
 		var playtime := SaveManager.format_playtime(summary.play_seconds)
-		slot_button.text = "%s — %s — %s" % [summary.player_name, summary.map_name, playtime]
+		slot_button.text = "%s - %s - %s" % [summary.player_name, summary.map_name, playtime]
 		slot_button.disabled = mode == "new"
 		if mode == "load":
 			slot_button.pressed.connect(func():

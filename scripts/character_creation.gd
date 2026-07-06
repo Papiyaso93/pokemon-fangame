@@ -1,70 +1,69 @@
-extends Control
+extends Node
+
+# Orchestrateur pur : ne possède aucun visuel propre, enchaîne 3 étapes
+# (nom -> genre -> apparence), chacune avec une question posée dans une
+# boîte de dialogue classique (tenue ouverte, comme partout ailleurs dans le
+# jeu) suivie d'une fenêtre dédiée pour la réponse. Le fond noir vient de
+# intro.tscn (déjà présent, cette scène est ajoutée par-dessus).
 
 signal creation_finished
 
-enum { STEP_GENDER, STEP_NAME, STEP_APPEARANCE }
-var step := STEP_GENDER
-var chosen_appearance_index := 0
-
-@onready var prompt: Label = $Center/Content/Prompt
-@onready var gender_box: HBoxContainer = $Center/Content/GenderBox
-@onready var name_box: VBoxContainer = $Center/Content/NameBox
-@onready var name_edit: LineEdit = $Center/Content/NameBox/NameEdit
-@onready var appearance_box: HBoxContainer = $Center/Content/AppearanceBox
-@onready var appearance_left: TextureButton = $Center/Content/AppearanceBox/Left
-@onready var appearance_right: TextureButton = $Center/Content/AppearanceBox/Right
+const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
+const NameEntryScene := preload("res://scenes/ui/name_entry.tscn")
+const GenderChoiceScene := preload("res://scenes/ui/gender_choice.tscn")
+const AppearanceChoiceScene := preload("res://scenes/ui/appearance_choice.tscn")
 
 func _ready() -> void:
-	name_edit.max_length = PlayerData.NAME_MAX_LENGTH
-	_show_step(STEP_GENDER)
+	call_deferred("_run")
 
-func _show_step(s: int) -> void:
-	step = s
-	gender_box.visible = s == STEP_GENDER
-	name_box.visible = s == STEP_NAME
-	appearance_box.visible = s == STEP_APPEARANCE
-	match s:
-		STEP_GENDER:
-			prompt.text = "Es-tu un garçon ou une fille ?"
-		STEP_NAME:
-			prompt.text = "Quel est ton nom ? (%d caractères max)" % PlayerData.NAME_MAX_LENGTH
-			name_edit.text = ""
-			name_edit.grab_focus()
-		STEP_APPEARANCE:
-			prompt.text = "Choisis ton apparence."
-			_load_appearance_previews()
-
-func _on_boy_pressed() -> void:
-	PlayerData.gender = "male"
-	_show_step(STEP_NAME)
-
-func _on_girl_pressed() -> void:
-	PlayerData.gender = "female"
-	_show_step(STEP_NAME)
-
-func _on_name_confirmed(_text := "") -> void:
-	var n := name_edit.text.strip_edges()
-	if n.is_empty():
-		return
-	PlayerData.player_name = n
-	_show_step(STEP_APPEARANCE)
-
-func _load_appearance_previews() -> void:
-	var options: Array = PlayerData.APPEARANCES[PlayerData.gender]
-	appearance_left.texture_normal = _face_preview(options[0])
-	appearance_right.texture_normal = _face_preview(options[1])
-
-func _face_preview(sprite_name: String) -> AtlasTexture:
-	var tex := load("res://assets/characters/%s.png" % sprite_name) as Texture2D
-	var at := AtlasTexture.new()
-	at.atlas = tex
-	at.region = Rect2(0, 0, 16, 32)   # frame 0 : face sud, debout
-	return at
-
-func _on_appearance_left_pressed() -> void:
-	PlayerData.appearance = PlayerData.APPEARANCES[PlayerData.gender][0]
+func _run() -> void:
+	await _ask_name()
+	await _ask_gender()
+	await _ask_appearance()
 	creation_finished.emit()
 
-func _on_appearance_right_pressed() -> void:
-	PlayerData.appearance = PlayerData.APPEARANCES[PlayerData.gender][1]
-	creation_finished.emit()
+func _ask_name() -> void:
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	var question: Array[String] = ["Quel est ton nom ? (%d caractères max)" % PlayerData.NAME_MAX_LENGTH]
+	dialogue.say(question)
+	await dialogue.page_typed
+	dialogue.active = false
+
+	var entry := NameEntryScene.instantiate()
+	get_tree().current_scene.add_child(entry)
+	var chosen_name: String = await entry.confirmed
+	entry.queue_free()
+	dialogue.queue_free()
+	PlayerData.player_name = chosen_name
+
+func _ask_gender() -> void:
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	var question: Array[String] = ["Es-tu un garçon ou une fille ?"]
+	dialogue.say(question)
+	await dialogue.page_typed
+	dialogue.active = false
+
+	var choice := GenderChoiceScene.instantiate()
+	get_tree().current_scene.add_child(choice)
+	var gender: String = await choice.chosen
+	choice.queue_free()
+	dialogue.queue_free()
+	PlayerData.gender = gender
+
+func _ask_appearance() -> void:
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	var question: Array[String] = ["Choisis ton apparence."]
+	dialogue.say(question)
+	await dialogue.page_typed
+	dialogue.active = false
+
+	var choice := AppearanceChoiceScene.instantiate()
+	get_tree().current_scene.add_child(choice)
+	choice.setup(PlayerData.APPEARANCES[PlayerData.gender])
+	var index: int = await choice.chosen
+	choice.queue_free()
+	dialogue.queue_free()
+	PlayerData.appearance = PlayerData.APPEARANCES[PlayerData.gender][index]

@@ -13,6 +13,12 @@ suivi d'avancement. Il répond à trois questions à tout moment :
 À tenir à jour après chaque fonctionnalité livrée — pas seulement dans
 `HANDOFF.md`, qui reste le contexte technique d'une session à l'autre.
 
+**Précision de Gus (06/07/2026)** : ce document doit vraiment servir de
+**scénario global** du jeu, pas juste d'une liste de statuts. Chaque section
+doit pouvoir se lire comme le déroulé réel vécu par le joueur (avec les
+dialogues quand ils existent), pour que Gus et son ami puissent suivre
+l'histoire dans son ensemble et où on en est, pas juste cocher des cases.
+
 ## Légende
 
 - ✅ Fait et vérifié en jeu
@@ -82,33 +88,92 @@ Voir `HANDOFF.md` pour le détail technique (format JSON, points d'intégration)
 
 ## 3. Nouvelle partie — création de personnage ✅ (mécanique) / ❓ (portée)
 
-- Écran noir, dialogue d'ouverture ✅
-- Renseigner son nom (max 7 caractères, fidèle FRLG) ✅
-- Choisir son sexe ✅
-- Choisir son apparence ✅ — actuellement **4 sprites prédéfinis** (2 par
-  genre : Red/Brendan pour homme, Green/May pour femme), pas de personnalisation
-  fine
+Écran noir (fond de `intro.tscn`), 3 questions dans l'ordre **nom → genre → apparence**
+(réordonné le 06/07/2026 à la demande de Gus, avant c'était genre → nom → apparence). Chaque
+question suit le même principe que le reste du jeu : posée dans une boîte de dialogue classique
+tenue ouverte, puis une fenêtre dédiée pour la réponse à côté (`scripts/character_creation.gd`
+n'a plus aucun visuel propre, juste un orchestrateur qui enchaîne les 3 étapes).
+
+- Renseigner son nom (max 12 caractères — le vrai jeu limite à 7 par contrainte GBA, pas
+  pertinent sur PC) ✅ — saisie via un champ de texte
+  (`scenes/ui/name_entry.tscn`) dans une fenêtre `std_window.png`, pas le clavier virtuel du
+  vrai jeu (compromis assumé, voir HANDOFF.md)
+- Choisir son sexe ✅ — vraie fenêtre de choix (`scenes/ui/gender_choice.tscn`, Garçon/Fille)
+- Choisir son apparence ✅ — fenêtre de choix avec les 2 aperçus cliquables
+  (`scenes/ui/appearance_choice.tscn`), actuellement **4 sprites prédéfinis** (2 par genre :
+  Red/Brendan pour homme, Green/May pour femme), pas de personnalisation fine
   - ❓ Garder ce choix limité (fidèle FRLG) ou permettre une
     hyper-personnalisation (couleur de peau, cheveux, tenue...) ? Impact
     important sur le travail de sprite à prévoir si on part sur la 2e option.
 
-Fichiers : `scripts/character_creation.gd` + `scenes/ui/character_creation.tscn`,
+Fichiers : `scripts/character_creation.gd` (orchestrateur), `scenes/ui/name_entry.tscn`,
+`scenes/ui/gender_choice.tscn`, `scenes/ui/appearance_choice.tscn`,
 `scripts/player_data.gd` (autoload `PlayerData`).
 
 ---
 
 ## 4. Intro narrative — bâtiment Zone Safari ✅
 
-- Le joueur spawn dans `safari_entrance` ✅
-- `worker_f` engage automatiquement la conversation : confirmation → explication
-  des 2 classes (Compétiteur/Chercheur) → choix, avec boucle "peux-tu répéter ?"
-  et rappel "Chercheur indisponible" (Chercheur = v2, cf. `game-design.md`) ✅
-- Les sorties du bâtiment restent verrouillées tant que `worker_m` n'a pas été vu ✅
-- `worker_m` explique les règles du Parc Safari (30 Safari Balls, capture libre,
-  retour pour choisir le partenaire, retour auto si 0 ball) ✅
+Scénario complet (tranché avec Gus et son ami le 06/07/2026), avec les dialogues
+réels — cette section fait référence pour tout le début du jeu, à garder
+synchronisée avec le texte réellement en jeu à chaque ajustement.
 
-Fichiers : `scripts/npc_worker_f.gd`, `scripts/npc_worker_m.gd`,
-`scripts/safari_entrance_gate.gd`.
+**Personnages** : **Louise** (accueil de Kanto, script `npc_worker_f.gd`,
+node `worker_f`) et **Anselme** (détail des classes + Parc Safari, script
+`npc_worker_m.gd`, node `worker_m`), tous deux dans `safari_entrance`. Le
+spawn ne change pas (toujours dans ce bâtiment, tout le monde reste à la même
+place).
+
+### Déroulé
+
+1. **Écran noir (Louise, hors-champ)** : "Bienvenue à Kanto !" →
+   "Tu n'es pas la première personne à débarquer ici les mains vides et
+   pleine d'espoir. Et tu seras loin d'être la dernière." → "Mais avant de
+   rêver, on fait les choses dans l'ordre : dis-moi qui tu es." → formulaire
+   (= création de personnage, section 3) → spawn direct dans le bâtiment,
+   sans phrase de transition.
+2. **Louise (suite, à l'arrivée)** : "Bien, [Nom]. C'est noté. Passons aux
+   choses sérieuses : qu'est-ce que tu comptes faire de ta vie, ici ?" →
+   évoque les 2 classes (Compétiteur/Chercheur) **sans demander de choisir**
+   → renvoie vers Anselme pour le détail.
+3. **Anselme (présentation)** : détaille les 2 classes (avec l'insistance sur
+   le fait que rien n'est gratuit à Kanto, il faut gagner sa vie), annonce les
+   2 PNJ optionnels du Parc Safari (compétiteur aguerri + assistant du
+   Pr Chen, pour un aperçu de chaque voie, sans interaction pour l'instant),
+   donne 30 Safari Balls et explique le système de capture (Pokémon de base
+   uniquement, retour libre ou forcé si 0 ball). Débloque la porte nord.
+4. **Verrou des portes** (`safari_entrance_gate.gd`) :
+   - Avant d'avoir parlé à Anselme : portes nord **et** sud bloquées, Louise
+     interpelle (petit point d'exclamation au-dessus du joueur).
+   - Après Anselme, avant d'avoir un partenaire : seule la porte sud reste
+     bloquée ("Ton premier partenaire t'attend !").
+5. **Parc Safari** : 2 PNJ optionnels (compétiteur aguerri, assistant du
+   Pr Chen) placés devant le bâtiment d'entrée, pas d'interaction pour
+   l'instant (prévu pour plus tard, une fois le système de combat de l'ami de
+   Gus disponible). Capture libre inchangée (section 5).
+6. **Retour au bâtiment** :
+   - **Volontaire** (il reste des Safari Balls) : Anselme demande "Alors, tu
+     as fini d'explorer le parc ?" → Oui/Non. Oui → enchaîne sur le choix du
+     partenaire. Non → le joueur se retourne et repart automatiquement dans
+     le parc (sa session ne change pas).
+   - **Forcé** (0 Safari Ball) : message en combat ("Il ne te reste plus
+     aucune Safari Ball !"), combat interrompu net (plus de tour appât/
+     pierre), message de retour, transition, spawn dans le bâtiment, direct
+     sur le choix du partenaire (même comportement que "Oui" ci-dessus).
+7. **Choix du partenaire** (inchangé, section 5) : 0 capture → Rattata offert.
+   ≥ 1 capture → choix parmi les captures.
+8. **Louise (final)** : enchaîne directement après le choix du partenaire
+   ("Alors, cette fois c'est décidé ?") → vrai choix de classe (menu
+   Compétiteur/Chercheur, "Chercheur indisponible" avec la blague Grodolphe
+   déjà établie).
+   - ❓ Une fois la classe choisie, faut-il aussi bloquer la porte sud tant
+     que ce choix n'est pas fait (actuellement non — la porte sud se
+     débloque dès qu'un partenaire est choisi, avant même de reparler à
+     Louise) ? Décision reportée avec Gus.
+
+Fichiers : `scripts/intro.gd`, `scripts/npc_worker_f.gd`, `scripts/npc_worker_m.gd`,
+`scripts/safari_entrance_gate.gd`, `scenes/ui/yes_no_choice.tscn` (nouveau,
+petit choix Oui/Non réutilisable).
 
 ---
 

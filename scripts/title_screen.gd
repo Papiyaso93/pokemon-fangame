@@ -6,10 +6,26 @@ extends CanvasLayer
 
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
 const NEW_GAME_MAP := "res://scenes/intro/intro.tscn"
+const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
+const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 
 @onready var buttons_window: Control = $Root/Center
 
 var slots_screen: Node = null
+
+func _ready() -> void:
+	# Flèche affichée dans un TextureRect dédié (pas Button.icon) : Button
+	# centre son texte uniquement dans l'espace restant après l'icône, ce qui
+	# décale visuellement le texte vers la droite (marges gauche/droite
+	# inégales, signalé par Gus). Ici la flèche et un espaceur invisible de
+	# même largeur encadrent le Label au sein d'un HBoxContainer, donc le
+	# texte reste centré au milieu du bouton, marges symétriques.
+	for btn in $Root/Center/Window/Buttons.get_children():
+		if btn is Button:
+			var icon: TextureRect = btn.get_node("Content/Icon")
+			icon.texture = BlankTexture
+			btn.mouse_entered.connect(func(): icon.texture = ArrowTexture)
+			btn.mouse_exited.connect(func(): icon.texture = BlankTexture)
 
 func _on_new_game_pressed() -> void:
 	# Pas besoin de faire choisir un slot pour une nouvelle partie : on prend

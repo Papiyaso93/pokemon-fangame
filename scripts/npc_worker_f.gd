@@ -1,18 +1,34 @@
 extends "res://scripts/npc.gd"
 
+# Louise : accueil de Kanto. Reprend la conversation à l'arrivée du joueur
+# (juste après le formulaire de l'écran noir, voir intro.gd), évoque les
+# 2 classes sans demander de choisir tout de suite, puis renvoie vers Anselme
+# pour le détail (voir npc_worker_m.gd). Elle reprend la parole en tout
+# dernier, une fois que le joueur a un partenaire, pour le vrai choix de
+# classe (ask_final_class_choice(), appelée par safari_entrance_gate.gd).
+
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const ClassChoiceScene := preload("res://scenes/ui/class_choice.tscn")
 
 const INTRO_LINES: Array[String] = [
-	"Merci pour ces informations.",
-	"Maintenant que tu as 18 ans et que tu as obtenu tous tes diplômes, tu vas pouvoir choisir ta future classe.",
+	"Bien, %s. C'est noté. Passons aux choses sérieuses : qu'est-ce que tu comptes faire de ta vie, ici ?",
+	"À 18 ans, tout le monde doit se trouver une voie. Il y en a deux à Kanto : Compétiteur et Chercheur.",
+	"Je pourrais t'en parler, mais franchement, je ne suis pas la mieux placée pour ça.",
+	"Va voir Anselme, en face. Il va te donner plus de détails.",
 ]
 
-const CLASS_EXPLANATION: Array[String] = [
-	"Il existe deux voies possibles ici à Kanto.",
-	"Le Compétiteur vit de la compétition Pokémon. Ses revenus viennent des matchs officiels : arènes, compétitions, adversaires réputés. Son objectif : devenir Champion de la Ligue.",
-	"Le Chercheur travaille sur le terrain pour le laboratoire du Professeur Chen, à la découverte de ce que personne n'a encore documenté. Il est rémunéré pour ses missions de recherche. Son objectif : percer les mystères de Kanto et explorer des zones inconnues.",
-	"Alors, quelle carrière t'intéresse le plus ?",
+# Réutilisé aussi par safari_entrance_gate.gd::on_gate_blocked() si le joueur
+# essaie de sortir avant d'avoir parlé à Anselme.
+const WAITING_FOR_ANSELME: Array[String] = [
+	"Va voir Anselme, en face. Il va te donner plus de détails.",
+]
+
+const WAITING_FOR_PARTNER: Array[String] = [
+	"Va d'abord attraper ton premier partenaire au Parc Safari.",
+]
+
+const FINAL_QUESTION: Array[String] = [
+	"Alors, cette fois c'est décidé ?",
 ]
 
 const CHERCHEUR_UNAVAILABLE: Array[String] = [
@@ -23,47 +39,44 @@ const COMPETITEUR_CONFIRM: Array[String] = [
 	"Super, tu es maintenant un compétiteur.",
 ]
 
-# Répétées si on reparle à worker_f, ou si on essaie de sortir avant d'avoir vu worker_m.
-const NEXT_STEP_REMINDER: Array[String] = [
-	"Pour commencer ta carrière, il va te falloir un Pokémon.",
-	"Va voir mon collègue, il t'expliquera comment procéder.",
-]
-
 func _ready() -> void:
 	super()
-	if PlayerData.chosen_class.is_empty():
+	if not PlayerData.orientation_given:
 		call_deferred("_start_auto_intro")
 
 func get_lines() -> Array[String]:
-	if PlayerData.chosen_class.is_empty():
-		return []   # la séquence auto se déclenche toute seule, pas d'interaction manuelle
+	if not PlayerData.orientation_given:
+		return []   # la séquence auto se déclenche toute seule
 	if not PlayerData.intro_complete:
-		return NEXT_STEP_REMINDER
+		return WAITING_FOR_ANSELME
+	if PlayerData.starter_species.is_empty():
+		return WAITING_FOR_PARTNER
+	if PlayerData.chosen_class.is_empty():
+		return []   # géré par ask_final_class_choice(), pas une simple ligne
 	return ["Bonne chance dans ta nouvelle carrière, %s !" % PlayerData.player_name]
 
 func _start_auto_intro() -> void:
 	var player := get_tree().get_first_node_in_group("player")
 	if player:
 		player.is_busy = true
-	await _say(INTRO_LINES)
-	await _explain_and_choose()
+	var lines := INTRO_LINES.duplicate()
+	lines[0] = lines[0] % PlayerData.player_name
+	await _say(lines)
+	PlayerData.orientation_given = true
 	if player:
 		player.is_busy = false
-		player.interact_cooldown = 0.2   # évite que la touche qui ferme le dernier dialogue relance une interaction
+		player.interact_cooldown = 0.2
 
-func _explain_and_choose() -> void:
-	await _say(CLASS_EXPLANATION.slice(0, CLASS_EXPLANATION.size() - 1))
+# Appelée par safari_entrance_gate.gd une fois que le joueur a son partenaire,
+# juste après le choix (enchaînement direct, pas besoin de revenir parler à
+# Louise manuellement).
+func ask_final_class_choice() -> void:
 	await _ask_and_choose()
 
-# Garde la question affichée dans sa boîte de dialogue pendant que le joueur
-# choisit (fidèle FRLG) : on tape le texte normalement, mais une fois affiché
-# on désactive juste ses entrées (`active = false`) au lieu de la fermer, le
-# temps que le menu de choix soit résolu.
 func _ask_and_choose() -> void:
 	var dialogue := DialogueBoxScene.instantiate()
 	get_tree().current_scene.add_child(dialogue)
-	var question: Array[String] = [CLASS_EXPLANATION[-1]]
-	dialogue.say(question)
+	dialogue.say(FINAL_QUESTION)
 	await dialogue.page_typed
 	dialogue.active = false
 
@@ -75,13 +88,13 @@ func _ask_and_choose() -> void:
 
 	match result:
 		"repeat":
-			await _explain_and_choose()
+			await _ask_and_choose()
 		"chercheur":
 			await _say(CHERCHEUR_UNAVAILABLE)
 			await _ask_and_choose()
 		"competiteur":
 			PlayerData.chosen_class = "competiteur"
-			await _say(COMPETITEUR_CONFIRM + NEXT_STEP_REMINDER)
+			await _say(COMPETITEUR_CONFIRM)
 
 func _say(lines: Array[String]) -> void:
 	var dialogue := DialogueBoxScene.instantiate()

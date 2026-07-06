@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/dialogue_box.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/ui/dialogue_frame.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_tex"]
 [ext_resource type="Texture2D" path="res://assets/ui/down_arrow_3.png" id="3_arrow"]
 [ext_resource type="FontFile" path="res://assets/fonts/dialogue_latin.fnt" id="4_font"]
 
@@ -19,10 +19,10 @@ offset_right = -24.0
 offset_bottom = -24.0
 texture = ExtResource("2_tex")
 texture_filter = 1
-patch_margin_left = 48
-patch_margin_top = 24
-patch_margin_right = 48
-patch_margin_bottom = 24
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
 axis_stretch_horizontal = 1
 
 [node name="Label" type="Label" parent="Panel"]
@@ -35,7 +35,7 @@ offset_right = -56.0
 offset_bottom = -30.0
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_fonts/font = ExtResource("4_font")
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 31
 autowrap_mode = 2
 vertical_alignment = 1
 

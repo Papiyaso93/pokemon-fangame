@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://c0y3h8x1q7waw"
+path="res://.godot/imported/dialogue_latin_white.fnt-8e7edb0a752086fa6a51719c85d6a2e7.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/dialogue_latin_white.fnt"
+dest_files=["res://.godot/imported/dialogue_latin_white.fnt-8e7edb0a752086fa6a51719c85d6a2e7.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=false
+scaling_mode=0

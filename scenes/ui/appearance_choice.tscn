@@ -1,0 +1,55 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/appearance_choice.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/down_arrow_3.png" id="2_arrow"]
+
+[node name="AppearanceChoice" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Center" type="CenterContainer" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="HBox" type="HBoxContainer" parent="Root/Center"]
+layout_mode = 2
+theme_override_constants/separation = 80
+
+[node name="LeftBox" type="VBoxContainer" parent="Root/Center/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LeftArrow" type="TextureRect" parent="Root/Center/HBox/LeftBox"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+stretch_mode = 4
+texture = ExtResource("2_arrow")
+modulate = Color(1, 1, 1, 0)
+
+[node name="Left" type="TextureButton" parent="Root/Center/HBox/LeftBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 128)
+stretch_mode = 4
+ignore_texture_size = true
+
+[node name="RightBox" type="VBoxContainer" parent="Root/Center/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RightArrow" type="TextureRect" parent="Root/Center/HBox/RightBox"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+size_flags_horizontal = 4
+stretch_mode = 4
+texture = ExtResource("2_arrow")
+modulate = Color(1, 1, 1, 0)
+
+[node name="Right" type="TextureButton" parent="Root/Center/HBox/RightBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 128)
+stretch_mode = 4
+ignore_texture_size = true

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bdfgymgpsnryd"
-path="res://.godot/imported/dialogue_frame.png-b85678d05d27099b782c54bf8036caf4.ctex"
+uid="uid://k5hdpk3cnuuy"
+path="res://.godot/imported/square_window.png-9cd8e21f14775392f0470c485f1a0165.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/dialogue_frame.png"
-dest_files=["res://.godot/imported/dialogue_frame.png-b85678d05d27099b782c54bf8036caf4.ctex"]
+source_file="res://assets/ui/square_window.png"
+dest_files=["res://.godot/imported/square_window.png-9cd8e21f14775392f0470c485f1a0165.ctex"]
 
 [params]
 

@@ -10,6 +10,7 @@ const SPECIES_LEVEL := 5
 const SPECIES_CATCH_RATE := 255.0     # taux réel Rattata (255/255, le plus facile)
 const SPECIES_FLEE_RATE := 30.0       # placeholder (pas de vraie donnée Safari par espèce encore)
 const SAFARI_BALL_MULTIPLIER := 1.5   # bonus Safari Ball (pret sBallCatchBonuses = 15/10)
+const CHAR_DELAY := 0.02   # même vitesse que dialogue_box.gd, effet machine à écrire
 
 # Fidèle pret src/battle_main.c (HandleAction_ThrowBait/ThrowRock) :
 # l'appât DIMINUE le taux de capture (mais aussi la fuite), le caillou
@@ -37,6 +38,7 @@ const BASE_ESCAPE_FACTOR := maxf(2.0, SPECIES_FLEE_RATE * 100.0 / 1275.0)
 var catch_factor := BASE_CATCH_FACTOR
 var bait_counter := 0
 var rock_counter := 0
+var intro_message := ""
 
 const ESCAPE_MESSAGES := [
 	"Aïe ! Le Pokémon sauvage s'est échappé d'un coup !",
@@ -50,7 +52,8 @@ func _ready() -> void:
 	level_label.text = "N.%d" % SPECIES_LEVEL
 	gender_label.text = "♂" if randf() < 0.5 else "♀"
 	hp_fill.anchor_right = 1.0
-	label.text = "Un %s sauvage apparaît !" % SPECIES_NAME
+	intro_message = "Un %s sauvage apparaît !" % SPECIES_NAME
+	label.text = ""
 	_update_balls_label()
 	_set_buttons_enabled(false)
 
@@ -82,18 +85,27 @@ func play_entrance() -> void:
 	tw.tween_property(health_box, "modulate:a", 1.0, 0.25)
 	tw.tween_property(safari_box, "position:x", safari_box.position.x - 200, 0.35).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tw.tween_property(safari_box, "modulate:a", 1.0, 0.25)
+	_type_text(intro_message)   # tape pendant que l'animation joue, pas d'attente ici
 	await tw.finished
 
 	# Fidèle FRLG : le message d'apparition reste affiché (rideau déjà ouvert,
 	# Pokémon déjà visible) jusqu'à un appui du joueur, avant de proposer le
 	# menu d'action.
 	await _wait_for_continue()
-	label.text = "Que veux-tu faire ?"
+	await _type_text("Que veux-tu faire ?")
 	_set_buttons_enabled(true)
 
+# Un appui pendant que le texte tape encore l'affiche instantanément (comme
+# dialogue_box.gd) au lieu de passer directement à la suite ; il faut un
+# 2e appui, une fois le texte complet, pour continuer.
 func _wait_for_continue() -> void:
-	while not Input.is_action_just_pressed("ui_accept"):
+	while true:
 		await get_tree().process_frame
+		if Input.is_action_just_pressed("ui_accept"):
+			if typing:
+				skip_requested = true
+			else:
+				break
 
 func _set_buttons_enabled(enabled: bool) -> void:
 	ball_button.disabled = not enabled or SafariState.balls <= 0
@@ -104,8 +116,26 @@ func _set_buttons_enabled(enabled: bool) -> void:
 func _update_balls_label() -> void:
 	balls_label.text = "SAFARI BALLS\nNb : %d" % SafariState.balls
 
+# Effet machine à écrire (même vitesse que dialogue_box.gd). skip_requested
+# permet d'afficher le texte instantanément sur un appui (voir _wait_for_continue).
+var typing := false
+var skip_requested := false
+
+func _type_text(text: String) -> void:
+	typing = true
+	skip_requested = false
+	label.text = ""
+	for i in range(1, text.length() + 1):
+		if skip_requested:
+			label.text = text
+			break
+		label.text = text.substr(0, i)
+		await get_tree().create_timer(CHAR_DELAY).timeout
+	typing = false
+	skip_requested = false
+
 func _say(text: String, wait := 1.3) -> void:
-	label.text = text
+	await _type_text(text)
 	await get_tree().create_timer(wait).timeout
 
 # Formule réelle FRLG (pret src/battle_script_commands.c, Cmd_handleballthrow) :
@@ -136,10 +166,22 @@ func _on_ball_pressed() -> void:
 	if shakes >= 4:
 		await _say("Gotcha ! %s a été capturé !" % SPECIES_NAME, 1.5)
 		SafariState.caught.append(SPECIES_NAME)
+	else:
+		await _say(ESCAPE_MESSAGES[shakes], 1.3)
+
+	# Plus aucune Ball : le combat s'arrête net ici, pas de tour de plus avec
+	# appât/pierre (le joueur ne pourra de toute façon plus jamais relancer
+	# une Ball). Le message "on te raccompagne" suit séparément une fois
+	# revenu côté player.gd.
+	if SafariState.balls <= 0:
+		await _say("Il ne te reste plus aucune Safari Ball !")
 		finished.emit()
 		return
 
-	await _say(ESCAPE_MESSAGES[shakes], 1.3)
+	if shakes >= 4:
+		finished.emit()
+		return
+
 	await _end_of_round()
 
 func _on_bait_pressed() -> void:
@@ -200,5 +242,5 @@ func _end_of_round() -> void:
 		finished.emit()
 		return
 
-	label.text = "Que veux-tu faire ?"
+	await _type_text("Que veux-tu faire ?")
 	_set_buttons_enabled(true)

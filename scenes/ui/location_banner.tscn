@@ -1,15 +1,15 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/location_banner.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://assets/ui/std_window.png" id="2_window"]
+[ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_window"]
 [ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="3_theme"]
 
 [sub_resource type="StyleBoxTexture" id="WindowStyle"]
 texture = ExtResource("2_window")
-texture_margin_left = 24.0
-texture_margin_top = 24.0
-texture_margin_right = 24.0
-texture_margin_bottom = 24.0
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
 content_margin_left = 24.0
 content_margin_top = 16.0
 content_margin_right = 24.0
@@ -30,5 +30,5 @@ theme_override_styles/panel = SubResource("WindowStyle")
 
 [node name="Label" type="Label" parent="Root/Window"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 21
 horizontal_alignment = 1

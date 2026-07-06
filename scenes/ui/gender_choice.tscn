@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://scripts/pause_menu.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/gender_choice.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_window"]
 [ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="3_theme"]
 
@@ -30,7 +30,7 @@ Button/styles/pressed = SubResource("Btn_empty")
 Button/styles/focus = SubResource("Btn_empty")
 Button/font_sizes/font_size = 21
 
-[node name="PauseMenu" type="CanvasLayer"]
+[node name="GenderChoice" type="CanvasLayer"]
 script = ExtResource("1_script")
 
 [node name="Root" type="Control" parent="."]
@@ -46,21 +46,21 @@ layout_mode = 2
 theme = SubResource("ChoiceTheme")
 theme_override_constants/separation = 8
 
-[node name="Save" type="Button" parent="Root/Window/Buttons"]
+[node name="Boy" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
 alignment = 0
-text = "Sauvegarder"
+text = "Garçon"
 
-[node name="Resume" type="Button" parent="Root/Window/Buttons"]
+[node name="Girl" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
 alignment = 0
-text = "Reprendre"
+text = "Fille"
 
-[connection signal="pressed" from="Root/Window/Buttons/Save" to="." method="_on_save_pressed"]
-[connection signal="pressed" from="Root/Window/Buttons/Resume" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Boy" to="." method="_on_boy_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Girl" to="." method="_on_girl_pressed"]
