@@ -1,7 +1,8 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/title_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/std_window.png" id="2_window"]
+[ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="3_theme"]
 
 [sub_resource type="StyleBoxTexture" id="WindowStyle"]
 texture = ExtResource("2_window")
@@ -9,15 +10,31 @@ texture_margin_left = 16.0
 texture_margin_top = 16.0
 texture_margin_right = 16.0
 texture_margin_bottom = 16.0
+content_margin_left = 24.0
+content_margin_top = 16.0
+content_margin_right = 24.0
+content_margin_bottom = 16.0
 
 [sub_resource type="Theme" id="TitleTheme"]
 Label/font_sizes/font_size = 32
-Label/colors/font_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StyleBoxEmpty" id="Btn_empty"]
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="Theme" id="ButtonTheme"]
+Button/styles/normal = SubResource("Btn_empty")
+Button/styles/hover = SubResource("Btn_empty")
+Button/styles/pressed = SubResource("Btn_empty")
+Button/styles/focus = SubResource("Btn_empty")
 
 [node name="TitleScreen" type="CanvasLayer"]
 script = ExtResource("1_script")
 
 [node name="Root" type="Control" parent="."]
+theme = ExtResource("3_theme")
 anchor_right = 1.0
 anchor_bottom = 1.0
 
@@ -26,13 +43,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.11, 0.16, 0.28, 1)
 
-[node name="GameTitle" type="Label" parent="Root"]
+[node name="TitleCenter" type="CenterContainer" parent="Root"]
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -200.0
-offset_top = 60.0
-offset_right = 200.0
-offset_bottom = 110.0
+offset_left = -220.0
+offset_top = 50.0
+offset_right = 220.0
+offset_bottom = 120.0
+
+[node name="TitleWindow" type="PanelContainer" parent="Root/TitleCenter"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("WindowStyle")
+
+[node name="GameTitle" type="Label" parent="Root/TitleCenter/TitleWindow"]
+layout_mode = 2
 theme = SubResource("TitleTheme")
 text = "Pokémon Fangame"
 horizontal_alignment = 1
@@ -46,6 +70,7 @@ theme_override_styles/panel = SubResource("WindowStyle")
 
 [node name="Buttons" type="VBoxContainer" parent="Root/Center/Window"]
 layout_mode = 2
+theme = SubResource("ButtonTheme")
 theme_override_constants/separation = 10
 
 [node name="NewGame" type="Button" parent="Root/Center/Window/Buttons"]

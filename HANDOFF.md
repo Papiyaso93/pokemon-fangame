@@ -63,8 +63,9 @@ de secours si bredouille → `PlayerData.starter_species` rempli.
   pret) assigné/retiré de `Button.icon` sur `mouse_entered`/`mouse_exited` (connecté en code dans
   `class_choice.gd`/`partner_choice.gd`), plutôt qu'un changement de couleur de fond — fidèle à
   la sélection par curseur du vrai jeu.
-- **Police** : système par défaut de Godot (pas `dialogue_latin.fnt`) — voir piège police
-  bitmap ci-dessus, même bug rencontré ici.
+- **Police** : `dialogue_latin.fnt` via le thème partagé `assets/ui/game_theme.tres` (voir section
+  dédiée plus bas — corrigé après coup, cette scène utilisait la police système par défaut à
+  l'origine, exactement le bug documenté ci-dessous).
 - **✅ Corrections post-retour Gus (taille + question qui reste affichée)** :
   - **Taille** : le 1er jet était bien trop gros (police 22, `PanelContainer` seul sous un
     `Control` racine sans `Container` parent → ne se dimensionne pas à son contenu, débordait
@@ -233,6 +234,82 @@ plus bas), pas juste "ça compile".
      teinte) quel que soit le fond de la boîte — déjà noté pour `dialogue_box.tscn`, ça vaut pour
      **tout** usage de cette police (a fait la même erreur dans `encounter.tscn` avant de s'en
      souvenir).
+
+  **✅ Suite (session suivante, signalé par Gus) : incohérence de police dans TOUTE l'UI.**
+  Une fois les deux causes ci-dessus réellement comprises, il s'est avéré que le "contournement"
+  (police système par défaut) n'avait **jamais été retiré** des écrans où le vrai bug avait été
+  contourné avant que la cause 2 soit identifiée : `class_choice.tscn`, `partner_choice.tscn`,
+  `location_banner.gd`, plus les écrans ajoutés depuis dans ce même style
+  (`pause_menu.tscn`, `save_slots.tscn`, `title_screen.tscn`) — tous utilisaient encore la police
+  système, uniquement parce que leur `Button/Label` `font_color` était resté à une teinte sombre
+  (`Color(0.1, 0.1, 0.1, 1)`, copiée-collée d'un menu à l'autre). Résultat : la boîte de dialogue
+  (police fidèle) et les fenêtres de choix (police système) affichaient deux typographies
+  différentes à l'écran en même temps — repéré par Gus sur un screenshot.
+  - **Fix définitif — `assets/ui/game_theme.tres`** : un unique `Theme` partagé
+    (`default_font = dialogue_latin.fnt`, `Label/colors/font_color` et tous les
+    `Button/colors/font_*_color` figés à `Color(1,1,1,1)`, sauf `font_disabled_color` à
+    `Color(1,1,1,0.5)` — l'alpha seul peut varier sans casser le rendu, jamais les canaux RGB).
+    Appliqué en `theme = ExtResource(...)` sur le nœud `Control` racine de chaque écran
+    (`class_choice.tscn`, `partner_choice.tscn`, `pause_menu.tscn`, `save_slots.tscn`,
+    `title_screen.tscn`, `location_banner.tscn`) : la résolution de thème Godot remonte
+    l'arbre, donc les sous-thèmes locaux de chaque scène (styles de bouton, tailles de police
+    spécifiques) restent utilisables **tant qu'ils ne redéfinissent plus `font`/`font_color`**
+    eux-mêmes — retiré de tous au passage.
+  - **`scenes/ui/ui_theme.tres`** (encore plus ancien, seul restant à utiliser le style "boutons
+    sombres génériques" explicitement abandonné plus tôt cette session, utilisé par
+    `character_creation.tscn`) : gardé tel quel pour son style de bouton propre (pas dans le
+    scope de ce fix), mais `default_font` ajouté vers `dialogue_latin.fnt`, et
+    `Button/colors/font_hover_color` (qui était un jaune `Color(1, 0.9, 0.4, 1)`, une vraie
+    teinte, pas juste un alpha) remis à blanc pour ne pas casser le glyphe — le survol reste
+    perceptible via le changement de couleur de fond/bordure du bouton, pas la couleur du texte.
+  - **`encounter.tscn`** : `BottomBox` (message + boutons d'action Ball/Appât/Pierre/Fuite)
+    utilisait aussi la police système alors que `HealthBox`/`SafariBox`, dans la **même scène**,
+    utilisaient déjà `dialogue_latin.fnt` correctement — ajouté `theme_override_fonts/font` sur
+    le Label du message et `Button/fonts/font` sur `ActionTheme`.
+  - **Règle à suivre pour toute nouvelle UI** : ne jamais créer de nouveau `Theme` ad hoc avec sa
+    propre couleur/police de texte — appliquer `game_theme.tres` à la racine, et ne définir
+    localement que ce qui est vraiment spécifique à l'écran (styles de bouton, tailles, marges).
+
+  **⚠️ Découverte suite au screenshot de Gus (écran-titre) : le halo de `dialogue_latin.png` est
+  OPAQUE, pas transparent.** Vérifié en inspectant la palette réelle du PNG : le halo blanc de
+  chaque glyphe est bien `(255,255,255,255)` — alpha 255, donc un **rectangle plein**, pas un
+  contour qui laisserait voir ce qu'il y a derrière. Dans le vrai jeu (et dans `dialogue_box.tscn`
+  qui fonctionne), ça ne se voit jamais car le fond de la boîte de dialogue est **exactement** ce
+  même blanc — le rectangle se fond dedans. Partout où le fond immédiat n'est PAS ce blanc exact
+  (fond de bouton par défaut de Godot = gris, `ColorRect` de couleur = n'importe quoi), on voit un
+  bloc blanc plein derrière chaque mot. **Ce n'est pas un bug Godot, c'est une contrainte de
+  l'asset** : cette police ne peut être utilisée QUE sur un fond exactement blanc/`std_window.png`/
+  `dialogue_frame.png` (leur intérieur est ce même blanc, vérifié). **Fix appliqué** : partout où
+  `game_theme.tres` est utilisé, les boutons doivent avoir un style `StyleBoxEmpty` (transparent,
+  laisse voir la fenêtre blanche derrière) plutôt que le style gris par défaut de Godot — ajouté à
+  `title_screen.tscn` (nouveau : le titre "Pokémon Fangame" déplacé dans sa propre petite fenêtre
+  `std_window.png` au lieu d'être directement sur le fond marine) et `save_slots.tscn` (boutons de
+  slots + Revenir, qui n'avaient pas ce style). `class_choice`/`partner_choice`/`pause_menu`
+  l'avaient déjà (`Btn_empty`), pas touché.
+  - **`character_creation.tscn` / `scenes/ui/ui_theme.tres` volontairement PAS corrigé** : cet
+    écran a un fond **noir** et des boutons à fond **sombre** (`StyleBoxFlat` foncé) — y appliquer
+    `dialogue_latin.fnt` recréerait le même bug en pire (blocs blancs sur fond noir, contraste
+    encore plus violent). Le corriger proprement demanderait de refaire tout l'habillage de
+    l'écran en clair (fond blanc/crème + fenêtres `std_window.png`), un chantier plus gros que la
+    simple cohérence de police — **laissé en l'état (police système par défaut), décision à
+    prendre avec Gus** : soit on accepte que cet écran reste visuellement à part (c'est un écran
+    de configuration, pas un écran "in-fiction"), soit on le refait dans le style clair du reste
+    du jeu.
+
+  **✅ Marge intérieure des fenêtres `std_window.png`/`dialogue_frame.png`** : signalé par Gus sur
+  le bandeau de lieu (texte trop proche de la bordure). Audit de tous les `content_margin_*` du
+  projet : `location_banner.tscn` avait `content_margin_top/bottom = 10` (trop juste, corrigé à
+  `16`) ; `title_screen.tscn` n'avait **aucun** `content_margin` sur son `WindowStyle` (le texte/
+  les boutons touchaient quasi directement le bord intérieur de la bordure 9-slice) — ajouté
+  `content_margin_left/right = 24`, `content_margin_top/bottom = 16`. `class_choice`/
+  `partner_choice`/`pause_menu` (30/20) et `save_slots` (24/20 via son `MarginContainer`) avaient
+  déjà une marge suffisante, pas touchés. `encounter.tscn` (stat box/message box, marges 8-12px)
+  a des marges plus fines mais **déjà validées avec Gus** lors de sa conception détaillée
+  (session capture Safari) — pas retouché sans nouvelle demande explicite sur cet écran-là.
+  **Règle pour toute nouvelle fenêtre `std_window.png`/`dialogue_frame.png`** : toujours définir
+  un `content_margin_left/right` ≥ 24 et `content_margin_top/bottom` ≥ 16 sur le `StyleBoxTexture`
+  (ou l'équivalent via un `MarginContainer` si le contenu est enveloppé différemment) — ne jamais
+  laisser le texte s'appuyer directement sur la bordure 9-slice.
 - **Méthode de vérification utilisée** : scène `Node2D` temporaire + script qui instancie la
   scène UI à tester, appelle directement les fonctions de test (`_on_bait_pressed()` etc.) et
   sauvegarde des captures d'écran (`get_viewport().get_texture().get_image().save_png(...)`) à

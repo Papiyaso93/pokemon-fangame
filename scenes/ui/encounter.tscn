@@ -64,6 +64,7 @@ Button/styles/focus = SubResource("ActionBtn_hover")
 Button/colors/font_color = Color(1, 1, 1, 1)
 Button/colors/font_hover_color = Color(1, 1, 1, 1)
 Button/colors/font_disabled_color = Color(1, 1, 1, 0.5)
+Button/fonts/font = ExtResource("6_font")
 Button/font_sizes/font_size = 20
 
 [node name="Encounter" type="CanvasLayer"]
@@ -195,6 +196,7 @@ theme_override_constants/separation = 16
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_fonts/font = ExtResource("6_font")
 theme_override_font_sizes/font_size = 22
 autowrap_mode = 2
 vertical_alignment = 1
