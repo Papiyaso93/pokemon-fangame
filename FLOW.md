@@ -22,42 +22,61 @@ suivi d'avancement. Il répond à trois questions à tout moment :
 
 ---
 
-## 1. Démarrage du jeu — écran titre ❌
+## 1. Démarrage du jeu — écran titre ✅ (mécanique) / 🚧 (habillage)
 
-**Rien n'existe aujourd'hui** : le jeu démarre directement sur
-`scenes/intro/intro.tscn` (écran noir + dialogue), sans aucun écran titre.
-`project.godot` a `run/main_scene` codé en dur sur cette scène.
+`project.godot` démarre maintenant sur `scenes/ui/title_screen.tscn`. Écran
+minimal (fond uni + fenêtre `std_window.png`), propose **Nouvelle partie** /
+**Charger une partie** / **Tests**.
+- ✅ Nouvelle partie → prend silencieusement le premier slot libre et va
+  directement à `scenes/intro/intro.tscn`, sans passer par l'écran de slots
+  (simplifié à la demande de Gus : pas besoin de choisir un slot pour
+  commencer). L'écran de slots ne s'affiche que si les 3 sont déjà pris, pour
+  en libérer un avant de pouvoir continuer.
+- ✅ Charger une partie → écran de sélection de slot → choix d'un slot rempli →
+  charge la sauvegarde
+- 🚧 Tests : bouton présent mais **ne fait rien pour l'instant** — décision
+  reportée (tranché avec Gus : on définira sa fonction plus tard)
+- 🚧 Pas d'habillage visuel (logo, artwork) — écran fonctionnel seulement
 
-**Spec cible :**
-- Le jeu s'allume
-- Un écran propose : **Nouvelle partie** / **Charger une partie** / **Tests**
-  (temporaire, pour faciliter la recette)
-  - ❓ Le mode "Tests" doit-il être retiré/masqué dans une build finale, ou
-    juste laissé de côté et ignoré par les joueurs ? À trancher le moment venu.
+Fichiers : `scripts/title_screen.gd` + `scenes/ui/title_screen.tscn`.
 
 ---
 
-## 2. Charger une partie ❌
+## 2. Charger une partie ✅ (mécanique) / 🚧 (contenu sauvegardé)
 
-**Rien n'existe aujourd'hui** : aucun système de sauvegarde (ni fichier, ni
-sérialisation de l'état du joueur/monde, ni temps de jeu). Gros chantier à part
-entière, pas juste un écran UI.
+Système de sauvegarde en place (tranché avec Gus le 06/07/2026) :
+- ✅ **3 slots** (`scripts/save_manager.gd`, autoload `SaveManager`), un fichier
+  JSON par slot dans `user://saves/slot_N.json`
+- ✅ Écran de sélection de slot partagé entre Nouvelle partie/Charger une
+  partie/Sauvegarder (`scripts/save_slots.gd` + `scenes/ui/save_slots.tscn`) :
+  slot vide non cliquable en mode "charger", slot rempli non cliquable en
+  mode "nouvelle partie" (il faut le supprimer d'abord), **tous les slots
+  cliquables en mode "sauvegarder"** ; affiche nom du perso, carte actuelle
+  (nom FR), temps de jeu (format `H:MM`) ; bouton supprimer sur chaque slot
+  rempli ; bouton "Revenir".
+- ✅ **Sauvegarde manuelle** via un mini-menu pause (touche `ui_cancel`/Échap,
+  `scripts/pause_menu.gd`) : Sauvegarder / Reprendre. "Sauvegarder" ouvre
+  l'écran de slots pour que le joueur **choisisse délibérément** où
+  sauvegarder — écraser une partie existante ou en garder une de côté en
+  utilisant un slot différent (demandé par Gus, plus besoin d'écraser
+  silencieusement le slot de la partie en cours). Pas de sauvegarde
+  automatique (tranché avec Gus) — le vrai menu Start (Pokédex/Sac/Options/...)
+  viendra plus tard, au fur et à mesure que ces systèmes existeront.
+- ✅ **Sauvegarde autorisée n'importe où**, y compris en pleine visite de la
+  Zone Safari (balls restantes + captures en cours incluses dans la
+  sauvegarde) — fidèle FRLG (le seul vrai blocage dans le jeu original est
+  pendant un combat, pas la Zone Safari)
+- ✅ Le joueur réapparaît exactement là où il a sauvegardé, y compris quand
+  cet endroit était sous une carte voisine chargée en recouvrement seamless
+  (la sauvegarde capture la **zone effective** sous ses pieds, pas juste la
+  scène `.tscn` chargée)
+- 🚧 **Contenu sauvegardé aujourd'hui** : uniquement ce qui existe déjà dans le
+  jeu (`PlayerData` complet, position/carte, orientation, état Zone Safari,
+  temps de jeu). Pas d'équipe Pokémon/inventaire/quêtes/Pokédex — ces systèmes
+  n'existent pas encore (section 6), à ajouter au format de sauvegarde au fur
+  et à mesure qu'ils seront construits.
 
-**Spec cible :**
-- Affiche tous les slots disponibles
-  - ❓ Nombre de slots : entre 3 et 5, à trancher
-- Par slot rempli, afficher : nombre d'heures jouées, map actuelle du joueur
-- Slot vide → rien de cliquable
-- Bouton "Revenir" → retour à l'écran titre
-- Clic sur un slot rempli → charge la partie, le joueur apparaît exactement là
-  où était sa dernière sauvegarde
-- Bouton supprimer (icône corbeille) à côté de chaque slot rempli, pour
-  libérer la place
-
-**Prérequis technique à concevoir avant l'UI elle-même :**
-- Format de sauvegarde (quelles données : position/map, temps de jeu, équipe
-  Pokémon, PlayerData, inventaire, quêtes en cours, état du monde...)
-- Quand déclencher une sauvegarde (auto ? manuelle ? les deux ?)
+Voir `HANDOFF.md` pour le détail technique (format JSON, points d'intégration).
 
 ---
 
@@ -126,7 +145,8 @@ ou quête n'existe après la Zone Safari**. Tout le reste est à construire :
   restent en téléportation classique — comportement fidèle, pas une lacune. Voir `HANDOFF.md`
   pour le détail technique.
 
-- ❌ Système de sauvegarde (voir section 2)
+- ✅ Système de sauvegarde (voir section 2) — couvre tout ce qui existe
+  aujourd'hui ; à étendre au fur et à mesure des systèmes ci-dessous
 - ❌ Équipe Pokémon (party) : affichage, soin, échange d'ordre
 - ❌ Centre Pokémon
 - ❌ Boutiques / objets / sac

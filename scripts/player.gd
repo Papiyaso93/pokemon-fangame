@@ -11,6 +11,7 @@ const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const EncounterScene := preload("res://scenes/ui/encounter.tscn")
 const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
 const LocationBannerScene := preload("res://scenes/ui/location_banner.tscn")
+const PauseMenuScene := preload("res://scenes/ui/pause_menu.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
 # Directions opposées, utilisé pour valider la réciprocité d'une connexion
@@ -331,6 +332,9 @@ func _physics_process(delta: float) -> void:
 		interact_cooldown -= delta
 	if is_busy:
 		return
+	if is_moving == false and turn_timer <= 0.0 and Input.is_action_just_pressed("ui_cancel"):
+		_open_pause_menu()
+		return
 	if is_moving == false and turn_timer <= 0.0 and interact_cooldown <= 0.0 and Input.is_action_just_pressed("ui_accept"):
 		_try_interact()
 		return
@@ -389,6 +393,16 @@ func _talk_to(npc: Node) -> void:
 		interact_cooldown = 0.2
 	)
 	dialogue.say(lines)
+
+func _open_pause_menu() -> void:
+	is_busy = true
+	var menu := PauseMenuScene.instantiate()
+	get_tree().current_scene.add_child(menu)
+	menu.closed.connect(func():
+		menu.queue_free()
+		is_busy = false
+		interact_cooldown = 0.2
+	)
 
 func _facing_for(dir: Vector2) -> String:
 	if dir.y > 0:

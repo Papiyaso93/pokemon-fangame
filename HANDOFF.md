@@ -608,6 +608,104 @@ pas une par une. Intérieurs à la toute fin.
 
 ---
 
+## ✅ Système de sauvegarde
+
+Décisions tranchées avec Gus (06/07/2026) : **3 slots**, sauvegarde **manuelle uniquement**
+(mini-menu pause, pas d'auto-save), **écran-titre inclus** dans ce chantier ("Tests" = bouton
+placeholder, sa fonction sera définie plus tard), **sauvegarde autorisée n'importe où** y compris
+en pleine visite Zone Safari (vérifié fidèle FRLG : le vrai jeu bloque seulement pendant un
+combat, pas la Zone Safari).
+
+### Nouveaux fichiers
+- **`scripts/save_manager.gd`** (autoload `SaveManager`) : moteur. `SLOT_COUNT := 3`,
+  `SAVE_DIR := "user://saves/"`, un fichier JSON par slot (`slot_N.json`, lisible/débogable,
+  pas de format binaire). `current_slot` (session active, -1 = aucune) et `play_seconds`
+  (compteur de temps de jeu, incrémenté en continu dans `_process()` tant que `current_slot >= 0`).
+  - `save_to_slot(n)` : sérialise `PlayerData` (tous les champs), `SafariState` (`active`,
+    `balls`, `caught`), `play_seconds`, et la **position effective** du joueur — pas juste la
+    scène `.tscn` chargée. Utilise `player._zone_and_local_tile(tile)` (déjà existant pour
+    les transitions seamless, voir plus haut) pour trouver la bonne zone/tuile locale même si
+    le joueur est physiquement dans une carte voisine chargée en recouvrement. Le `map_name`
+    sauvegardé est donc toujours celui de la zone réelle sous les pieds du joueur.
+  - `load_from_slot(n)` : restaure `PlayerData`/`SafariState`/`play_seconds`, puis réutilise
+    **le mécanisme de warp existant** (`Transitions.pending/direct/direct_tile/facing` +
+    `change_scene_to_file`) pour placer le joueur — `player.gd` n'a besoin d'aucune
+    modification pour supporter le chargement, c'est exactement le chemin déjà emprunté par
+    les portes/grottes.
+  - `slot_summary(n)` / `format_playtime(seconds)` : pour l'affichage (nom, carte en français
+    via `MapNames`, temps au format `H:MM`), sans toucher à l'état courant du jeu.
+  - `delete_slot(n)` : supprime le fichier.
+- **`scripts/pause_menu.gd`** + **`scenes/ui/pause_menu.tscn`** : mini-menu (2 boutons
+  Sauvegarder/Reprendre seulement — le vrai menu Start FRLG viendra plus tard). Même style que
+  `class_choice.tscn` (`dialogue_frame.png`, `CanvasLayer` racine, icône flèche
+  blanche/pleine au survol), mais **centré à l'écran** plutôt que calé sur la boîte de
+  dialogue. Ouvert par `player.gd` sur `ui_cancel` (Échap, action native Godot, pas besoin de
+  la définir dans l'Input Map) quand `not is_busy` et le joueur est à l'arrêt ; pose
+  `is_busy = true` le temps du menu, comme `_talk_to()`. "Sauvegarder" affiche ensuite un
+  message de confirmation via `DialogueBoxScene` ("Partie sauvegardée !").
+- **`scripts/save_slots.gd`** + **`scenes/ui/save_slots.tscn`** : écran de sélection de slot,
+  **partagé** entre Nouvelle partie et Charger une partie via une propriété `mode` ("new"/
+  "load") à définir **avant** d'ajouter le nœud à l'arbre (lue dans `_ready()`). Slot vide
+  cliquable seulement en mode "new" (choisit ce slot, `SaveManager.current_slot = n`, aucune
+  écriture disque avant la première vraie sauvegarde) ; slot rempli cliquable seulement en
+  mode "load" (`SaveManager.load_from_slot(n)`, qui gère lui-même le changement de scène).
+  Bouton supprimer sur tout slot rempli, dans les deux modes. Utilise `std_window.png` (fenêtre
+  "standard", même asset que le bandeau de lieu et les menus de choix) plutôt que le cadre
+  ondulé des dialogues — cohérent avec le principe déjà établi que ce sont deux styles de
+  fenêtre distincts dans le vrai jeu.
+- **`scripts/title_screen.gd`** + **`scenes/ui/title_screen.tscn`** : nouveau point d'entrée du
+  jeu (`project.godot`, `run/main_scene`, remplace `intro.tscn`). 3 boutons : Nouvelle partie
+  (ouvre `save_slots` en mode "new", puis `change_scene_to_file` vers `intro.tscn` une fois un
+  slot choisi), Charger une partie (mode "load"), Tests (**ne fait rien pour l'instant**,
+  décision reportée). Pas d'habillage visuel (juste un fond uni + la fenêtre des boutons) —
+  aucun artwork de titre n'existe, pas dans le scope de cette session.
+
+### ⚠️ Piège Godot découvert cette session : CanvasLayer imbriqué dans un CanvasLayer
+Bug signalé par Gus en testant : cliquer sur "Charger une partie" ne faisait **rien**
+visuellement. Diagnostic (via clic simulé + capture d'écran headless) : `save_slots` (un
+`CanvasLayer`) était bien instancié et `visible = true`, mais **ne s'affichait pas du tout** à
+l'écran. Cause : il était ajouté comme enfant direct de `title_screen.gd` (`add_child(...)` sur
+`self`), et `title_screen.tscn` a lui-même un `CanvasLayer` comme racine. **Un `CanvasLayer`
+ajouté comme enfant d'un AUTRE `CanvasLayer` ne se rend pas correctement** — contrairement à
+tous les autres popups du jeu (`dialogue_box`, menus de choix, bandeau de lieu, menu pause) qui
+fonctionnent très bien, car ils sont tous ajoutés via `get_tree().current_scene.add_child(...)`
+sur une scène dont la racine est un `Node2D` (les cartes), jamais un `CanvasLayer`. `title_screen`
+est le premier cas où la "scène courante" est elle-même un `CanvasLayer`. **Fix** : ajouter le
+popup à `get_tree().root` (le Viewport) plutôt qu'à `self` :
+```gdscript
+get_tree().root.add_child(slots_screen)   # et pas add_child(slots_screen)
+```
+Pour éviter que les 2 fenêtres se superposent/restent cliquables en même temps, `title_screen.gd`
+cache aussi son propre bouton-fenêtre (`buttons_window.visible = false`) tant que `save_slots`
+est ouvert, et le réaffiche à la fermeture. **À retenir pour toute future scène dont la racine
+est un `CanvasLayer`** (peu probable en dehors des écrans meta comme celui-ci, mais à vérifier
+si le "vrai" menu Start FRLG est développé plus tard sur le même modèle).
+
+### Format JSON d'un slot
+```json
+{
+  "player_name": "...", "gender": "...", "appearance": "...", "chosen_class": "...",
+  "intro_complete": true, "starter_species": "...",
+  "map_name": "...", "tile_x": 0, "tile_y": 0, "facing": "...",
+  "safari_active": false, "safari_balls": 30, "safari_caught": [],
+  "play_seconds": 0.0
+}
+```
+Ne contient que ce qui existe réellement dans le jeu aujourd'hui (voir FLOW.md, section 6) —
+pas d'équipe/inventaire/quêtes/Pokédex, à ajouter au fur et à mesure que ces systèmes seront
+construits.
+
+### Validé (tests headless, 2 process Godot séparés pour prouver la vraie persistance disque)
+Process 1 : lancé sur `pallet_town.tscn`, joueur déplacé jusqu'à se trouver physiquement dans
+la zone `route1` chargée en recouvrement seamless, sauvegarde via le menu pause → fichier
+`slot_2.json` confirmé avec `map_name: "route1"` (pas `pallet_town`) et la tuile locale
+correcte. Process 2 (nouveau process, donc aucun état mémoire partagé) : lancé sur
+`title_screen.tscn`, Charger une partie → slot 2 affiche bien le résumé correct → chargement →
+scène `route1.tscn` chargée directement, position/orientation/`PlayerData`/temps de jeu tous
+restaurés à l'identique.
+
+---
+
 ## Gotchas Godot
 - Fichier modifié en externe : Godot garde en cache → **Scène → « Recharger la scène
   sauvegardée »**, ou fermer sans enregistrer + rouvrir, ou **redémarrer Godot** (le plus
