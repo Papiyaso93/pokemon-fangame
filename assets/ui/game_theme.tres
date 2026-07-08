@@ -1,16 +1,16 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" format=3 uid="uid://cq5hvxcdm3wxn"]
 
-[ext_resource type="FontFile" path="res://assets/fonts/dialogue_latin.fnt" id="1_font"]
+[ext_resource type="FontFile" uid="uid://k5wcqx4vbwf" path="res://assets/fonts/dialogue_latin.fnt" id="1_font"]
 
 [resource]
 default_font = ExtResource("1_font")
 default_font_size = 21
-Label/colors/font_color = Color(1, 1, 1, 1)
 Button/colors/font_color = Color(1, 1, 1, 1)
+Button/colors/font_disabled_color = Color(1, 1, 1, 0.5)
+Button/colors/font_focus_color = Color(1, 1, 1, 1)
 Button/colors/font_hover_color = Color(1, 1, 1, 1)
 Button/colors/font_pressed_color = Color(1, 1, 1, 1)
-Button/colors/font_focus_color = Color(1, 1, 1, 1)
-Button/colors/font_disabled_color = Color(1, 1, 1, 0.5)
+Label/colors/font_color = Color(1, 1, 1, 1)
+LineEdit/colors/caret_color = Color(1, 1, 1, 1)
 LineEdit/colors/font_color = Color(1, 1, 1, 1)
 LineEdit/colors/font_selected_color = Color(1, 1, 1, 1)
-LineEdit/colors/caret_color = Color(1, 1, 1, 1)

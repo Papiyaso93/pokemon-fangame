@@ -158,6 +158,7 @@ func _load_world() -> void:
 			_attach_layers(root, node, world_off)
 			zones.append(zone)
 			queue.append(zone)
+	_load_border_fillers(root)
 	_update_camera_bounds()
 	# Si l'arrivée s'est faite par un warp (fondu déclenché avant le
 	# change_scene_to_file), on révèle l'écran maintenant que le monde est
@@ -194,6 +195,22 @@ func _compute_offset(from_rect: Rect2, n_size: Vector2i, dname: String, off: int
 			return Vector2(from_rect.position.x - n_size.x * TILE_SIZE, from_rect.position.y + off * TILE_SIZE)
 		_:
 			return Vector2(from_rect.position.x + from_rect.size.x, from_rect.position.y + off * TILE_SIZE)
+
+# Pose les patchs décoratifs (BorderFillers.PATCHES) par-dessus les zones
+# grises aux jonctions de cartes mal jointes — voir scripts/border_fillers.gd.
+# Purement visuel, aucune collision : le joueur ne peut de toute façon pas
+# marcher au-delà des zones réellement chargées (_is_within_loaded_world),
+# donc pas besoin de bloquer physiquement ces patchs.
+func _load_border_fillers(root: Node2D) -> void:
+	for zone in zones:
+		for patch in BorderFillers.PATCHES.get(zone.name, []):
+			var scene := load(String(patch.scene)) as PackedScene
+			if scene == null:
+				continue
+			var inst := scene.instantiate()
+			inst.position = zone.rect.position + Vector2(patch.offset) * TILE_SIZE
+			root.add_child(inst)
+			root.move_child(inst, 0)   # sous le joueur, comme "Below"
 
 func _attach_layers(root: Node2D, node: Node, world_off: Vector2) -> void:
 	for layer_name in ["Below", "Above", "Collision"]:

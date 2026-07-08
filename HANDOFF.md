@@ -893,6 +893,42 @@ scénario détaillé avec les dialogues réels. Résumé technique :
 
 ---
 
+## 🚧 Bordures de cartes mal jointes (zones grises)
+
+Certaines jonctions de cartes seamless (voir section dédiée) ont des tailles qui ne
+correspondent pas exactement à leur voisine, laissant apparaître du gris (aucune tuile chargée)
+quand le joueur s'approche du bord. Un script d'analyse (`generated/*.json` : tailles + connexions
++ grille de collision, jetable dans `kanto-pipeline/`, pas commité) a trouvé **39 connexions
+seamless réciproques, dont 12 avec un vrai décalage de taille**, et 5 d'entre elles ont une
+portion de bord réellement praticable (donc gris garanti visible) : `route19`↔`route20`,
+`vermilion_city`↔`route6`, `vermilion_city`↔`route11`, `route18`↔`route17`,
+`cerulean_city`↔`route9`. Les 7 autres ont un bord entièrement bloqué (arbre/mur), probablement
+déjà invisibles.
+
+**Décision avec Gus** : pas de correction automatique/à froid — le remplissage (arbres/eau/
+montagne) est une décision de terrain au cas par cas. **Workflow retenu** : Gus se balade en jeu,
+capture d'écran + nom de la carte dès qu'il voit du gris, on corrige ensemble à chaque fois
+plutôt que d'attaquer toute la liste d'un coup.
+
+**Architecture des patchs** (pour ne jamais toucher aux ~60 maps générées, qui doivent rester
+régénérables à tout moment) :
+- `scripts/border_fillers.gd` (`class_name BorderFillers`) : manifeste `PATCHES`, dict
+  `nom_de_carte -> [{scene, offset (Vector2i, tuiles, relatif à l'origine de la carte,
+  peut être négatif)}]`. Vide pour l'instant.
+- `scripts/create_border_filler.gd` (`@tool extends EditorScript`, comme `import_map.gd`) :
+  génère une scène `scenes/maps/fillers/<nom>.tscn` = un `TileMapLayer` **vide**, avec le vrai
+  jeu de tuiles d'une map source au choix (constantes `SOURCE_MAP`/`OUT_NAME`/`SIZE` en tête de
+  fichier à adapter avant chaque exécution) — prêt à peindre à la main dans l'éditeur Godot avec
+  l'outil de tuiles natif. Pas de calque `Above`/collision : ces patchs sont purement décoratifs
+  (le joueur ne peut physiquement pas marcher au-delà des zones chargées, donc pas besoin de
+  bloquer quoi que ce soit).
+- `player.gd::_load_border_fillers()` (appelée en fin de `_load_world()`) : pose chaque patch
+  du manifeste dont la carte correspond à une zone chargée, positionné à
+  `zone.rect.position + offset*TILE_SIZE`, ajouté sous le joueur (comme `Below`).
+
+**Marche à suivre pour un nouveau patch** : créer la scène vide avec `create_border_filler.gd` →
+la peindre dans l'éditeur → ajouter une entrée dans `BorderFillers.PATCHES` avec le bon offset.
+
 ## Gotchas Godot
 - Fichier modifié en externe : Godot garde en cache → **Scène → « Recharger la scène
   sauvegardée »**, ou fermer sans enregistrer + rouvrir, ou **redémarrer Godot** (le plus
