@@ -9,14 +9,16 @@ signal closed
 # carte est visible dès le départ (fidèle au vrai jeu, pas de brouillard de
 # guerre).
 
-const RouteIcon := preload("res://assets/ui/region_map_route_icon.png")
+# Icône bleue du vrai jeu (pas générée) : cadrée sur le 2e des 2 cadres
+# 8x16 empilés du fichier pret (le 1er est un état "non visité" non utilisé
+# ici, cf. HANDOFF.md). Utilisée pour les grottes/forêts/îles — PAS les
+# routes, qui n'ont aucun repère dans le vrai jeu (confirmé par Gus).
 const DungeonIcon := preload("res://assets/ui/region_map_dungeon_icon.png")
 # Vraie icône du jeu (pas générée) : petit portrait du joueur, distinct des
 # ronds de ville pour ne plus les confondre (signalé par Gus).
 const CurrentMarker := preload("res://assets/ui/region_map_player_icon.png")
 
-const CITY_SIZE := Vector2(20, 20)
-const ROUTE_SIZE := Vector2(16, 16)
+const DUNGEON_SIZE := Vector2(20, 20)
 const PLAYER_SIZE := Vector2(24, 24)
 
 @onready var map_wrap: Control = $Root/Center/Window/VBox/MapWrap
@@ -47,35 +49,40 @@ func _ready() -> void:
 # Une icône par position UNIQUE (plusieurs cartes godot peuvent partager la
 # même position, ex. les 4 sous-zones de la Zone Safari) — sans ça on
 # empilerait des icônes identiques les unes sur les autres pour rien.
-# Les villes n'ont PAS d'icône ajoutée ici : le point rouge est déjà cuit
-# dans le tilemap décodé (assets/ui/region_map.png généré par
-# build_region_map.py), exactement comme dans le vrai jeu — en superposer un
-# second par-dessus créait un doublon légèrement désaligné (signalé par Gus).
+# Seuls les donjons (grottes/forêt/îles, cf. _icon_for) reçoivent une icône :
+# les villes ont déjà leur point rouge cuit dans le tilemap décodé
+# (assets/ui/region_map.png généré par build_region_map.py) et les routes
+# n'ont aucun repère dans le vrai jeu (confirmé par Gus) — en ajouter un
+# créait soit un doublon désaligné (villes), soit un repère qui n'existe pas
+# côté FRLG (routes, on en avait 31 au lieu des 11 vrais repères "donjon").
+# **`seen` n'est marqué qu'après un icône réellement dessiné** : un donjon
+# peut partager sa case avec une ville (ex. Grotte Cerulean = Doria), qui
+# elle ne dessine rien — si on marquait `seen` pour la ville en premier, le
+# donjon suivant à la même position serait sauté à tort.
 func _place_location_icons() -> void:
 	var seen: Dictionary = {}
 	for map_name in RegionMapData.POSITIONS:
+		var texture := _icon_for(map_name)
+		if texture == null:
+			continue
 		var pos: Vector2i = RegionMapData.POSITIONS[map_name]
 		if seen.has(pos):
 			continue
 		seen[pos] = true
-		var texture := _icon_for(map_name)
-		if texture == null:
-			continue
-		var size := ROUTE_SIZE if texture == RouteIcon else CITY_SIZE
 		var icon := TextureRect.new()
 		icon.texture = texture
-		icon.custom_minimum_size = size
+		icon.custom_minimum_size = DUNGEON_SIZE
 		icon.expand_mode = 1
 		icon.stretch_mode = 0
 		map_wrap.add_child(icon)
-		_anchor_at(icon, pos, size)
+		_anchor_at(icon, pos, DUNGEON_SIZE)
 
 func _icon_for(map_name: String) -> Texture2D:
-	if map_name.begins_with("route"):
-		return RouteIcon
-	if map_name.begins_with("cave_") or map_name.begins_with("safari_") or map_name == "viridian_forest":
+	if map_name.begins_with("cave_") or map_name.begins_with("safari_") \
+			or map_name == "viridian_forest" or map_name == "pokemon_mansion" \
+			or map_name == "pokemon_tower" or map_name == "power_plant":
 		return DungeonIcon
-	return null  # ville : déjà présente dans l'image, rien à ajouter
+	return null  # ville/route : pas d'icône ajoutée (cf. commentaire ci-dessus)
 
 func _anchor_at(node: Control, pos: Vector2i, size: Vector2) -> void:
 	var frac_x := (float(pos.x) + 0.5) / RegionMapData.GRID_COLS

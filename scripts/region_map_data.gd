@@ -66,4 +66,16 @@ const POSITIONS := {
 	"cave_diglett": Vector2i(4, 5),
 	"cave_seafoam": Vector2i(8, 14),
 	"cave_victoryroad": Vector2i(2, 4),
+
+	# Repères "donjon" (LAYER_DUNGEON de region_map_layout_kanto.h) sans carte
+	# godot associée pour l'instant (contenu pas encore construit) — gardés
+	# ici uniquement pour que l'icône bleue s'affiche au bon endroit sur la
+	# carte, comme dans le vrai jeu (11 repères LAYER_DUNGEON au total :
+	# les 5 grottes ci-dessus + safari_zone_* + viridian_forest + ces 4).
+	# Jamais utilisés comme position du joueur (aucune carte godot ne porte
+	# ces noms).
+	"cave_cerulean": Vector2i(14, 3),
+	"pokemon_mansion": Vector2i(4, 14),
+	"pokemon_tower": Vector2i(18, 6),
+	"power_plant": Vector2i(18, 4),
 }

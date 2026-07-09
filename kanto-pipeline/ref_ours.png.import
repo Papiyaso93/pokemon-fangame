@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ca42hsqqc41hc"
-path="res://.godot/imported/region_map_route_icon.png-9dd55dafae5d5c3ac5d5be2d0df7c805.ctex"
+uid="uid://bhh5k6e3koot5"
+path="res://.godot/imported/ref_ours.png-3593894e06155356e1ddce7d863c519a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/region_map_route_icon.png"
-dest_files=["res://.godot/imported/region_map_route_icon.png-9dd55dafae5d5c3ac5d5be2d0df7c805.ctex"]
+source_file="res://kanto-pipeline/ref_ours.png"
+dest_files=["res://.godot/imported/ref_ours.png-3593894e06155356e1ddce7d863c519a.ctex"]
 
 [params]
 
