@@ -10,10 +10,12 @@ const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
+const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 
 @onready var window: PanelContainer = $Root/Window
 
 var slots_screen: Node = null
+var region_map: Node = null
 
 func _ready() -> void:
 	window.visible = false
@@ -67,6 +69,18 @@ func _on_slot_chosen_for_save(slot: int) -> void:
 
 func _on_resume_pressed() -> void:
 	closed.emit()
+
+# Entrée "test" (voir HANDOFF.md) : ajoutée à la racine du Viewport, pas à
+# `self`, même piège que _on_save_pressed() (CanvasLayer imbriqué).
+func _on_map_pressed() -> void:
+	region_map = RegionMapScene.instantiate()
+	get_tree().root.add_child(region_map)
+	window.visible = false
+	region_map.closed.connect(_on_region_map_closed)
+
+func _on_region_map_closed() -> void:
+	region_map = null
+	window.visible = true
 
 # Retour à l'écran-titre, fondu noir comme un warp normal (pas de sauvegarde
 # automatique — si le joueur veut garder sa progression, il doit sauvegarder

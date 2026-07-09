@@ -90,6 +90,18 @@ Fan-game Pokémon basé sur la région de Kanto. Le joueur a 18 ans et doit choi
 
 ---
 
+## Conventions d'écriture
+
+- **Dialogues neutres en genre** : le joueur choisit son genre à la création de
+  personnage (`PlayerData.gender`), mais rien dans le système de dialogue ne
+  gère encore les accords ("tenté"/"tentée", etc.). En attendant un éventuel
+  helper technique pour gérer ça proprement, **toujours privilégier une
+  formulation qui évite l'accord** plutôt qu'un adjectif genré (ex. "envie de
+  tester ?" plutôt que "tenté(e) ?"). Vaut pour tout nouveau dialogue écrit
+  dans le jeu, pas seulement les tutoriels de classe.
+
+---
+
 ## À confirmer plus tard
 
 - Valeur exacte du malus de niveaux pour le chemin Criminel

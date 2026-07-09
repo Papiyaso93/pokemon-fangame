@@ -929,6 +929,115 @@ régénérables à tout moment) :
 **Marche à suivre pour un nouveau patch** : créer la scène vide avec `create_border_filler.gd` →
 la peindre dans l'éditeur → ajouter une entrée dans `BorderFillers.PATCHES` avec le bon offset.
 
+## ✅ Carte de Kanto (test) — v1 simple, accessible depuis le menu pause
+
+Demandé par Gus pour anticiper l'entrée "Carte" du futur vrai menu Start (voir plus haut,
+recherche dans `src/start_menu.c` — au passage, confirmé que **le vrai menu Start FRLG n'a pas
+d'entrée "Carte"** : la Carte de Kanto s'utilise comme objet-clé enregistré au bouton Select
+depuis le Sac, pas depuis le Start). En attendant d'avoir un Sac, ajoutée comme **entrée
+directe du menu pause, marquée "(test)"** — à rebrancher proprement une fois le Sac construit.
+
+- **⚠️ Piège vécu, plusieurs itérations : `region_map.png` n'est PAS l'image finale.**
+  1. Copié tel quel depuis `kanto-pipeline/pokefirered/graphics/region_map/region_map.png`
+     (128×160) en supposant que c'était déjà l'image composée — Gus a signalé les Îles Sevii qui
+     bavaient dedans. En réalité c'est **juste le jeu de tuiles brut** (comme nos maps normales),
+     à combiner avec `kanto.bin` (le vrai agencement Kanto, format GBA standard
+     tile_id(0-9)|flipX(10)|flipY(11)|palette(12-15) — confirmé **30×20 tuiles = 240×160px = un
+     écran GBA exact**). `kanto.bin` ne contient QUE Kanto (contrairement à
+     `sevii_123/45/67.bin`, fichiers séparés), donc plus de fuite une fois décodé correctement.
+  2. **2e itération (Gus a signalé des zones blanches en plein milieu du continent, formant un
+     tracé de chemin)** : ce ne sont pas des pixels blancs mais des pixels **transparents**
+     (index 0, même convention que partout ailleurs dans ce projet), qui laissent voir le fond
+     blanc de `square_window.png` derrière une fois affichés dans Godot (invisible dans un rendu
+     Python isolé, d'où la confusion au premier diagnostic — piège à retenir : toujours vérifier
+     l'alpha, pas juste la couleur visible, quand un rendu Python "a l'air bon" mais diffère une
+     fois en jeu). Trouvé un vrai calque de fond séparé, **`background.bin`** (même
+     tileset/palette, 6 tuiles uniques) — composé maintenant AVANT `kanto.bin` (`render_layer()`
+     appliqué 2 fois sur la même image, dans l'ordre fond → premier plan). Comble la plupart des
+     trous, mais pas tous (~9000px sur 38400 restent transparents même après les 2 calques,
+     probablement un 3e calque dessiné par sprite dans le vrai jeu, pas retrouvé) — **le reste
+     est comblé avec la couleur de chemin dominante** (compromis assumé, pas de sur-ingénierie
+     pour une fonctionnalité encore "test").
+  3. **3e itération** : bordure décorative parasite visible sur les bords une fois le fond
+     composé (rayures magenta/gris, tuiles hors-écran du vrai jeu). Résolu en recadrant l'image
+     sur la vraie zone de contenu : `src/region_map.c` donne `sprite->x = 8*col + 36` pour le
+     curseur, confirmant que la grille de sections 22×15 démarre à **(36,36)px** dans le canvas
+     240×160, pas à (0,0). Recadré pile sur `(36, 36, 36+22*8, 36+15*8)` — **bénéfice
+     supplémentaire** : la grille de sections devient exactement alignée 8px/case sur l'image
+     recadrée, donc la fraction simple `col/22, row/15` (déjà utilisée côté Godot) redevient
+     exacte sans le moindre décalage à gérer.
+  **✅ RÉSOLU (session suivante) — la vraie cause n'était pas un 3e calque manquant, mais un
+  bug d'indexation de palette.** Suivant la piste laissée en suspens (comparer un rendu brut,
+  sans comblement, à une vraie capture) : le rendu brut affichait déjà des couleurs de chemin
+  bien saturées entre les trous, ce qui pointait déjà loin de "décodage fondamentalement pâle".
+  En creusant pourquoi certaines tuiles précises (ex. tile id 1, dominante des trous : 704px sur
+  1856 dans la zone recadrée) donnaient des trous : `region_map.png` stocke ses pixels en index
+  **globaux 0-79** (5 palettes de 16 couleurs mises bout à bout dans le PNG exporté), alors que
+  `render_layer()` utilisait cette valeur telle quelle comme index dans la palette de 16 couleurs
+  *sélectionnée par la tuile* (`pal[v]`), avec un garde `if v < len(pal)` qui **rejetait
+  silencieusement** (= laissait transparent) tout pixel avec `v >= 16` — précisément les tuiles
+  de chemin, qui utilisent des index 20-30 dans le PNG combiné. Vérifié par échantillon : tile 1
+  a des valeurs brutes 21-28, mais `v & 0xF` donne `[12,9,11,11,11,11,9,12]` — un motif de coin
+  arrondi tout à fait plausible, alors que les valeurs brutes (21-28) n'auraient aucun sens comme
+  index 4bpp (max 15). **Fix : `v & 0xF`** (garder les 4 bits bas, la vraie valeur GBA 4bpp)
+  avant de chercher la couleur. Avec ce fix, **`kanto.bin` seul suffit, zéro trou** — confirmé en
+  recomptant les pixels transparents dans la zone recadrée (0 sur 1856 avant).
+  **Bonus trouvé en même temps** : `background.bin` n'est même pas utilisé par le vrai jeu pour
+  l'écran de Carte normal — vérifié dans `src/region_map.c::LoadRegionMapGfx` : le calque
+  `sBackground_Gfx`/`sBackground_Tilemap` n'est chargé QUE si
+  `sRegionMap->type != REGIONMAP_TYPE_NORMAL` (utilisé pour l'écran Voler/switch entre îles
+  Sevii, jamais pour la Carte de Kanto normale). Tout le système de comblement de trou
+  (couleur fixe / BFS / dilatation vote majoritaire) a donc été supprimé de
+  `build_region_map.py` — plus nécessaire, `kanto.bin` seul et corrigé donne une image complète
+  et fidèle.
+  **Découverte annexe** : les points rouges (villes) sont en fait **déjà cuits dans le tilemap
+  décodé** (pas un ajout sprite séparé) — détecté 11 taches rouges dans l'image corrigée,
+  positions identiques aux 11 villes de `RegionMapData.gd`. Notre propre overlay
+  `region_map_marker.png` en dessinait un 2e par-dessus, légèrement désaligné (cause du "points
+  rouges pas exactement au bon endroit" signalé par Gus) — **supprimé** (`region_map.gd::
+  _icon_for()` retourne `null` pour une ville, `region_map_marker.png` supprimé, plus aucune
+  icône de ville ajoutée par le code). Les positions de routes de `RegionMapData.gd` ont aussi
+  été validées : extraction programmatique de la vraie grille MAPSEC 22×15 depuis
+  `src/data/region_map/region_map_layout_kanto.h` (source de vérité), avec la règle "cellule
+  réelle la plus proche du centroïde" (une simple moyenne peut retomber sur une case vide entre
+  deux zones disjointes, ex. Grotte Diglett qui a 2 entrées loin l'une de l'autre) — résultat
+  identique à la table transcrite à la main pour toutes les routes, donc **pas d'erreur de
+  transcription**, le mauvais alignement perçu venait entièrement de la distorsion de couleur
+  du bug de palette ci-dessus. **Confirmé par Gus après ce fix : points rouges et routes
+  parfaits, ne plus y toucher.**
+  **`kanto-pipeline/build_region_map.py`** (réutilisable si l'asset doit être régénéré) : décode
+  `kanto.bin` seul (`v & 0xF`), recadre, prescale ×3, sauve dans `assets/ui/region_map.png`
+  (528×360 final).
+- **`scripts/region_map_data.gd`** (`class_name RegionMapData`) : dictionnaire nom-de-carte
+  godot → `Vector2i(col, row)` dans la grille **de sections** 22×15 (différente de la grille de
+  tuiles 30×20 du canvas natif — c'est la grille `MAPSEC_*` utilisée pour le curseur/les noms
+  dans le vrai jeu). Plusieurs cartes godot partagent une position (ex. les 4 sous-zones +
+  bâtiments de la Zone Safari, une seule position dans le vrai jeu). Pour les routes couvrant
+  plusieurs cases dans le vrai jeu, une seule case représentative a été choisie (pas un
+  polygone) — suffisant pour une icône ponctuelle.
+  **Nos patchs de bordure (`border_fillers.gd`) n'apparaissent jamais ici** : cette carte est
+  entièrement pilotée par les vraies données pret, indépendante de notre système de patchs.
+- **`scenes/ui/region_map.tscn`/`scripts/region_map.gd`** : v1 volontairement simple, décidée
+  avec Gus — image statique (**tout Kanto visible dès le départ, pas de brouillard de guerre**,
+  fidèle au vrai jeu) + **une icône par lieu connu** (ville = déjà cuite dans l'image, pas
+  d'ajout ; route = carré bleu ; grotte/Zone Safari = vrai asset pret `dungeon_icon.png`,
+  dédupliquées par position pour ne pas empiler plusieurs icônes identiques) + un marqueur
+  clignotant supplémentaire sur la position actuelle du joueur (lu via
+  `get_tree().get_first_node_in_group("player").current_map_name`, asset pret
+  `region_map_player_icon.png`, distinct des ronds de ville). **Pas de curseur déplaçable** pour
+  l'instant (v2 possible plus tard). Nom du lieu affiché sous la carte via
+  `MapNames.get_french_name()` (déjà existant, réutilisé tel quel).
+  Icône générée (pas un asset pret) : `assets/ui/region_map_route_icon.png` (route).
+  **`MapWrap` est un `Control` nu, pas un `Container`** — piège déjà documenté ailleurs dans ce
+  fichier (un `PanelContainer`/`Container` forcerait tous ses enfants à remplir tout l'espace,
+  cassant le positionnement individuel de chaque icône).
+- **Câblage dans `pause_menu.gd`** : nouveau bouton "Carte (test)", même piège CanvasLayer
+  imbriqué que `_on_save_pressed()` (déjà documenté plus haut) — ajouté à `get_tree().root`,
+  pas à `self`.
+- **Non fait / connu** : les icônes ville/route/grotte sont statiques (pas de couleur
+  visité/pas-visité comme le vrai jeu, qui distingue ça par `FLAG_WORLD_MAP_*` — repéré dans
+  `region_map.c` en creusant, mais hors scope de cette v1 test).
+
 ## Gotchas Godot
 - Fichier modifié en externe : Godot garde en cache → **Scène → « Recharger la scène
   sauvegardée »**, ou fermer sans enregistrer + rouvrir, ou **redémarrer Godot** (le plus

@@ -62,6 +62,14 @@ expand_icon = false
 alignment = 0
 text = "Sauvegarder"
 
+[node name="Map" type="Button" parent="Root/Window/Buttons"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Carte (test)"
+
 [node name="Quit" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
@@ -72,4 +80,5 @@ text = "Quitter"
 
 [connection signal="pressed" from="Root/Window/Buttons/Resume" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Root/Window/Buttons/Save" to="." method="_on_save_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Map" to="." method="_on_map_pressed"]
 [connection signal="pressed" from="Root/Window/Buttons/Quit" to="." method="_on_quit_pressed"]

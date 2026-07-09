@@ -1,0 +1,70 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/region_map.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_window"]
+[ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/region_map.png" id="4_map"]
+
+[sub_resource type="StyleBoxTexture" id="WindowStyle"]
+texture = ExtResource("2_window")
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+content_margin_left = 20.0
+content_margin_top = 16.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+
+[node name="RegionMap" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+theme = ExtResource("3_theme")
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Background" type="ColorRect" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.11, 0.16, 0.28, 1)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Window" type="PanelContainer" parent="Root/Center"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("WindowStyle")
+
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Window"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+text = "Carte de Kanto (test)"
+horizontal_alignment = 1
+
+[node name="MapWrap" type="Control" parent="Root/Center/Window/VBox"]
+custom_minimum_size = Vector2(528, 360)
+layout_mode = 2
+
+[node name="MapImage" type="TextureRect" parent="Root/Center/Window/VBox/MapWrap"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("4_map")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="LocationLabel" type="Label" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+text = "..."
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Échap pour revenir"
+horizontal_alignment = 1
+modulate = Color(1, 1, 1, 0.6)
