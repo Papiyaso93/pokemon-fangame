@@ -65,6 +65,6 @@ horizontal_alignment = 1
 [node name="Hint" type="Label" parent="Root/Center/Window/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "Échap pour revenir"
+text = "Échap : revenir"
 horizontal_alignment = 1
 modulate = Color(1, 1, 1, 0.6)

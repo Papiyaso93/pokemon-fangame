@@ -11,11 +11,13 @@ const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
 const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
+const BagScene := preload("res://scenes/ui/bag.tscn")
 
 @onready var window: PanelContainer = $Root/Window
 
 var slots_screen: Node = null
 var region_map: Node = null
+var bag: Node = null
 
 func _ready() -> void:
 	window.visible = false
@@ -80,6 +82,18 @@ func _on_map_pressed() -> void:
 
 func _on_region_map_closed() -> void:
 	region_map = null
+	window.visible = true
+
+# Entrée "test" (voir HANDOFF.md) : même piège CanvasLayer imbriqué que
+# _on_save_pressed()/_on_map_pressed() ci-dessus.
+func _on_bag_pressed() -> void:
+	bag = BagScene.instantiate()
+	get_tree().root.add_child(bag)
+	window.visible = false
+	bag.closed.connect(_on_bag_closed)
+
+func _on_bag_closed() -> void:
+	bag = null
 	window.visible = true
 
 # Retour à l'écran-titre, fondu noir comme un warp normal (pas de sauvegarde

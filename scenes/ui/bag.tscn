@@ -1,0 +1,116 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/bag.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_window"]
+[ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/choice_arrow.png" id="4_arrow"]
+[ext_resource type="Texture2D" path="res://assets/ui/choice_arrow_left.png" id="5_arrow_left"]
+
+[sub_resource type="StyleBoxTexture" id="WindowStyle"]
+texture = ExtResource("2_window")
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+content_margin_left = 20.0
+content_margin_top = 16.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxEmpty" id="Tab_empty"]
+content_margin_left = 10.0
+content_margin_top = 6.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+
+[sub_resource type="Theme" id="TabTheme"]
+Button/styles/normal = SubResource("Tab_empty")
+Button/styles/hover = SubResource("Tab_empty")
+Button/styles/pressed = SubResource("Tab_empty")
+Button/styles/focus = SubResource("Tab_empty")
+Button/font_sizes/font_size = 18
+
+[node name="Bag" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+theme = ExtResource("3_theme")
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Background" type="ColorRect" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.11, 0.16, 0.28, 1)
+
+[node name="Center" type="CenterContainer" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Window" type="PanelContainer" parent="Root/Center"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("WindowStyle")
+
+[node name="VBox" type="VBoxContainer" parent="Root/Center/Window"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+text = "Sac (test)"
+horizontal_alignment = 1
+
+[node name="TabsRow" type="HBoxContainer" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+theme = SubResource("TabTheme")
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="ContentArea" type="PanelContainer" parent="Root/Center/Window/VBox"]
+custom_minimum_size = Vector2(480, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("WindowStyle")
+
+[node name="EmptyLabel" type="Label" parent="Root/Center/Window/VBox/ContentArea"]
+layout_mode = 2
+text = "Aucun objet"
+horizontal_alignment = 1
+vertical_alignment = 1
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Hint" type="HBoxContainer" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 6
+modulate = Color(1, 1, 1, 0.6)
+
+[node name="Arrows" type="HBoxContainer" parent="Root/Center/Window/VBox/Hint"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 1
+
+[node name="ArrowLeft" type="TextureRect" parent="Root/Center/Window/VBox/Hint/Arrows"]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5_arrow_left")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ArrowRight" type="TextureRect" parent="Root/Center/Window/VBox/Hint/Arrows"]
+custom_minimum_size = Vector2(12, 12)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("4_arrow")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HintLabel" type="Label" parent="Root/Center/Window/VBox/Hint"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = " : Changer de poche"
+
+[node name="HintSep" type="Label" parent="Root/Center/Window/VBox/Hint"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "   ·   Échap : revenir"
