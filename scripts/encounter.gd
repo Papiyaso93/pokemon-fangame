@@ -2,20 +2,24 @@ extends CanvasLayer
 
 signal finished
 
-# Placeholder en attendant la vraie table d'espèces (roster bébés gen 1 à définir
-# avec l'ami de Gus). Niveau fixe 5 pour tous les Pokémon de la Zone Safari
-# (décision prise en attendant le vrai roster).
-const SPECIES_NAME := "Rattata"
+# Espèce tirée au hasard dans SafariRoster (tous les Pokémon de base de la
+# 1ère gen, sauf légendaires — cf. safari_roster.gd) à chaque rencontre.
+# Niveau fixe 5 pour tous, pour l'instant (pas de vraie donnée de niveau par
+# zone/espèce encore).
 const SPECIES_LEVEL := 5
-const SPECIES_CATCH_RATE := 255.0     # taux réel Rattata (255/255, le plus facile)
-const SPECIES_FLEE_RATE := 30.0       # placeholder (pas de vraie donnée Safari par espèce encore)
 const SAFARI_BALL_MULTIPLIER := 1.5   # bonus Safari Ball (pret sBallCatchBonuses = 15/10)
+
+var species_key := ""
+var species_name := ""
+var species_catch_rate := 45.0
+var species_flee_rate := 30.0
 
 # Fidèle pret src/battle_main.c (HandleAction_ThrowBait/ThrowRock) :
 # l'appât DIMINUE le taux de capture (mais aussi la fuite), le caillou
-# l'AUGMENTE (mais aussi la fuite) — contre-intuitif mais réel.
-const BASE_CATCH_FACTOR := SPECIES_CATCH_RATE * 100.0 / 1275.0
-const BASE_ESCAPE_FACTOR := maxf(2.0, SPECIES_FLEE_RATE * 100.0 / 1275.0)
+# l'AUGMENTE (mais aussi la fuite) — contre-intuitif mais réel. Calculés dans
+# _ready() une fois l'espèce tirée (dépendent de species_catch_rate/flee_rate).
+var base_catch_factor := 0.0
+var base_escape_factor := 0.0
 
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
@@ -43,7 +47,7 @@ const ARROW_BLINK := 0.3   # même vitesse que dialogue_box.gd
 @onready var rock_button: Button = $Root/ActionWindow/Buttons/Rock
 @onready var run_button: Button = $Root/ActionWindow/Buttons/Run
 
-var catch_factor := BASE_CATCH_FACTOR
+var catch_factor := 0.0
 var bait_counter := 0
 var rock_counter := 0
 var intro_message := ""
@@ -57,12 +61,22 @@ const ESCAPE_MESSAGES := [
 ]
 
 func _ready() -> void:
+	species_key = SafariRoster.base_species().pick_random()
+	var sp: Dictionary = SpeciesData.SPECIES[species_key]
+	species_name = sp["name"]
+	species_catch_rate = float(sp["catch_rate"])
+	species_flee_rate = float(sp["safari_flee_rate"])
+	base_catch_factor = species_catch_rate * 100.0 / 1275.0
+	base_escape_factor = maxf(2.0, species_flee_rate * 100.0 / 1275.0)
+	catch_factor = base_catch_factor
+	sprite.texture = load("res://assets/pokemon/%s/front.png" % species_key)
+
 	typewriter = Typewriter.new(label)
-	name_label.text = SPECIES_NAME.to_upper()
+	name_label.text = species_name.to_upper()
 	level_label.text = "N.%d" % SPECIES_LEVEL
 	gender_label.text = "♂" if randf() < 0.5 else "♀"
 	hp_fill.anchor_right = 1.0
-	intro_message = "Un %s sauvage apparaît !" % SPECIES_NAME
+	intro_message = "Un %s sauvage apparaît !" % species_name
 	label.text = ""
 	_update_balls_label()
 	_set_buttons_enabled(false)
@@ -202,8 +216,8 @@ func _on_ball_pressed() -> void:
 	var shakes := _attempt_catch(effective_catch_rate)
 
 	if shakes >= 4:
-		await _say("Gotcha ! %s a été capturé !" % SPECIES_NAME, 1.5)
-		SafariState.caught.append(SPECIES_NAME)
+		await _say("Gotcha ! %s a été capturé !" % species_name, 1.5)
+		SafariState.caught.append(species_name)
 	else:
 		await _say(ESCAPE_MESSAGES[shakes], 1.3)
 
@@ -252,7 +266,7 @@ func _end_of_round() -> void:
 	if rock_counter > 0:
 		rock_counter -= 1
 		if rock_counter == 0:
-			catch_factor = BASE_CATCH_FACTOR
+			catch_factor = base_catch_factor
 			await _say("Le Pokémon sauvage vous regarde avec attention.")
 		else:
 			await _say("Le Pokémon sauvage est en colère !")
@@ -268,11 +282,11 @@ func _end_of_round() -> void:
 	# Jet de fuite fidèle Cmd_if_random_safari_flee (pret
 	# src/battle_ai_script_commands.c) : le caillou augmente le risque de
 	# fuite, l'appât le diminue.
-	var flee_rate := BASE_ESCAPE_FACTOR
+	var flee_rate := base_escape_factor
 	if rock_counter > 0:
-		flee_rate = minf(20.0, BASE_ESCAPE_FACTOR * 2.0)
+		flee_rate = minf(20.0, base_escape_factor * 2.0)
 	elif bait_counter > 0:
-		flee_rate = maxf(1.0, BASE_ESCAPE_FACTOR / 4.0)
+		flee_rate = maxf(1.0, base_escape_factor / 4.0)
 	var flee_chance := flee_rate * 5.0   # pourcentage (0-100)
 
 	if randf() * 100.0 < flee_chance:

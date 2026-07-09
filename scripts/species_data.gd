@@ -8,7 +8,7 @@ extends RefCounted
 const SPECIES := {
 	"bulbasaur": {
 		"dex_number": 1,
-		"name": "Bulbasaur",
+		"name": "Bulbizarre",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 45,
 		"base_attack": 49,
@@ -35,7 +35,7 @@ const SPECIES := {
 	},
 	"ivysaur": {
 		"dex_number": 2,
-		"name": "Ivysaur",
+		"name": "Herbizarre",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 60,
 		"base_attack": 62,
@@ -62,7 +62,7 @@ const SPECIES := {
 	},
 	"venusaur": {
 		"dex_number": 3,
-		"name": "Venusaur",
+		"name": "Florizarre",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 80,
 		"base_attack": 82,
@@ -89,7 +89,7 @@ const SPECIES := {
 	},
 	"charmander": {
 		"dex_number": 4,
-		"name": "Charmander",
+		"name": "Salamèche",
 		"types": ["FIRE"],
 		"base_hp": 39,
 		"base_attack": 52,
@@ -116,7 +116,7 @@ const SPECIES := {
 	},
 	"charmeleon": {
 		"dex_number": 5,
-		"name": "Charmeleon",
+		"name": "Reptincel",
 		"types": ["FIRE"],
 		"base_hp": 58,
 		"base_attack": 64,
@@ -143,7 +143,7 @@ const SPECIES := {
 	},
 	"charizard": {
 		"dex_number": 6,
-		"name": "Charizard",
+		"name": "Dracaufeu",
 		"types": ["FIRE", "FLYING"],
 		"base_hp": 78,
 		"base_attack": 84,
@@ -170,7 +170,7 @@ const SPECIES := {
 	},
 	"squirtle": {
 		"dex_number": 7,
-		"name": "Squirtle",
+		"name": "Carapuce",
 		"types": ["WATER"],
 		"base_hp": 44,
 		"base_attack": 48,
@@ -197,7 +197,7 @@ const SPECIES := {
 	},
 	"wartortle": {
 		"dex_number": 8,
-		"name": "Wartortle",
+		"name": "Carabaffe",
 		"types": ["WATER"],
 		"base_hp": 59,
 		"base_attack": 63,
@@ -224,7 +224,7 @@ const SPECIES := {
 	},
 	"blastoise": {
 		"dex_number": 9,
-		"name": "Blastoise",
+		"name": "Tortank",
 		"types": ["WATER"],
 		"base_hp": 79,
 		"base_attack": 83,
@@ -251,7 +251,7 @@ const SPECIES := {
 	},
 	"caterpie": {
 		"dex_number": 10,
-		"name": "Caterpie",
+		"name": "Chenipan",
 		"types": ["BUG"],
 		"base_hp": 45,
 		"base_attack": 30,
@@ -278,7 +278,7 @@ const SPECIES := {
 	},
 	"metapod": {
 		"dex_number": 11,
-		"name": "Metapod",
+		"name": "Chrysacier",
 		"types": ["BUG"],
 		"base_hp": 50,
 		"base_attack": 20,
@@ -305,7 +305,7 @@ const SPECIES := {
 	},
 	"butterfree": {
 		"dex_number": 12,
-		"name": "Butterfree",
+		"name": "Papilusion",
 		"types": ["BUG", "FLYING"],
 		"base_hp": 60,
 		"base_attack": 45,
@@ -332,7 +332,7 @@ const SPECIES := {
 	},
 	"weedle": {
 		"dex_number": 13,
-		"name": "Weedle",
+		"name": "Aspicot",
 		"types": ["BUG", "POISON"],
 		"base_hp": 40,
 		"base_attack": 35,
@@ -359,7 +359,7 @@ const SPECIES := {
 	},
 	"kakuna": {
 		"dex_number": 14,
-		"name": "Kakuna",
+		"name": "Coconfort",
 		"types": ["BUG", "POISON"],
 		"base_hp": 45,
 		"base_attack": 25,
@@ -386,7 +386,7 @@ const SPECIES := {
 	},
 	"beedrill": {
 		"dex_number": 15,
-		"name": "Beedrill",
+		"name": "Dardargnan",
 		"types": ["BUG", "POISON"],
 		"base_hp": 65,
 		"base_attack": 80,
@@ -413,7 +413,7 @@ const SPECIES := {
 	},
 	"pidgey": {
 		"dex_number": 16,
-		"name": "Pidgey",
+		"name": "Roucool",
 		"types": ["NORMAL", "FLYING"],
 		"base_hp": 40,
 		"base_attack": 45,
@@ -440,7 +440,7 @@ const SPECIES := {
 	},
 	"pidgeotto": {
 		"dex_number": 17,
-		"name": "Pidgeotto",
+		"name": "Roucoups",
 		"types": ["NORMAL", "FLYING"],
 		"base_hp": 63,
 		"base_attack": 60,
@@ -467,7 +467,7 @@ const SPECIES := {
 	},
 	"pidgeot": {
 		"dex_number": 18,
-		"name": "Pidgeot",
+		"name": "Roucarnage",
 		"types": ["NORMAL", "FLYING"],
 		"base_hp": 83,
 		"base_attack": 80,
@@ -521,7 +521,7 @@ const SPECIES := {
 	},
 	"raticate": {
 		"dex_number": 20,
-		"name": "Raticate",
+		"name": "Rattatac",
 		"types": ["NORMAL"],
 		"base_hp": 55,
 		"base_attack": 81,
@@ -548,7 +548,7 @@ const SPECIES := {
 	},
 	"spearow": {
 		"dex_number": 21,
-		"name": "Spearow",
+		"name": "Piafabec",
 		"types": ["NORMAL", "FLYING"],
 		"base_hp": 40,
 		"base_attack": 60,
@@ -575,7 +575,7 @@ const SPECIES := {
 	},
 	"fearow": {
 		"dex_number": 22,
-		"name": "Fearow",
+		"name": "Rapasdepic",
 		"types": ["NORMAL", "FLYING"],
 		"base_hp": 65,
 		"base_attack": 90,
@@ -602,7 +602,7 @@ const SPECIES := {
 	},
 	"ekans": {
 		"dex_number": 23,
-		"name": "Ekans",
+		"name": "Abo",
 		"types": ["POISON"],
 		"base_hp": 35,
 		"base_attack": 60,
@@ -710,7 +710,7 @@ const SPECIES := {
 	},
 	"sandshrew": {
 		"dex_number": 27,
-		"name": "Sandshrew",
+		"name": "Sabelette",
 		"types": ["GROUND"],
 		"base_hp": 50,
 		"base_attack": 75,
@@ -737,7 +737,7 @@ const SPECIES := {
 	},
 	"sandslash": {
 		"dex_number": 28,
-		"name": "Sandslash",
+		"name": "Sablaireau",
 		"types": ["GROUND"],
 		"base_hp": 75,
 		"base_attack": 100,
@@ -926,7 +926,7 @@ const SPECIES := {
 	},
 	"clefairy": {
 		"dex_number": 35,
-		"name": "Clefairy",
+		"name": "Mélofée",
 		"types": ["NORMAL"],
 		"base_hp": 70,
 		"base_attack": 45,
@@ -953,7 +953,7 @@ const SPECIES := {
 	},
 	"clefable": {
 		"dex_number": 36,
-		"name": "Clefable",
+		"name": "Mélodelfe",
 		"types": ["NORMAL"],
 		"base_hp": 95,
 		"base_attack": 70,
@@ -980,7 +980,7 @@ const SPECIES := {
 	},
 	"vulpix": {
 		"dex_number": 37,
-		"name": "Vulpix",
+		"name": "Goupix",
 		"types": ["FIRE"],
 		"base_hp": 38,
 		"base_attack": 41,
@@ -1007,7 +1007,7 @@ const SPECIES := {
 	},
 	"ninetales": {
 		"dex_number": 38,
-		"name": "Ninetales",
+		"name": "Feunard",
 		"types": ["FIRE"],
 		"base_hp": 73,
 		"base_attack": 76,
@@ -1034,7 +1034,7 @@ const SPECIES := {
 	},
 	"jigglypuff": {
 		"dex_number": 39,
-		"name": "Jigglypuff",
+		"name": "Rondoudou",
 		"types": ["NORMAL"],
 		"base_hp": 115,
 		"base_attack": 45,
@@ -1061,7 +1061,7 @@ const SPECIES := {
 	},
 	"wigglytuff": {
 		"dex_number": 40,
-		"name": "Wigglytuff",
+		"name": "Grodoudou",
 		"types": ["NORMAL"],
 		"base_hp": 140,
 		"base_attack": 70,
@@ -1088,7 +1088,7 @@ const SPECIES := {
 	},
 	"zubat": {
 		"dex_number": 41,
-		"name": "Zubat",
+		"name": "Nosferapti",
 		"types": ["POISON", "FLYING"],
 		"base_hp": 40,
 		"base_attack": 45,
@@ -1115,7 +1115,7 @@ const SPECIES := {
 	},
 	"golbat": {
 		"dex_number": 42,
-		"name": "Golbat",
+		"name": "Nosferalto",
 		"types": ["POISON", "FLYING"],
 		"base_hp": 75,
 		"base_attack": 80,
@@ -1142,7 +1142,7 @@ const SPECIES := {
 	},
 	"oddish": {
 		"dex_number": 43,
-		"name": "Oddish",
+		"name": "Mystherbe",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 45,
 		"base_attack": 50,
@@ -1169,7 +1169,7 @@ const SPECIES := {
 	},
 	"gloom": {
 		"dex_number": 44,
-		"name": "Gloom",
+		"name": "Ortide",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 60,
 		"base_attack": 65,
@@ -1196,7 +1196,7 @@ const SPECIES := {
 	},
 	"vileplume": {
 		"dex_number": 45,
-		"name": "Vileplume",
+		"name": "Rafflesia",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 75,
 		"base_attack": 80,
@@ -1277,7 +1277,7 @@ const SPECIES := {
 	},
 	"venonat": {
 		"dex_number": 48,
-		"name": "Venonat",
+		"name": "Mimitoss",
 		"types": ["BUG", "POISON"],
 		"base_hp": 60,
 		"base_attack": 55,
@@ -1304,7 +1304,7 @@ const SPECIES := {
 	},
 	"venomoth": {
 		"dex_number": 49,
-		"name": "Venomoth",
+		"name": "Aéromite",
 		"types": ["BUG", "POISON"],
 		"base_hp": 70,
 		"base_attack": 65,
@@ -1331,7 +1331,7 @@ const SPECIES := {
 	},
 	"diglett": {
 		"dex_number": 50,
-		"name": "Diglett",
+		"name": "Taupiqueur",
 		"types": ["GROUND"],
 		"base_hp": 10,
 		"base_attack": 55,
@@ -1358,7 +1358,7 @@ const SPECIES := {
 	},
 	"dugtrio": {
 		"dex_number": 51,
-		"name": "Dugtrio",
+		"name": "Triopikeur",
 		"types": ["GROUND"],
 		"base_hp": 35,
 		"base_attack": 80,
@@ -1385,7 +1385,7 @@ const SPECIES := {
 	},
 	"meowth": {
 		"dex_number": 52,
-		"name": "Meowth",
+		"name": "Miaouss",
 		"types": ["NORMAL"],
 		"base_hp": 40,
 		"base_attack": 45,
@@ -1439,7 +1439,7 @@ const SPECIES := {
 	},
 	"psyduck": {
 		"dex_number": 54,
-		"name": "Psyduck",
+		"name": "Psykokwak",
 		"types": ["WATER"],
 		"base_hp": 50,
 		"base_attack": 52,
@@ -1466,7 +1466,7 @@ const SPECIES := {
 	},
 	"golduck": {
 		"dex_number": 55,
-		"name": "Golduck",
+		"name": "Akwakwak",
 		"types": ["WATER"],
 		"base_hp": 80,
 		"base_attack": 82,
@@ -1493,7 +1493,7 @@ const SPECIES := {
 	},
 	"mankey": {
 		"dex_number": 56,
-		"name": "Mankey",
+		"name": "Férosinge",
 		"types": ["FIGHTING"],
 		"base_hp": 40,
 		"base_attack": 80,
@@ -1520,7 +1520,7 @@ const SPECIES := {
 	},
 	"primeape": {
 		"dex_number": 57,
-		"name": "Primeape",
+		"name": "Colossinge",
 		"types": ["FIGHTING"],
 		"base_hp": 65,
 		"base_attack": 105,
@@ -1547,7 +1547,7 @@ const SPECIES := {
 	},
 	"growlithe": {
 		"dex_number": 58,
-		"name": "Growlithe",
+		"name": "Caninos",
 		"types": ["FIRE"],
 		"base_hp": 55,
 		"base_attack": 70,
@@ -1574,7 +1574,7 @@ const SPECIES := {
 	},
 	"arcanine": {
 		"dex_number": 59,
-		"name": "Arcanine",
+		"name": "Arcanin",
 		"types": ["FIRE"],
 		"base_hp": 90,
 		"base_attack": 110,
@@ -1601,7 +1601,7 @@ const SPECIES := {
 	},
 	"poliwag": {
 		"dex_number": 60,
-		"name": "Poliwag",
+		"name": "Ptitard",
 		"types": ["WATER"],
 		"base_hp": 40,
 		"base_attack": 50,
@@ -1628,7 +1628,7 @@ const SPECIES := {
 	},
 	"poliwhirl": {
 		"dex_number": 61,
-		"name": "Poliwhirl",
+		"name": "Têtarte",
 		"types": ["WATER"],
 		"base_hp": 65,
 		"base_attack": 65,
@@ -1655,7 +1655,7 @@ const SPECIES := {
 	},
 	"poliwrath": {
 		"dex_number": 62,
-		"name": "Poliwrath",
+		"name": "Tartard",
 		"types": ["WATER", "FIGHTING"],
 		"base_hp": 90,
 		"base_attack": 85,
@@ -1763,7 +1763,7 @@ const SPECIES := {
 	},
 	"machop": {
 		"dex_number": 66,
-		"name": "Machop",
+		"name": "Machoc",
 		"types": ["FIGHTING"],
 		"base_hp": 70,
 		"base_attack": 80,
@@ -1790,7 +1790,7 @@ const SPECIES := {
 	},
 	"machoke": {
 		"dex_number": 67,
-		"name": "Machoke",
+		"name": "Machopeur",
 		"types": ["FIGHTING"],
 		"base_hp": 80,
 		"base_attack": 100,
@@ -1817,7 +1817,7 @@ const SPECIES := {
 	},
 	"machamp": {
 		"dex_number": 68,
-		"name": "Machamp",
+		"name": "Mackogneur",
 		"types": ["FIGHTING"],
 		"base_hp": 90,
 		"base_attack": 130,
@@ -1844,7 +1844,7 @@ const SPECIES := {
 	},
 	"bellsprout": {
 		"dex_number": 69,
-		"name": "Bellsprout",
+		"name": "Chétiflor",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 50,
 		"base_attack": 75,
@@ -1871,7 +1871,7 @@ const SPECIES := {
 	},
 	"weepinbell": {
 		"dex_number": 70,
-		"name": "Weepinbell",
+		"name": "Boustiflor",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 65,
 		"base_attack": 90,
@@ -1898,7 +1898,7 @@ const SPECIES := {
 	},
 	"victreebel": {
 		"dex_number": 71,
-		"name": "Victreebel",
+		"name": "Empiflor",
 		"types": ["GRASS", "POISON"],
 		"base_hp": 80,
 		"base_attack": 105,
@@ -1979,7 +1979,7 @@ const SPECIES := {
 	},
 	"geodude": {
 		"dex_number": 74,
-		"name": "Geodude",
+		"name": "Racaillou",
 		"types": ["ROCK", "GROUND"],
 		"base_hp": 40,
 		"base_attack": 80,
@@ -2006,7 +2006,7 @@ const SPECIES := {
 	},
 	"graveler": {
 		"dex_number": 75,
-		"name": "Graveler",
+		"name": "Gravalanch",
 		"types": ["ROCK", "GROUND"],
 		"base_hp": 55,
 		"base_attack": 95,
@@ -2033,7 +2033,7 @@ const SPECIES := {
 	},
 	"golem": {
 		"dex_number": 76,
-		"name": "Golem",
+		"name": "Grolem",
 		"types": ["ROCK", "GROUND"],
 		"base_hp": 80,
 		"base_attack": 110,
@@ -2087,7 +2087,7 @@ const SPECIES := {
 	},
 	"rapidash": {
 		"dex_number": 78,
-		"name": "Rapidash",
+		"name": "Galopa",
 		"types": ["FIRE"],
 		"base_hp": 65,
 		"base_attack": 100,
@@ -2114,7 +2114,7 @@ const SPECIES := {
 	},
 	"slowpoke": {
 		"dex_number": 79,
-		"name": "Slowpoke",
+		"name": "Ramoloss",
 		"types": ["WATER", "PSYCHIC"],
 		"base_hp": 90,
 		"base_attack": 65,
@@ -2141,7 +2141,7 @@ const SPECIES := {
 	},
 	"slowbro": {
 		"dex_number": 80,
-		"name": "Slowbro",
+		"name": "Flagadoss",
 		"types": ["WATER", "PSYCHIC"],
 		"base_hp": 95,
 		"base_attack": 75,
@@ -2168,7 +2168,7 @@ const SPECIES := {
 	},
 	"magnemite": {
 		"dex_number": 81,
-		"name": "Magnemite",
+		"name": "Magnéti",
 		"types": ["ELECTRIC", "STEEL"],
 		"base_hp": 25,
 		"base_attack": 35,
@@ -2195,7 +2195,7 @@ const SPECIES := {
 	},
 	"magneton": {
 		"dex_number": 82,
-		"name": "Magneton",
+		"name": "Magnéton",
 		"types": ["ELECTRIC", "STEEL"],
 		"base_hp": 50,
 		"base_attack": 60,
@@ -2222,7 +2222,7 @@ const SPECIES := {
 	},
 	"farfetchd": {
 		"dex_number": 83,
-		"name": "Farfetch'd",
+		"name": "Canarticho",
 		"types": ["NORMAL", "FLYING"],
 		"base_hp": 52,
 		"base_attack": 65,
@@ -2303,7 +2303,7 @@ const SPECIES := {
 	},
 	"seel": {
 		"dex_number": 86,
-		"name": "Seel",
+		"name": "Otaria",
 		"types": ["WATER"],
 		"base_hp": 65,
 		"base_attack": 45,
@@ -2330,7 +2330,7 @@ const SPECIES := {
 	},
 	"dewgong": {
 		"dex_number": 87,
-		"name": "Dewgong",
+		"name": "Lamantine",
 		"types": ["WATER", "ICE"],
 		"base_hp": 90,
 		"base_attack": 70,
@@ -2357,7 +2357,7 @@ const SPECIES := {
 	},
 	"grimer": {
 		"dex_number": 88,
-		"name": "Grimer",
+		"name": "Tadmorv",
 		"types": ["POISON"],
 		"base_hp": 80,
 		"base_attack": 80,
@@ -2384,7 +2384,7 @@ const SPECIES := {
 	},
 	"muk": {
 		"dex_number": 89,
-		"name": "Muk",
+		"name": "Grotadmorv",
 		"types": ["POISON"],
 		"base_hp": 105,
 		"base_attack": 105,
@@ -2411,7 +2411,7 @@ const SPECIES := {
 	},
 	"shellder": {
 		"dex_number": 90,
-		"name": "Shellder",
+		"name": "Kokiyas",
 		"types": ["WATER"],
 		"base_hp": 30,
 		"base_attack": 65,
@@ -2438,7 +2438,7 @@ const SPECIES := {
 	},
 	"cloyster": {
 		"dex_number": 91,
-		"name": "Cloyster",
+		"name": "Crustabri",
 		"types": ["WATER", "ICE"],
 		"base_hp": 50,
 		"base_attack": 95,
@@ -2465,7 +2465,7 @@ const SPECIES := {
 	},
 	"gastly": {
 		"dex_number": 92,
-		"name": "Gastly",
+		"name": "Fantominus",
 		"types": ["GHOST", "POISON"],
 		"base_hp": 30,
 		"base_attack": 35,
@@ -2492,7 +2492,7 @@ const SPECIES := {
 	},
 	"haunter": {
 		"dex_number": 93,
-		"name": "Haunter",
+		"name": "Spectrum",
 		"types": ["GHOST", "POISON"],
 		"base_hp": 45,
 		"base_attack": 50,
@@ -2519,7 +2519,7 @@ const SPECIES := {
 	},
 	"gengar": {
 		"dex_number": 94,
-		"name": "Gengar",
+		"name": "Ectoplasma",
 		"types": ["GHOST", "POISON"],
 		"base_hp": 60,
 		"base_attack": 65,
@@ -2573,7 +2573,7 @@ const SPECIES := {
 	},
 	"drowzee": {
 		"dex_number": 96,
-		"name": "Drowzee",
+		"name": "Soporifik",
 		"types": ["PSYCHIC"],
 		"base_hp": 60,
 		"base_attack": 48,
@@ -2600,7 +2600,7 @@ const SPECIES := {
 	},
 	"hypno": {
 		"dex_number": 97,
-		"name": "Hypno",
+		"name": "Hypnomade",
 		"types": ["PSYCHIC"],
 		"base_hp": 85,
 		"base_attack": 73,
@@ -2654,7 +2654,7 @@ const SPECIES := {
 	},
 	"kingler": {
 		"dex_number": 99,
-		"name": "Kingler",
+		"name": "Krabboss",
 		"types": ["WATER"],
 		"base_hp": 55,
 		"base_attack": 130,
@@ -2681,7 +2681,7 @@ const SPECIES := {
 	},
 	"voltorb": {
 		"dex_number": 100,
-		"name": "Voltorb",
+		"name": "Voltorbe",
 		"types": ["ELECTRIC"],
 		"base_hp": 40,
 		"base_attack": 30,
@@ -2708,7 +2708,7 @@ const SPECIES := {
 	},
 	"electrode": {
 		"dex_number": 101,
-		"name": "Electrode",
+		"name": "Électrode",
 		"types": ["ELECTRIC"],
 		"base_hp": 60,
 		"base_attack": 50,
@@ -2735,7 +2735,7 @@ const SPECIES := {
 	},
 	"exeggcute": {
 		"dex_number": 102,
-		"name": "Exeggcute",
+		"name": "Noeunoeuf",
 		"types": ["GRASS", "PSYCHIC"],
 		"base_hp": 60,
 		"base_attack": 40,
@@ -2762,7 +2762,7 @@ const SPECIES := {
 	},
 	"exeggutor": {
 		"dex_number": 103,
-		"name": "Exeggutor",
+		"name": "Noadkoko",
 		"types": ["GRASS", "PSYCHIC"],
 		"base_hp": 95,
 		"base_attack": 95,
@@ -2789,7 +2789,7 @@ const SPECIES := {
 	},
 	"cubone": {
 		"dex_number": 104,
-		"name": "Cubone",
+		"name": "Osselait",
 		"types": ["GROUND"],
 		"base_hp": 50,
 		"base_attack": 50,
@@ -2816,7 +2816,7 @@ const SPECIES := {
 	},
 	"marowak": {
 		"dex_number": 105,
-		"name": "Marowak",
+		"name": "Ossatueur",
 		"types": ["GROUND"],
 		"base_hp": 60,
 		"base_attack": 80,
@@ -2843,7 +2843,7 @@ const SPECIES := {
 	},
 	"hitmonlee": {
 		"dex_number": 106,
-		"name": "Hitmonlee",
+		"name": "Kicklee",
 		"types": ["FIGHTING"],
 		"base_hp": 50,
 		"base_attack": 120,
@@ -2870,7 +2870,7 @@ const SPECIES := {
 	},
 	"hitmonchan": {
 		"dex_number": 107,
-		"name": "Hitmonchan",
+		"name": "Tygnon",
 		"types": ["FIGHTING"],
 		"base_hp": 50,
 		"base_attack": 105,
@@ -2897,7 +2897,7 @@ const SPECIES := {
 	},
 	"lickitung": {
 		"dex_number": 108,
-		"name": "Lickitung",
+		"name": "Lippoutou",
 		"types": ["NORMAL"],
 		"base_hp": 90,
 		"base_attack": 55,
@@ -2924,7 +2924,7 @@ const SPECIES := {
 	},
 	"koffing": {
 		"dex_number": 109,
-		"name": "Koffing",
+		"name": "Smogo",
 		"types": ["POISON"],
 		"base_hp": 40,
 		"base_attack": 65,
@@ -2951,7 +2951,7 @@ const SPECIES := {
 	},
 	"weezing": {
 		"dex_number": 110,
-		"name": "Weezing",
+		"name": "Smogogo",
 		"types": ["POISON"],
 		"base_hp": 65,
 		"base_attack": 90,
@@ -2978,7 +2978,7 @@ const SPECIES := {
 	},
 	"rhyhorn": {
 		"dex_number": 111,
-		"name": "Rhyhorn",
+		"name": "Rhinocorne",
 		"types": ["GROUND", "ROCK"],
 		"base_hp": 80,
 		"base_attack": 85,
@@ -3005,7 +3005,7 @@ const SPECIES := {
 	},
 	"rhydon": {
 		"dex_number": 112,
-		"name": "Rhydon",
+		"name": "Rhinoféros",
 		"types": ["GROUND", "ROCK"],
 		"base_hp": 105,
 		"base_attack": 130,
@@ -3032,7 +3032,7 @@ const SPECIES := {
 	},
 	"chansey": {
 		"dex_number": 113,
-		"name": "Chansey",
+		"name": "Leveinard",
 		"types": ["NORMAL"],
 		"base_hp": 250,
 		"base_attack": 5,
@@ -3059,7 +3059,7 @@ const SPECIES := {
 	},
 	"tangela": {
 		"dex_number": 114,
-		"name": "Tangela",
+		"name": "Saquedeneu",
 		"types": ["GRASS"],
 		"base_hp": 65,
 		"base_attack": 55,
@@ -3086,7 +3086,7 @@ const SPECIES := {
 	},
 	"kangaskhan": {
 		"dex_number": 115,
-		"name": "Kangaskhan",
+		"name": "Kangourex",
 		"types": ["NORMAL"],
 		"base_hp": 105,
 		"base_attack": 95,
@@ -3113,7 +3113,7 @@ const SPECIES := {
 	},
 	"horsea": {
 		"dex_number": 116,
-		"name": "Horsea",
+		"name": "Hypotrempe",
 		"types": ["WATER"],
 		"base_hp": 30,
 		"base_attack": 40,
@@ -3140,7 +3140,7 @@ const SPECIES := {
 	},
 	"seadra": {
 		"dex_number": 117,
-		"name": "Seadra",
+		"name": "Hypocéan",
 		"types": ["WATER"],
 		"base_hp": 55,
 		"base_attack": 65,
@@ -3167,7 +3167,7 @@ const SPECIES := {
 	},
 	"goldeen": {
 		"dex_number": 118,
-		"name": "Goldeen",
+		"name": "Poissirène",
 		"types": ["WATER"],
 		"base_hp": 45,
 		"base_attack": 67,
@@ -3194,7 +3194,7 @@ const SPECIES := {
 	},
 	"seaking": {
 		"dex_number": 119,
-		"name": "Seaking",
+		"name": "Poissoroy",
 		"types": ["WATER"],
 		"base_hp": 80,
 		"base_attack": 92,
@@ -3221,7 +3221,7 @@ const SPECIES := {
 	},
 	"staryu": {
 		"dex_number": 120,
-		"name": "Staryu",
+		"name": "Stari",
 		"types": ["WATER"],
 		"base_hp": 30,
 		"base_attack": 45,
@@ -3248,7 +3248,7 @@ const SPECIES := {
 	},
 	"starmie": {
 		"dex_number": 121,
-		"name": "Starmie",
+		"name": "Staross",
 		"types": ["WATER", "PSYCHIC"],
 		"base_hp": 60,
 		"base_attack": 75,
@@ -3275,7 +3275,7 @@ const SPECIES := {
 	},
 	"mr_mime": {
 		"dex_number": 122,
-		"name": "Mr. Mime",
+		"name": "M. Mime",
 		"types": ["PSYCHIC"],
 		"base_hp": 40,
 		"base_attack": 45,
@@ -3302,7 +3302,7 @@ const SPECIES := {
 	},
 	"scyther": {
 		"dex_number": 123,
-		"name": "Scyther",
+		"name": "Insécateur",
 		"types": ["BUG", "FLYING"],
 		"base_hp": 70,
 		"base_attack": 110,
@@ -3329,7 +3329,7 @@ const SPECIES := {
 	},
 	"jynx": {
 		"dex_number": 124,
-		"name": "Jynx",
+		"name": "Lippouti",
 		"types": ["ICE", "PSYCHIC"],
 		"base_hp": 65,
 		"base_attack": 50,
@@ -3356,7 +3356,7 @@ const SPECIES := {
 	},
 	"electabuzz": {
 		"dex_number": 125,
-		"name": "Electabuzz",
+		"name": "Élektek",
 		"types": ["ELECTRIC"],
 		"base_hp": 65,
 		"base_attack": 83,
@@ -3410,7 +3410,7 @@ const SPECIES := {
 	},
 	"pinsir": {
 		"dex_number": 127,
-		"name": "Pinsir",
+		"name": "Scarabrute",
 		"types": ["BUG"],
 		"base_hp": 65,
 		"base_attack": 125,
@@ -3464,7 +3464,7 @@ const SPECIES := {
 	},
 	"magikarp": {
 		"dex_number": 129,
-		"name": "Magikarp",
+		"name": "Magicarpe",
 		"types": ["WATER"],
 		"base_hp": 20,
 		"base_attack": 10,
@@ -3491,7 +3491,7 @@ const SPECIES := {
 	},
 	"gyarados": {
 		"dex_number": 130,
-		"name": "Gyarados",
+		"name": "Léviator",
 		"types": ["WATER", "FLYING"],
 		"base_hp": 95,
 		"base_attack": 125,
@@ -3518,7 +3518,7 @@ const SPECIES := {
 	},
 	"lapras": {
 		"dex_number": 131,
-		"name": "Lapras",
+		"name": "Lokhlass",
 		"types": ["WATER", "ICE"],
 		"base_hp": 130,
 		"base_attack": 85,
@@ -3545,7 +3545,7 @@ const SPECIES := {
 	},
 	"ditto": {
 		"dex_number": 132,
-		"name": "Ditto",
+		"name": "Métamorph",
 		"types": ["NORMAL"],
 		"base_hp": 48,
 		"base_attack": 48,
@@ -3572,7 +3572,7 @@ const SPECIES := {
 	},
 	"eevee": {
 		"dex_number": 133,
-		"name": "Eevee",
+		"name": "Évoli",
 		"types": ["NORMAL"],
 		"base_hp": 55,
 		"base_attack": 55,
@@ -3599,7 +3599,7 @@ const SPECIES := {
 	},
 	"vaporeon": {
 		"dex_number": 134,
-		"name": "Vaporeon",
+		"name": "Aquali",
 		"types": ["WATER"],
 		"base_hp": 130,
 		"base_attack": 65,
@@ -3626,7 +3626,7 @@ const SPECIES := {
 	},
 	"jolteon": {
 		"dex_number": 135,
-		"name": "Jolteon",
+		"name": "Voltali",
 		"types": ["ELECTRIC"],
 		"base_hp": 65,
 		"base_attack": 65,
@@ -3653,7 +3653,7 @@ const SPECIES := {
 	},
 	"flareon": {
 		"dex_number": 136,
-		"name": "Flareon",
+		"name": "Pyroli",
 		"types": ["FIRE"],
 		"base_hp": 65,
 		"base_attack": 130,
@@ -3707,7 +3707,7 @@ const SPECIES := {
 	},
 	"omanyte": {
 		"dex_number": 138,
-		"name": "Omanyte",
+		"name": "Amonita",
 		"types": ["ROCK", "WATER"],
 		"base_hp": 35,
 		"base_attack": 40,
@@ -3734,7 +3734,7 @@ const SPECIES := {
 	},
 	"omastar": {
 		"dex_number": 139,
-		"name": "Omastar",
+		"name": "Amonistar",
 		"types": ["ROCK", "WATER"],
 		"base_hp": 70,
 		"base_attack": 60,
@@ -3815,7 +3815,7 @@ const SPECIES := {
 	},
 	"aerodactyl": {
 		"dex_number": 142,
-		"name": "Aerodactyl",
+		"name": "Ptéra",
 		"types": ["ROCK", "FLYING"],
 		"base_hp": 80,
 		"base_attack": 105,
@@ -3842,7 +3842,7 @@ const SPECIES := {
 	},
 	"snorlax": {
 		"dex_number": 143,
-		"name": "Snorlax",
+		"name": "Ronflex",
 		"types": ["NORMAL"],
 		"base_hp": 160,
 		"base_attack": 110,
@@ -3869,7 +3869,7 @@ const SPECIES := {
 	},
 	"articuno": {
 		"dex_number": 144,
-		"name": "Articuno",
+		"name": "Artikodin",
 		"types": ["ICE", "FLYING"],
 		"base_hp": 90,
 		"base_attack": 85,
@@ -3896,7 +3896,7 @@ const SPECIES := {
 	},
 	"zapdos": {
 		"dex_number": 145,
-		"name": "Zapdos",
+		"name": "Électhor",
 		"types": ["ELECTRIC", "FLYING"],
 		"base_hp": 90,
 		"base_attack": 90,
@@ -3923,7 +3923,7 @@ const SPECIES := {
 	},
 	"moltres": {
 		"dex_number": 146,
-		"name": "Moltres",
+		"name": "Sulfura",
 		"types": ["FIRE", "FLYING"],
 		"base_hp": 90,
 		"base_attack": 100,
@@ -3950,7 +3950,7 @@ const SPECIES := {
 	},
 	"dratini": {
 		"dex_number": 147,
-		"name": "Dratini",
+		"name": "Dratatin",
 		"types": ["DRAGON"],
 		"base_hp": 41,
 		"base_attack": 64,
@@ -3977,7 +3977,7 @@ const SPECIES := {
 	},
 	"dragonair": {
 		"dex_number": 148,
-		"name": "Dragonair",
+		"name": "Draco",
 		"types": ["DRAGON"],
 		"base_hp": 61,
 		"base_attack": 84,
@@ -4004,7 +4004,7 @@ const SPECIES := {
 	},
 	"dragonite": {
 		"dex_number": 149,
-		"name": "Dragonite",
+		"name": "Dracolosse",
 		"types": ["DRAGON", "FLYING"],
 		"base_hp": 91,
 		"base_attack": 134,

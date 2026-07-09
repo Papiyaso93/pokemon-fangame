@@ -50,12 +50,73 @@ def parse_species_ids():
     return ids
 
 
+# Noms français officiels des 151 premiers Pokémon — la ROM pret est
+# anglaise, aucune donnée française à extraire, donc table à part codée en
+# dur ici (contrairement au reste du script, rien à parser depuis pret).
+FRENCH_NAMES = {
+    "BULBASAUR": "Bulbizarre", "IVYSAUR": "Herbizarre", "VENUSAUR": "Florizarre",
+    "CHARMANDER": "Salamèche", "CHARMELEON": "Reptincel", "CHARIZARD": "Dracaufeu",
+    "SQUIRTLE": "Carapuce", "WARTORTLE": "Carabaffe", "BLASTOISE": "Tortank",
+    "CATERPIE": "Chenipan", "METAPOD": "Chrysacier", "BUTTERFREE": "Papilusion",
+    "WEEDLE": "Aspicot", "KAKUNA": "Coconfort", "BEEDRILL": "Dardargnan",
+    "PIDGEY": "Roucool", "PIDGEOTTO": "Roucoups", "PIDGEOT": "Roucarnage",
+    "RATTATA": "Rattata", "RATICATE": "Rattatac", "SPEAROW": "Piafabec",
+    "FEAROW": "Rapasdepic", "EKANS": "Abo", "ARBOK": "Arbok",
+    "PIKACHU": "Pikachu", "RAICHU": "Raichu", "SANDSHREW": "Sabelette",
+    "SANDSLASH": "Sablaireau", "NIDORAN_F": "Nidoran♀", "NIDORINA": "Nidorina",
+    "NIDOQUEEN": "Nidoqueen", "NIDORAN_M": "Nidoran♂", "NIDORINO": "Nidorino",
+    "NIDOKING": "Nidoking", "CLEFAIRY": "Mélofée", "CLEFABLE": "Mélodelfe",
+    "VULPIX": "Goupix", "NINETALES": "Feunard", "JIGGLYPUFF": "Rondoudou",
+    "WIGGLYTUFF": "Grodoudou", "ZUBAT": "Nosferapti", "GOLBAT": "Nosferalto",
+    "ODDISH": "Mystherbe", "GLOOM": "Ortide", "VILEPLUME": "Rafflesia",
+    "PARAS": "Paras", "PARASECT": "Parasect", "VENONAT": "Mimitoss",
+    "VENOMOTH": "Aéromite", "DIGLETT": "Taupiqueur", "DUGTRIO": "Triopikeur",
+    "MEOWTH": "Miaouss", "PERSIAN": "Persian", "PSYDUCK": "Psykokwak",
+    "GOLDUCK": "Akwakwak", "MANKEY": "Férosinge", "PRIMEAPE": "Colossinge",
+    "GROWLITHE": "Caninos", "ARCANINE": "Arcanin", "POLIWAG": "Ptitard",
+    "POLIWHIRL": "Têtarte", "POLIWRATH": "Tartard", "ABRA": "Abra",
+    "KADABRA": "Kadabra", "ALAKAZAM": "Alakazam", "MACHOP": "Machoc",
+    "MACHOKE": "Machopeur", "MACHAMP": "Mackogneur", "BELLSPROUT": "Chétiflor",
+    "WEEPINBELL": "Boustiflor", "VICTREEBEL": "Empiflor", "TENTACOOL": "Tentacool",
+    "TENTACRUEL": "Tentacruel", "GEODUDE": "Racaillou", "GRAVELER": "Gravalanch",
+    "GOLEM": "Grolem", "PONYTA": "Ponyta", "RAPIDASH": "Galopa",
+    "SLOWPOKE": "Ramoloss", "SLOWBRO": "Flagadoss", "MAGNEMITE": "Magnéti",
+    "MAGNETON": "Magnéton", "FARFETCHD": "Canarticho", "DODUO": "Doduo",
+    "DODRIO": "Dodrio", "SEEL": "Otaria", "DEWGONG": "Lamantine",
+    "GRIMER": "Tadmorv", "MUK": "Grotadmorv", "SHELLDER": "Kokiyas",
+    "CLOYSTER": "Crustabri", "GASTLY": "Fantominus", "HAUNTER": "Spectrum",
+    "GENGAR": "Ectoplasma", "ONIX": "Onix", "DROWZEE": "Soporifik",
+    "HYPNO": "Hypnomade", "KRABBY": "Krabby", "KINGLER": "Krabboss",
+    "VOLTORB": "Voltorbe", "ELECTRODE": "Électrode", "EXEGGCUTE": "Noeunoeuf",
+    "EXEGGUTOR": "Noadkoko", "CUBONE": "Osselait", "MAROWAK": "Ossatueur",
+    "HITMONLEE": "Kicklee", "HITMONCHAN": "Tygnon", "LICKITUNG": "Lippoutou",
+    "KOFFING": "Smogo", "WEEZING": "Smogogo", "RHYHORN": "Rhinocorne",
+    "RHYDON": "Rhinoféros", "CHANSEY": "Leveinard", "TANGELA": "Saquedeneu",
+    "KANGASKHAN": "Kangourex", "HORSEA": "Hypotrempe", "SEADRA": "Hypocéan",
+    "GOLDEEN": "Poissirène", "SEAKING": "Poissoroy", "STARYU": "Stari",
+    "STARMIE": "Staross", "MR_MIME": "M. Mime", "SCYTHER": "Insécateur",
+    "JYNX": "Lippouti", "ELECTABUZZ": "Élektek", "MAGMAR": "Magmar",
+    "PINSIR": "Scarabrute", "TAUROS": "Tauros", "MAGIKARP": "Magicarpe",
+    "GYARADOS": "Léviator", "LAPRAS": "Lokhlass", "DITTO": "Métamorph",
+    "EEVEE": "Évoli", "VAPOREON": "Aquali", "JOLTEON": "Voltali",
+    "FLAREON": "Pyroli", "PORYGON": "Porygon", "OMANYTE": "Amonita",
+    "OMASTAR": "Amonistar", "KABUTO": "Kabuto", "KABUTOPS": "Kabutops",
+    "AERODACTYL": "Ptéra", "SNORLAX": "Ronflex", "ARTICUNO": "Artikodin",
+    "ZAPDOS": "Électhor", "MOLTRES": "Sulfura", "DRATINI": "Dratatin",
+    "DRAGONAIR": "Draco", "DRAGONITE": "Dracolosse", "MEWTWO": "Mewtwo",
+    "MEW": "Mew",
+}
+
+
 def parse_names():
+    # Le nom anglais brut (species_names.h) ne sert plus qu'en repli si jamais
+    # un token manquait de FRENCH_NAMES — le jeu affiche toujours le français.
     text = read("src/data/text/species_names.h")
     names = {}
     for m in re.finditer(r'\[SPECIES_(\w+)\] = _\("([^"]*)"\)', text):
         token, raw = m.group(1), m.group(2)
-        names[token] = " ".join(w.capitalize() for w in raw.split(" "))
+        english = " ".join(w.capitalize() for w in raw.split(" "))
+        names[token] = FRENCH_NAMES.get(token, english)
     return names
 
 

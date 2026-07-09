@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ck21srsap4dtx"
-path="res://.godot/imported/rattata_front.png-82461a84cf4de787e86d80f41a95dade.ctex"
+uid="uid://bqbkedhvnm1k1"
+path="res://.godot/imported/icon.png-63e8ebadce937ff7edd2db925c38f7a2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/pokemon/rattata_front.png"
-dest_files=["res://.godot/imported/rattata_front.png-82461a84cf4de787e86d80f41a95dade.ctex"]
+source_file="res://assets/pokemon/dugtrio/icon.png"
+dest_files=["res://.godot/imported/icon.png-63e8ebadce937ff7edd2db925c38f7a2.ctex"]
 
 [params]
 
