@@ -63,6 +63,19 @@ dialogues ci-dessous.
 
 2. **Camille — action 1 : le Pokémon "un peu particulier"** (zone ❓ — à
    assigner sur la vraie carte)
+   - **Dialogues d'ouverture validés (12/07/2026)** :
+     1. *"Ah, te voilà. Anselme m'a prévenu."*
+     2. *"Chercheur, c'est un métier de patience et d'observation. Tu vas voir,
+        c'est très différent de foncer dans le tas."*
+     3. *"Tiens, prends ça : un Pokédex. Il recense déjà toutes les espèces de
+        Kanto, ou presque. Tu le trouveras dans les objets importants de ton
+        sac, et bientôt directement avec la touche 1 (modifiable plus tard
+        si besoin)."*
+     4. *"D'ailleurs, ça tombe bien : on vient de recevoir un Pokémon un peu
+        particulier, et il s'est échappé dans cette zone avant qu'on ait pu
+        bien l'observer."*
+     5. *"Tu veux bien aller y jeter un œil ? Cherche du côté des hautes
+        herbes, il ne doit pas être bien loin."*
    - Camille explique brièvement la classe Chercheur, remet le **Pokédex**
      (déjà pré-rempli pour tout Kanto sauf légendaires — voir section
      dédiée ci-dessous et `game-design.md`).

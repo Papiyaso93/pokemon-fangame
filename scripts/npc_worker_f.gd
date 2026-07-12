@@ -26,7 +26,7 @@ const WAITING_FOR_ANSELME: Array[String] = [
 ]
 
 const WAITING_FOR_PARTNER: Array[String] = [
-	"Va d'abord attraper ton premier partenaire au Parc Safari.",
+	"Le Parc Safari t'attend, juste à côté.",
 ]
 
 const FINAL_QUESTION: Array[String] = [

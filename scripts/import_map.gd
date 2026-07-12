@@ -18,6 +18,8 @@ const MAPS := [
 	"viridian_forest",
 	"cave_diglett", "cave_mtmoon", "cave_rocktunnel", "cave_seafoam", "cave_victoryroad",
 	"safari_office",
+	"safari_rest_house_center", "safari_rest_house_east", "safari_rest_house_north",
+	"safari_rest_house_west", "safari_secret_house",
 	# "safari_entrance" retiré DEFINITIVEMENT : contient des PNJ + un script de
 	# verrouillage ajoutés à la main (setup_safari_entrance_npcs.gd,
 	# setup_safari_entrance_gate.gd). Ne JAMAIS le remettre dans cette liste

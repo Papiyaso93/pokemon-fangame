@@ -201,10 +201,89 @@ WARP_OVERRIDES = {
         {"x": 24, "y": 5, "target": "safari_entrance", "tx": 4, "ty": 7},
         {"x": 28, "y": 16, "target": "safari_office", "tx": 6, "ty": 9},
     ],
+    # Zone Safari : 4 sous-cartes reliées entre elles (Center = carrefour) +
+    # une maison de repos par sous-carte. Coordonnées réelles extraites des
+    # warp_events pret (kanto-pipeline/pokefirered/data/maps/SafariZone_*/map.json),
+    # validées en jeu par Gus le 12/07/2026 (testées case par case).
     "safari_zone_center": [
         {"x": 25, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
         {"x": 26, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
         {"x": 27, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
+        {"x": 25, "y": 5, "target": "safari_zone_north", "tx": 30, "ty": 34},
+        {"x": 26, "y": 5, "target": "safari_zone_north", "tx": 31, "ty": 34},
+        {"x": 27, "y": 5, "target": "safari_zone_north", "tx": 32, "ty": 34},
+        {"x": 8, "y": 17, "target": "safari_zone_west", "tx": 40, "ty": 26},
+        {"x": 8, "y": 18, "target": "safari_zone_west", "tx": 40, "ty": 27},
+        {"x": 8, "y": 19, "target": "safari_zone_west", "tx": 40, "ty": 28},
+        {"x": 43, "y": 15, "target": "safari_zone_east", "tx": 8, "ty": 26},
+        {"x": 43, "y": 16, "target": "safari_zone_east", "tx": 8, "ty": 27},
+        {"x": 43, "y": 17, "target": "safari_zone_east", "tx": 8, "ty": 28},
+        {"x": 29, "y": 25, "target": "safari_rest_house_center", "tx": 4, "ty": 9},
+    ],
+    "safari_zone_east": [
+        {"x": 8, "y": 9, "target": "safari_zone_north", "tx": 48, "ty": 31},
+        {"x": 8, "y": 10, "target": "safari_zone_north", "tx": 48, "ty": 32},
+        {"x": 8, "y": 11, "target": "safari_zone_north", "tx": 48, "ty": 33},
+        {"x": 8, "y": 26, "target": "safari_zone_center", "tx": 43, "ty": 15},
+        {"x": 8, "y": 27, "target": "safari_zone_center", "tx": 43, "ty": 16},
+        {"x": 8, "y": 28, "target": "safari_zone_center", "tx": 43, "ty": 17},
+        {"x": 40, "y": 14, "target": "safari_rest_house_east", "tx": 4, "ty": 9},
+    ],
+    "safari_zone_north": [
+        {"x": 10, "y": 34, "target": "safari_zone_west", "tx": 30, "ty": 5},
+        {"x": 11, "y": 34, "target": "safari_zone_west", "tx": 31, "ty": 5},
+        {"x": 12, "y": 34, "target": "safari_zone_west", "tx": 32, "ty": 5},
+        {"x": 20, "y": 34, "target": "safari_zone_west", "tx": 37, "ty": 5},
+        {"x": 21, "y": 34, "target": "safari_zone_west", "tx": 38, "ty": 5},
+        {"x": 22, "y": 34, "target": "safari_zone_west", "tx": 39, "ty": 5},
+        {"x": 48, "y": 31, "target": "safari_zone_east", "tx": 8, "ty": 9},
+        {"x": 48, "y": 32, "target": "safari_zone_east", "tx": 8, "ty": 10},
+        {"x": 48, "y": 33, "target": "safari_zone_east", "tx": 8, "ty": 11},
+        {"x": 30, "y": 34, "target": "safari_zone_center", "tx": 25, "ty": 5},
+        {"x": 31, "y": 34, "target": "safari_zone_center", "tx": 26, "ty": 5},
+        {"x": 32, "y": 34, "target": "safari_zone_center", "tx": 27, "ty": 5},
+        {"x": 43, "y": 8, "target": "safari_rest_house_north", "tx": 4, "ty": 9},
+    ],
+    "safari_zone_west": [
+        {"x": 30, "y": 5, "target": "safari_zone_north", "tx": 10, "ty": 34},
+        {"x": 31, "y": 5, "target": "safari_zone_north", "tx": 11, "ty": 34},
+        {"x": 32, "y": 5, "target": "safari_zone_north", "tx": 12, "ty": 34},
+        {"x": 37, "y": 5, "target": "safari_zone_north", "tx": 20, "ty": 34},
+        {"x": 38, "y": 5, "target": "safari_zone_north", "tx": 21, "ty": 34},
+        {"x": 39, "y": 5, "target": "safari_zone_north", "tx": 22, "ty": 34},
+        {"x": 40, "y": 26, "target": "safari_zone_center", "tx": 8, "ty": 17},
+        {"x": 40, "y": 27, "target": "safari_zone_center", "tx": 8, "ty": 18},
+        {"x": 40, "y": 28, "target": "safari_zone_center", "tx": 8, "ty": 19},
+        {"x": 12, "y": 7, "target": "safari_secret_house", "tx": 4, "ty": 9},
+        {"x": 19, "y": 18, "target": "safari_rest_house_west", "tx": 4, "ty": 9},
+    ],
+    "safari_rest_house_center": [
+        {"x": 3, "y": 9, "target": "safari_zone_center", "tx": 29, "ty": 26},
+        {"x": 4, "y": 9, "target": "safari_zone_center", "tx": 29, "ty": 26},
+        {"x": 5, "y": 9, "target": "safari_zone_center", "tx": 29, "ty": 26},
+    ],
+    "safari_rest_house_east": [
+        {"x": 3, "y": 9, "target": "safari_zone_east", "tx": 40, "ty": 15},
+        {"x": 4, "y": 9, "target": "safari_zone_east", "tx": 40, "ty": 15},
+        {"x": 5, "y": 9, "target": "safari_zone_east", "tx": 40, "ty": 15},
+    ],
+    "safari_rest_house_north": [
+        {"x": 3, "y": 9, "target": "safari_zone_north", "tx": 43, "ty": 9},
+        {"x": 4, "y": 9, "target": "safari_zone_north", "tx": 43, "ty": 9},
+        {"x": 5, "y": 9, "target": "safari_zone_north", "tx": 43, "ty": 9},
+    ],
+    "safari_rest_house_west": [
+        {"x": 3, "y": 9, "target": "safari_zone_west", "tx": 19, "ty": 19},
+        {"x": 4, "y": 9, "target": "safari_zone_west", "tx": 19, "ty": 19},
+        {"x": 5, "y": 9, "target": "safari_zone_west", "tx": 19, "ty": 19},
+    ],
+    # Zone Safari Ouest : la Maison secrète (item rare dans le vrai jeu, pas
+    # encore intégrée à notre histoire). Warp posé pour être complet/fidèle,
+    # contenu (PNJ/objet) pas encore décidé.
+    "safari_secret_house": [
+        {"x": 3, "y": 9, "target": "safari_zone_west", "tx": 12, "ty": 8},
+        {"x": 4, "y": 9, "target": "safari_zone_west", "tx": 12, "ty": 8},
+        {"x": 5, "y": 9, "target": "safari_zone_west", "tx": 12, "ty": 8},
     ],
 }
 
@@ -257,6 +336,12 @@ MAPS = {
     # Intro : vrais bâtiments Zone Safari (Parmanie).
     "FuchsiaCity_SafariZone_Office": "safari_office",
     "FuchsiaCity_SafariZone_Entrance": "safari_entrance",
+    # Maisons de repos du Parc Safari (une par sous-zone) + Maison secrète.
+    "SafariZone_Center_RestHouse": "safari_rest_house_center",
+    "SafariZone_East_RestHouse": "safari_rest_house_east",
+    "SafariZone_North_RestHouse": "safari_rest_house_north",
+    "SafariZone_West_RestHouse": "safari_rest_house_west",
+    "SafariZone_SecretHouse": "safari_secret_house",
 }
 
 if __name__ == "__main__":

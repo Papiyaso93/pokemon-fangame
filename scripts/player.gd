@@ -511,7 +511,7 @@ func _check_input() -> void:
 		is_jumping = false
 		move_target = position + motion
 		is_moving = true
-		pending_encounter_check = SafariState.active and _is_grass(tgt)
+		pending_encounter_check = SafariState.active and SafariState.hunting_unlocked and _is_grass(tgt)
 		_play("walk")
 
 func _try_transition(dir: Vector2, cur: Vector2i) -> void:
