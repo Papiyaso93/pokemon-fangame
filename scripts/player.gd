@@ -12,6 +12,7 @@ const EncounterScene := preload("res://scenes/ui/encounter.tscn")
 const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
 const LocationBannerScene := preload("res://scenes/ui/location_banner.tscn")
 const PauseMenuScene := preload("res://scenes/ui/pause_menu.tscn")
+const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
 # Directions opposées, utilisé pour valider la réciprocité d'une connexion
@@ -34,6 +35,8 @@ var ledges: Array = []
 var grass: Array = []
 var warps: Array = []
 var elevation: Array = []
+var water: Array = []
+var is_surfing := false
 var pending_encounter_check := false
 var current_speed := SPEED
 var is_jumping := false
@@ -93,6 +96,67 @@ func _apply_appearance() -> void:
 			var frame_tex := sf.get_frame_texture(anim_name, i)
 			if frame_tex is AtlasTexture:
 				(frame_tex as AtlasTexture).atlas = tex
+	_prepare_surf_sprite_frames()
+
+# Sprites de Surf réels (vrai jeu FRLG). Contrairement à ce qu'on pourrait
+# croire, l'image "posée" red_surf.png/green_surf.png n'est PAS celle utilisée
+# pour le déplacement (vérifié dans object_event_graphics_info.h : elle n'est
+# référencée nulle part) — c'est red_surf_run.png/green_surf_run.png, au même
+# format que le sprite normal (16 px de large). Et là où le sprite normal a un
+# cycle de marche à 4 frames, le Surf n'a qu'UNE seule pose fixe par
+# direction (object_event_anims.h::sAnim_SurfFaceSouth/North/West — East =
+# West retourné, comme le sprite normal) : indices 0=sud, 1=nord, 2=ouest de
+# red_surf_run.png. N'existe que pour red_normal/green_normal (Brendan/May
+# viennent de Rubis/Saphir, pas dans notre décompilation FireRed/LeafGreen) :
+# ces 2 apparences gardent leur sprite normal en attendant, voir HANDOFF.md/
+# conversation du 13/07/2026.
+const SURF_TEXTURE := {"red_normal": "red_surf_run", "green_normal": "green_surf_run"}
+var normal_sprite_frames: SpriteFrames
+var surf_sprite_frames: SpriteFrames = null
+
+func _prepare_surf_sprite_frames() -> void:
+	if normal_sprite_frames == null:
+		normal_sprite_frames = anim.sprite_frames
+	var surf_name: String = SURF_TEXTURE.get(PlayerData.appearance, "")
+	surf_sprite_frames = null
+	if surf_name.is_empty():
+		return
+	var surf_path := "res://assets/characters/%s.png" % surf_name
+	if not ResourceLoader.exists(surf_path):
+		return
+	surf_sprite_frames = _build_surf_sprite_frames(load(surf_path))
+
+# 3 poses fixes seulement (sud/nord/ouest, 16 px chacune) — pas de cycle de
+# marche, fidèle à sAnimTable_RedGreenSurf (face ET déplacement utilisent la
+# même pose unique par direction dans le vrai jeu).
+func _build_surf_sprite_frames(tex: Texture2D) -> SpriteFrames:
+	var at: Array[AtlasTexture] = []
+	for i in range(3):
+		var a := AtlasTexture.new()
+		a.atlas = tex
+		a.region = Rect2(i * 16, 0, 16, 32)
+		at.append(a)
+	var sf := SpriteFrames.new()
+	for anim_name in ["face_south", "walk_south"]:
+		sf.add_animation(anim_name); sf.set_animation_speed(anim_name, 5.0)
+		sf.add_frame(anim_name, at[0])
+	for anim_name in ["face_north", "walk_north"]:
+		sf.add_animation(anim_name); sf.set_animation_speed(anim_name, 5.0)
+		sf.add_frame(anim_name, at[1])
+	for anim_name in ["face_west", "walk_west"]:
+		sf.add_animation(anim_name); sf.set_animation_speed(anim_name, 5.0)
+		sf.add_frame(anim_name, at[2])
+	return sf
+
+# Bascule vers/depuis le sprite de Surf (appelé par _start_surfing() et par
+# la descente automatique dans _move_toward_target()). Ne change rien si
+# aucun sprite de Surf n'existe pour l'apparence actuelle (Brendan/May).
+func _update_surf_sprite() -> void:
+	if is_surfing and surf_sprite_frames != null:
+		anim.sprite_frames = surf_sprite_frames
+	elif normal_sprite_frames != null:
+		anim.sprite_frames = normal_sprite_frames
+	_play("face" if state != MOVING else "walk")
 
 func _read_map_meta() -> void:
 	var root := get_parent()
@@ -110,6 +174,8 @@ func _read_map_meta() -> void:
 		show_map_name = root.get_meta("show_map_name")
 	if root and root.has_meta("elevation"):
 		elevation = root.get_meta("elevation")
+	if root and root.has_meta("water"):
+		water = root.get_meta("water")
 
 # ── Transitions fluides (voir HANDOFF.md) ──────────────────────────────────
 # Au lieu de recharger la scène en franchissant un bord connecté, on charge
@@ -134,6 +200,7 @@ func _load_world() -> void:
 		"warps": warps,
 		"connections": connections,
 		"elevation": elevation,
+		"water": water,
 	}
 	zones = [origin_zone]
 	var queue: Array = [origin_zone]
@@ -164,6 +231,7 @@ func _load_world() -> void:
 				"warps": node.get_meta("warps", []),
 				"connections": n_connections,
 				"elevation": node.get_meta("elevation", []),
+				"water": node.get_meta("water", []),
 			}
 			_attach_layers(root, node, world_off)
 			zones.append(zone)
@@ -317,6 +385,20 @@ func _is_grass(tile: Vector2i) -> bool:
 	var arr: Array = zone.grass
 	return idx >= 0 and idx < arr.size() and bool(arr[idx])
 
+# Case d'eau surfable/pêchable (fidèle FRLG, voir build_godot.py) ?
+func _is_water(tile: Vector2i) -> bool:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
+		return false
+	var local: Vector2i = res[1]
+	var size: Vector2i = zone.size
+	if local.x < 0 or local.y < 0 or local.x >= size.x or local.y >= size.y:
+		return false
+	var idx := local.y * size.x + local.x
+	var arr: Array = zone.get("water", [])
+	return idx >= 0 and idx < arr.size() and bool(arr[idx])
+
 # Élévation d'une case (0 si zone/case introuvable ou hors tableau — traité
 # comme "passe-partout", cf. _elevation_blocks()).
 func _elevation_at(tile: Vector2i) -> int:
@@ -336,6 +418,11 @@ func _elevation_at(tile: Vector2i) -> int:
 # sont infranchissables (falaise), même sans collision propre sur les tuiles
 # elles-mêmes. Élévation 0 = "passe-partout" (ponts, cases neutres).
 func _elevation_blocks(from_tile: Vector2i, to_tile: Vector2i) -> bool:
+	# L'eau a sa propre élévation (zones de courant), sans rapport avec les
+	# niveaux de falaise — la frontière eau/terre est déjà gérée par la
+	# règle dédiée au Surf (voir water_blocks), pas par celle-ci.
+	if _is_water(from_tile) or _is_water(to_tile):
+		return false
 	var e_from := _elevation_at(from_tile)
 	var e_to := _elevation_at(to_tile)
 	return e_from != 0 and e_to != 0 and e_from != e_to
@@ -429,6 +516,14 @@ func _try_interact() -> void:
 			if npc.tile() == target_tile:
 				_talk_to(npc, cur)
 				return
+	# Rien à qui parler : essaie la Canne à pêche/le Surf si on fait face à
+	# l'eau (test, pas encore de vrai menu de sac pour choisir l'objet — voir
+	# acte1-parc-safari.md). Surf est prioritaire s'il est disponible.
+	if not is_surfing and _is_water(cur + offset):
+		if PlayerData.has_surf:
+			_start_surfing()
+		elif PlayerData.has_fishing_rod:
+			_start_fishing()
 
 func _talk_to(npc: Node, player_tile: Vector2i) -> void:
 	if npc.has_method("face_toward"):
@@ -540,8 +635,9 @@ func _check_input() -> void:
 		_play("walk")
 		return
 
+	var water_blocks := _is_water(tgt) and not is_surfing   # eau interdite sans Surf ; jamais bloqué pour débarquer
 	var motion := dir * TILE_SIZE
-	if test_move(global_transform, motion) or _elevation_blocks(cur, tgt):
+	if test_move(global_transform, motion) or _elevation_blocks(cur, tgt) or water_blocks:
 		_play("face")            # bloqué : face à l'obstacle, sans avancer
 	else:
 		current_speed = SPEED
@@ -584,6 +680,11 @@ func _move_toward_target(delta: float) -> void:
 			anim.position.y = 0.0
 		if zones.size() > 1:
 			_update_current_zone()
+		# Fidèle FRLG : on descend automatiquement de l'eau dès qu'on pose le
+		# pied sur une case praticable à sec (pas de confirmation nécessaire).
+		if is_surfing and not _is_water(Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))):
+			is_surfing = false
+			_update_surf_sprite()
 		if pending_encounter_check:
 			pending_encounter_check = false
 			if randf() < ENCOUNTER_CHANCE:
@@ -593,6 +694,98 @@ func _move_toward_target(delta: float) -> void:
 	if is_jumping:
 		var progress := 1.0 - (move_target - position).length() / jump_total_dist
 		anim.position.y = -JUMP_ARC_HEIGHT * sin(progress * PI)
+
+# Petite boîte de dialogue à une seule ligne, attend que le joueur la ferme.
+func _say_line(text: String) -> void:
+	var lines: Array[String] = [text]
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	dialogue.say(lines)
+	await dialogue.finished
+	dialogue.queue_free()
+
+# Surf (test, voir acte1-parc-safari.md) : confirmation Oui/Non avant de se
+# lancer (fidèle FRLG, évite un faux clic), la descente reste automatique dès
+# qu'on retouche terre (voir _move_toward_target()). Vrai sprite FRLG
+# (red_surf_run/green_surf_run) si disponible pour l'apparence actuelle,
+# sinon le perso garde son apparence normale (Brendan/May, pas de sprite Surf
+# dans notre décompilation FireRed/LeafGreen — voir _prepare_surf_sprite_frames()).
+func _start_surfing() -> void:
+	is_busy = true
+	_play("face")
+
+	var ask_lines: Array[String] = ["Il y a de l'eau devant toi. Tu veux surfer ?"]
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().current_scene.add_child(dialogue)
+	dialogue.say(ask_lines)
+	await dialogue.page_typed
+	dialogue.active = false
+	var choice := YesNoChoiceScene.instantiate()
+	get_tree().current_scene.add_child(choice)
+	var confirmed: bool = await choice.chosen
+	choice.queue_free()
+	dialogue.queue_free()
+	if not confirmed:
+		is_busy = false
+		interact_cooldown = 0.2
+		return
+
+	await _say_line("Tu montes sur la planche et te lances sur l'eau !")
+	is_surfing = true
+	_update_surf_sprite()
+
+	# Fidèle FRLG : monter sur l'eau avance automatiquement d'une case (voir
+	# object_event_anims.h::ANIM_GET_ON_OFF_POKEMON_*). On pilote le pas à la
+	# main (is_busy bloque _physics_process, donc _move_toward_target() ne
+	# serait jamais appelée sinon) plutôt que de repasser par le chemin normal
+	# d'entrée utilisateur.
+	current_speed = SPEED
+	pending_encounter_check = false
+	move_target = position + Vector2(_facing_offset(facing)) * TILE_SIZE
+	is_moving = true
+	_play("walk")
+	while is_moving:
+		await get_tree().process_frame
+		_move_toward_target(get_process_delta_time())
+
+	is_busy = false
+	interact_cooldown = 0.2
+
+# Canne à pêche (test, voir acte1-parc-safari.md) : lancer de ligne, attente,
+# touche aléatoire, puis fenêtre courte pour ferrer avant que le poisson ne
+# reparte — fidèle à la structure du vrai jeu (une seule canne pour
+# l'instant, pas de distinction Vieille Canne/Canne Suprême).
+const FISH_BITE_CHANCE := 0.5
+const FISH_HOOK_WINDOW := 1.5   # secondes pour appuyer une fois la touche affichée
+
+func _start_fishing() -> void:
+	is_busy = true
+	_play("face")
+	await _say_line("Tu lances ta ligne à l'eau...")
+	await get_tree().create_timer(randf_range(0.8, 1.6)).timeout
+	if randf() >= FISH_BITE_CHANCE:
+		await _say_line("Ce n'était rien...")
+		is_busy = false
+		interact_cooldown = 0.2
+		return
+
+	await _say_line("Oh ! Une touche !")
+	var hooked := false
+	var remaining := FISH_HOOK_WINDOW
+	while remaining > 0.0:
+		if Input.is_action_just_pressed("ui_accept"):
+			hooked = true
+			break
+		remaining -= get_process_delta_time()
+		await get_tree().process_frame
+	if not hooked:
+		await _say_line("Zut, ça s'est échappé !")
+		is_busy = false
+		interact_cooldown = 0.2
+		return
+
+	is_busy = false
+	_start_encounter()
 
 func _start_encounter() -> void:
 	_play("face")

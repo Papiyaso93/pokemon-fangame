@@ -10,7 +10,7 @@ signal closed
 
 const TabDimAlpha := 0.5
 const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
-const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Clés"
+const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Rares"
 
 # Soulignement façon onglet de navigateur : une bordure basse pleine sur
 # l'onglet actif, rien du tout sur les autres (pas juste une même bordure
@@ -21,7 +21,9 @@ var _no_underline_style: StyleBoxEmpty
 @onready var root: Control = $Root
 @onready var tabs_row: HBoxContainer = $Root/Center/Window/VBox/TabsRow
 @onready var empty_label: Label = $Root/Center/Window/VBox/ContentArea/Center/EmptyLabel
-@onready var pokedex_button: Button = $Root/Center/Window/VBox/ContentArea/Center/PokedexButton
+@onready var item_list: VBoxContainer = $Root/Center/Window/VBox/ContentArea/Center/ItemList
+@onready var pokedex_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/PokedexButton
+@onready var surf_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/SurfButton
 
 var current_pocket := 0
 var tab_buttons: Array[Button] = []
@@ -68,12 +70,15 @@ func _update_tabs() -> void:
 		var style: StyleBox = _underline_style if is_current else _no_underline_style
 		for state in ["normal", "hover", "pressed", "focus"]:
 			tab_buttons[i].add_theme_stylebox_override(state, style)
-	# Pas de vrai inventaire pour l'instant (v1 test) — seule exception : le
-	# Pokédex (test), toujours présent dans la poche Objets Clés en attendant
-	# de définir à quel moment le joueur l'obtient réellement.
-	var showing_pokedex := current_pocket == KEY_ITEMS_POCKET_INDEX
-	pokedex_button.visible = showing_pokedex
-	empty_label.visible = not showing_pokedex
+	# Pas de vrai inventaire pour l'instant (v1 test) — seule exception : les
+	# objets rares obtenus pendant l'acte 1 (Pokédex, Surf...), affichés ici
+	# dès qu'on les a reçus (voir acte1-parc-safari.md).
+	var in_key_pocket := current_pocket == KEY_ITEMS_POCKET_INDEX
+	pokedex_button.visible = in_key_pocket and PlayerData.camille_zone1_done
+	surf_button.visible = in_key_pocket and PlayerData.has_surf
+	var has_any_item := pokedex_button.visible or surf_button.visible
+	item_list.visible = in_key_pocket and has_any_item
+	empty_label.visible = not (in_key_pocket and has_any_item)
 
 func _on_pokedex_pressed() -> void:
 	pokedex_screen = PokedexScreenScene.instantiate()

@@ -8,7 +8,7 @@ extends RefCounted
 
 const POCKETS := [
 	{"key": "items", "label": "Objets"},
-	{"key": "key_items", "label": "Objets Clés"},
+	{"key": "key_items", "label": "Objets Rares"},
 	{"key": "poke_balls", "label": "Poké Balls"},
 	{"key": "tms_hms", "label": "CT & CS"},
 	{"key": "berries", "label": "Baies"},

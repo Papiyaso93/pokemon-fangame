@@ -91,25 +91,25 @@ metadata/warps = [{
 "tx": 26.0,
 "ty": 30.0,
 "x": 4.0,
-"y": 1.0
+"y": 0.0
 }, {
 "target": "fuchsia_city",
 "tx": 24.0,
 "ty": 6.0,
 "x": 3.0,
-"y": 7.0
+"y": 8.0
 }, {
 "target": "fuchsia_city",
 "tx": 24.0,
 "ty": 6.0,
 "x": 4.0,
-"y": 7.0
+"y": 8.0
 }, {
 "target": "fuchsia_city",
 "tx": 24.0,
 "ty": 6.0,
 "x": 5.0,
-"y": 7.0
+"y": 8.0
 }]
 
 [node name="Below" type="TileMapLayer" parent="." unique_id=1542822484]

@@ -17,13 +17,19 @@ const MAPS := [
 	"saffron_city", "saffron_city_connection", "vermilion_city", "viridian_city",
 	"viridian_forest",
 	"cave_diglett", "cave_mtmoon", "cave_rocktunnel", "cave_seafoam", "cave_victoryroad",
-	"safari_office",
-	"safari_rest_house_center", "safari_rest_house_east", "safari_rest_house_north",
-	"safari_rest_house_west", "safari_secret_house",
+	"safari_office", "safari_secret_house",
 	# "safari_entrance" retiré DEFINITIVEMENT : contient des PNJ + un script de
 	# verrouillage ajoutés à la main (setup_safari_entrance_npcs.gd,
 	# setup_safari_entrance_gate.gd). Ne JAMAIS le remettre dans cette liste
 	# sans avoir prévu de relancer les deux scripts juste après.
+	#
+	# "safari_rest_house_center/east/north/west" retirés le 13/07/2026 : PNJ
+	# Camille/Yohan ajoutés à la main dedans (voir npc_camille_zone1/2.gd,
+	# npc_yohan_zone3/4.gd), perdus une première fois en régénérant sans faire
+	# attention. Si un changement de terrain est vraiment nécessaire, il faut
+	# régénérer le JSON (build_godot.py), patcher le .tscn à la main pour n'y
+	# reporter QUE le changement de terrain/warps, puis revérifier que les PNJ
+	# sont toujours là — jamais via ce script tant qu'ils sont dedans.
 ]
 
 func _run() -> void:
@@ -52,6 +58,7 @@ func _build(name: String) -> void:
 	var cells: Array = data["cells"]
 	var ledges: Array = data.get("ledges", [])
 	var grass: Array = data.get("grass", [])
+	var water: Array = data.get("water", [])
 	var collision: Array = data["collision"]
 	var connections: Array = data.get("connections", [])
 	var warps: Array = data.get("warps", [])
@@ -97,6 +104,7 @@ func _build(name: String) -> void:
 	root.set_meta("connections", connections)
 	root.set_meta("ledges", ledges)
 	root.set_meta("grass", grass)
+	root.set_meta("water", water)
 	root.set_meta("warps", warps)
 	root.set_meta("show_map_name", show_map_name)
 	root.set_meta("elevation", elevation)
@@ -108,6 +116,17 @@ func _build(name: String) -> void:
 	# supérieur pour continuer à toujours passer devant (cimes d'arbres,
 	# rebords de falaise...), peu importe le tri Y.
 	root.y_sort_enabled = true
+
+	# Verrou de progression du Parc Safari (voir acte1-parc-safari.md) : zone
+	# suivante bloquée tant qu'on n'a pas parlé au PNJ de la zone précédente.
+	# Attaché ici (pas juste posé à la main dans les .tscn) pour survivre à
+	# une régénération — un premier oubli l'avait fait disparaître le
+	# 13/07/2026.
+	const SAFARI_ZONE_NAMES := [
+		"safari_zone_center", "safari_zone_east", "safari_zone_north", "safari_zone_west",
+	]
+	if name in SAFARI_ZONE_NAMES:
+		root.set_script(load("res://scripts/safari_zone_gate.gd"))
 
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
 	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts; above.z_index = 1

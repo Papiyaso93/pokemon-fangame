@@ -74,48 +74,37 @@ sources/0 = SubResource("TileSetAtlasSource_46wmt")
 sources/1 = SubResource("TileSetAtlasSource_lu2su")
 sources/2 = SubResource("TileSetAtlasSource_440up")
 
-[node name="Map" type="Node2D" unique_id=644894774]
+[node name="Map" type="Node2D" unique_id=1244650309]
 y_sort_enabled = true
 metadata/map_size = Vector2i(13, 11)
 metadata/connections = []
 metadata/ledges = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
 metadata/grass = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+metadata/water = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
 metadata/warps = [{
 "target": "safari_zone_west",
 "tx": 19.0,
 "ty": 19.0,
-"x": 3.0,
-"y": 9.0
-}, {
-"target": "safari_zone_west",
-"tx": 19.0,
-"ty": 19.0,
 "x": 4.0,
-"y": 9.0
-}, {
-"target": "safari_zone_west",
-"tx": 19.0,
-"ty": 19.0,
-"x": 5.0,
-"y": 9.0
+"y": 10.0
 }]
 metadata/show_map_name = false
 metadata/elevation = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0, 0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0, 3.0, 3.0, 0.0, 0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0, 3.0, 0.0, 0.0, 0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-[node name="Below" type="TileMapLayer" parent="." unique_id=1460825654]
+[node name="Below" type="TileMapLayer" parent="." unique_id=979118177]
 tile_map_data = PackedByteArray("AAAAAAAAAAAEAAAAAAABAAAAAAAEAAAAAAACAAAAAAAEAAAAAAADAAAAAAAEAAAAAAAEAAAAAAAEAAAAAAAFAAAAAAAEAAAAAAAGAAAAAAAEAAAAAAAHAAAAAAAEAAAAAAAIAAAAAAAEAAAAAAAJAAAAAAACAAEAAAAKAAAAAAADAAEAAAALAAAAAAACAAEAAAAMAAAAAAADAAEAAAAAAAEAAAAGAAAAAAABAAEAAAAGAAAAAAACAAEAAAAFAAAAAAADAAEAAAAFAAAAAAAEAAEAAAAFAAAAAAAFAAEAAAAFAAAAAAAGAAEAAAAFAAAAAAAHAAEAAAAGAAAAAAAIAAEAAAAGAAAAAAAJAAEAAAAKAAEAAAAKAAEAAAALAAEAAAALAAEAAAAKAAEAAAAMAAEAAAALAAEAAAAAAAIAAAAKAAAAAAABAAIAAAAKAAAAAAACAAIAAAALAAAAAAADAAIAAAALAAAAAAAEAAIAAAALAAAAAAAFAAIAAAALAAAAAAAGAAIAAAALAAAAAAAHAAIAAAAKAAAAAAAIAAIAAAAKAAAAAAAJAAIAAAAOAAEAAAAKAAIAAAAPAAEAAAALAAIAAAAOAAEAAAAMAAIAAAAPAAEAAAAAAAMAAAALAAAAAAABAAMAAAAHAAAAAAACAAMAAAAHAAAAAAADAAMAAAAHAAAAAAAEAAMAAAAHAAAAAAAFAAMAAAAHAAAAAAAGAAMAAAAHAAAAAAAHAAMAAAAHAAAAAAAIAAMAAAAHAAAAAAAJAAMAAAAHAAAAAAAKAAMAAAAHAAAAAAALAAMAAAAHAAAAAAAMAAMAAAAHAAAAAAAAAAQAAAALAAAAAAABAAQAAAAHAAAAAAACAAQAAAAIAAAAAAADAAQAAAAHAAAAAAAEAAQAAAAHAAAAAAAFAAQAAAAIAAAAAAAGAAQAAAAHAAAAAAAHAAQAAAAHAAAAAAAIAAQAAAAHAAAAAAAJAAQAAAAHAAAAAAAKAAQAAAAHAAAAAAALAAQAAAAHAAAAAAAMAAQAAAAHAAAAAAAAAAUAAAALAAAAAAABAAUAAAAHAAAAAAACAAUAAAAHAAAAAAADAAUAAAAHAAAAAAAEAAUAAAAHAAAAAAAFAAUAAAAHAAAAAAAGAAUAAAAHAAAAAAAHAAUAAAAHAAAAAAAIAAUAAAAJAAAAAAAJAAUAAAANAAAAAAAKAAUAAAANAAAAAAALAAUAAAANAAAAAAAMAAUAAAANAAAAAAAAAAYAAAALAAAAAAABAAYAAAAHAAAAAAACAAYAAAAHAAAAAAADAAYAAAAHAAAAAAAEAAYAAAAHAAAAAAAFAAYAAAAHAAAAAAAGAAYAAAAHAAAAAAAHAAYAAAAHAAAAAAAIAAYAAAANAAEAAAAJAAYAAAAAAAEAAAAKAAYAAAAAAAEAAAALAAYAAAABAAIAAAAMAAYAAAABAAIAAAAAAAcAAAALAAAAAAABAAcAAAAHAAAAAAACAAcAAAAIAAAAAAADAAcAAAAHAAAAAAAEAAcAAAAHAAAAAAAFAAcAAAAIAAAAAAAGAAcAAAAHAAAAAAAHAAcAAAAHAAAAAAAIAAcAAAAMAAAAAAAJAAcAAAAHAAEAAAAKAAcAAAAIAAEAAAALAAcAAAAJAAEAAAAMAAcAAAAJAAEAAAAAAAgAAAALAAAAAAABAAgAAAAHAAAAAAACAAgAAAAHAAAAAAADAAgAAAAHAAAAAAAEAAgAAAAHAAAAAAAFAAgAAAAHAAAAAAAGAAgAAAAHAAAAAAAHAAgAAAAHAAAAAAAIAAgAAAAMAAAAAAAJAAgAAAAMAAEAAAAKAAgAAAAAAAIAAAALAAgAAAAOAAAAAAAMAAgAAAAOAAAAAAAAAAkAAAALAAAAAAABAAkAAAAHAAAAAAACAAkAAAAHAAAAAAADAAkAAAAEAAEAAAAEAAkAAAAFAAEAAAAFAAkAAAAGAAEAAAAGAAkAAAAHAAAAAAAHAAkAAAAHAAAAAAAIAAkAAAAPAAAAAAAJAAkAAAAMAAEAAAAKAAkAAAABAAEAAAALAAkAAAABAAEAAAAMAAkAAAABAAEAAAAAAAoAAAAAAAAAAAABAAoAAAAAAAAAAAACAAoAAAAAAAAAAAADAAoAAAABAAAAAAAEAAoAAAACAAAAAAAFAAoAAAADAAAAAAAGAAoAAAAAAAAAAAAHAAoAAAAAAAAAAAAIAAoAAAAAAAAAAAAJAAoAAAAAAAAAAAAKAAoAAAAAAAAAAAALAAoAAAAAAAAAAAAMAAoAAAAAAAAAAAA=")
 tile_set = SubResource("TileSet_i574l")
 
-[node name="Player" type="CharacterBody2D" parent="." unique_id=1508129456 instance=ExtResource("3_lcstm")]
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1054405361 instance=ExtResource("3_lcstm")]
 position = Vector2(96, 144)
 script = ExtResource("4_hutjd")
 
-[node name="Above" type="TileMapLayer" parent="." unique_id=1037194060]
+[node name="Above" type="TileMapLayer" parent="." unique_id=108909570]
 z_index = 1
 tile_map_data = PackedByteArray("AAAAAAEAAQAGAAAAAAABAAEAAQAGAAAAAAAHAAEAAQAGAAAAAAAIAAEAAQAGAAAAAAAIAAUAAQAJAAAAAAAJAAUAAQANAAAAAAAKAAUAAQANAAAAAAALAAUAAQANAAAAAAAMAAUAAQANAAAAAAAAAAoAAQAAAAAAAAABAAoAAQAAAAAAAAACAAoAAQAAAAAAAAAGAAoAAQAAAAAAAAAHAAoAAQAAAAAAAAAIAAoAAQAAAAAAAAAJAAoAAQAAAAAAAAAKAAoAAQAAAAAAAAALAAoAAQAAAAAAAAAMAAoAAQAAAAAAAAA=")
 tile_set = SubResource("TileSet_i574l")
 
-[node name="Collision" type="TileMapLayer" parent="." unique_id=1021404373]
+[node name="Collision" type="TileMapLayer" parent="." unique_id=625208179]
 visible = false
 tile_map_data = PackedByteArray("AAAAAAAAAgAAAAAAAAABAAAAAgAAAAAAAAACAAAAAgAAAAAAAAADAAAAAgAAAAAAAAAEAAAAAgAAAAAAAAAFAAAAAgAAAAAAAAAGAAAAAgAAAAAAAAAHAAAAAgAAAAAAAAAIAAAAAgAAAAAAAAAJAAAAAgAAAAAAAAAKAAAAAgAAAAAAAAALAAAAAgAAAAAAAAAMAAAAAgAAAAAAAAAAAAEAAgAAAAAAAAABAAEAAgAAAAAAAAACAAEAAgAAAAAAAAADAAEAAgAAAAAAAAAEAAEAAgAAAAAAAAAFAAEAAgAAAAAAAAAGAAEAAgAAAAAAAAAHAAEAAgAAAAAAAAAIAAEAAgAAAAAAAAAJAAEAAgAAAAAAAAAKAAEAAgAAAAAAAAALAAEAAgAAAAAAAAAMAAEAAgAAAAAAAAAAAAIAAgAAAAAAAAABAAIAAgAAAAAAAAAHAAIAAgAAAAAAAAAIAAIAAgAAAAAAAAAIAAYAAgAAAAAAAAAJAAYAAgAAAAAAAAAKAAYAAgAAAAAAAAALAAYAAgAAAAAAAAAMAAYAAgAAAAAAAAAIAAcAAgAAAAAAAAALAAcAAgAAAAAAAAAMAAcAAgAAAAAAAAAIAAgAAgAAAAAAAAAKAAgAAgAAAAAAAAALAAgAAgAAAAAAAAAMAAgAAgAAAAAAAAAIAAkAAgAAAAAAAAAKAAkAAgAAAAAAAAALAAkAAgAAAAAAAAAMAAkAAgAAAAAAAAAAAAoAAgAAAAAAAAABAAoAAgAAAAAAAAACAAoAAgAAAAAAAAADAAoAAgAAAAAAAAAEAAoAAgAAAAAAAAAFAAoAAgAAAAAAAAAGAAoAAgAAAAAAAAAHAAoAAgAAAAAAAAAIAAoAAgAAAAAAAAAJAAoAAgAAAAAAAAAKAAoAAgAAAAAAAAALAAoAAgAAAAAAAAAMAAoAAgAAAAAAAAA=")
 tile_set = SubResource("TileSet_i574l")

@@ -37,3 +37,8 @@ var camille_zone1_done := false
 var camille_zone2_done := false
 var yohan_zone3_done := false
 var yohan_zone4_done := false
+
+# Objets clés donnés pendant les zones du Parc Safari (test, voir
+# acte1-parc-safari.md — récompenses définitives à retravailler plus tard).
+var has_fishing_rod := false   # Camille, zone 2
+var has_surf := false          # Yohan, zone 4

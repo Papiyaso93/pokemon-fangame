@@ -88,6 +88,8 @@ func save_to_slot(n: int) -> void:
 		"camille_zone2_done": PlayerData.camille_zone2_done,
 		"yohan_zone3_done": PlayerData.yohan_zone3_done,
 		"yohan_zone4_done": PlayerData.yohan_zone4_done,
+		"has_fishing_rod": PlayerData.has_fishing_rod,
+		"has_surf": PlayerData.has_surf,
 		"map_name": map_name,
 		"tile_x": local_tile.x,
 		"tile_y": local_tile.y,
@@ -121,6 +123,8 @@ func load_from_slot(n: int) -> void:
 	PlayerData.camille_zone2_done = bool(data.get("camille_zone2_done", false))
 	PlayerData.yohan_zone3_done = bool(data.get("yohan_zone3_done", false))
 	PlayerData.yohan_zone4_done = bool(data.get("yohan_zone4_done", false))
+	PlayerData.has_fishing_rod = bool(data.get("has_fishing_rod", false))
+	PlayerData.has_surf = bool(data.get("has_surf", false))
 	var seen: Array[String] = []
 	for s in data.get("pokedex_seen", []):
 		seen.append(String(s))

@@ -178,11 +178,21 @@ dialogues ci-dessous.
 Le sac n'en fait plus partie : le joueur l'a déjà en arrivant à Kanto, pas
 besoin de le remettre en scène (décidé 12/07/2026).
 
-1. 30 Safari Balls (Anselme, dans le parc, après les 2 tutos — `PARK_HANDOFF`)
-2. Pokédex (Camille, action 1)
-3. Canne à pêche (Camille, action 2)
-4. Objet de Surf (Yohan, action 2)
-5. Carte de Kanto (Anselme, à la sortie du bâtiment)
+**Mis à jour le 13/07/2026** suite au passage à un PNJ par zone (voir
+`scenario.md`/session du 12-13/07) — chaque objet est maintenant remis à
+l'issue de la conversation dans la maison de repos correspondante, dialogues
+encore placeholder ("Pouet.") sauf zone 1 :
+
+1. 30 Safari Balls (Anselme, dans le parc, après les 2 tutos — `PARK_HANDOFF`, pas encore câblé)
+2. Pokédex (Camille, **zone 1**) ✅ implémenté, dialogue validé — plus dans le sac tant que non reçu
+3. Canne à pêche — **retirée de la zone 2** (décidé 13/07/2026 : inutile tant
+   que la capture n'est pas débloquée). Remise plus tard par Anselme en même
+   temps que les Safari Balls (`PARK_HANDOFF`). La mécanique de pêche
+   elle-même est prête côté code (`scripts/player.gd`), juste pas encore
+   accessible.
+4. **Zone 3 (Yohan) : aucun objet donné** pour l'instant, décidé le 13/07/2026
+5. Objet de Surf (Yohan, **zone 4**) ✅ implémenté (mécanique de Surf fonctionnelle, dialogue encore placeholder)
+6. Carte de Kanto (Anselme, à la sortie du bâtiment) — pas encore câblée
 
 ## Le Minidraco chromatique — fil narratif Chercheur
 

@@ -108,12 +108,23 @@ def build(name, layout_dir, primary, secondary, connections, warps=None, show_na
     # Hautes herbes : MB_TALL_GRASS = 0x02 (pret include/constants/metatile_behaviors.h).
     grass = [behavior_of(v & 0x3FF) == 0x02 for v in grid]
 
+    # Eau surfable/pêchable : MB_POND_WATER=0x10, MB_FAST_WATER=0x11,
+    # MB_DEEP_WATER=0x12, MB_OCEAN_WATER=0x15, MB_SHALLOW_WATER=0x17 (pret
+    # metatile_behaviors.h). MB_PUDDLE=0x16 volontairement exclue (flaque
+    # cosmétique, praticable à pied dans le vrai jeu, pas de l'eau au sens
+    # Surf/Canne à pêche). Vérifié : ces cases ont collision=0 dans les
+    # données brutes (le vrai jeu bloque l'entrée dans l'eau via un test de
+    # comportement dédié, pas via le bit de collision) — sans ce tableau,
+    # rien n'empêchait de marcher dans l'eau sans Surf.
+    WATER_BEHAVIORS = {0x10, 0x11, 0x12, 0x15, 0x17}
+    water = [behavior_of(v & 0x3FF) in WATER_BEHAVIORS for v in grid]
+
     data = {
         "name": name, "width": W, "height": H, "atlas_cols": cols,
         "tiles": used, "above": above_flags,
         "cells": cells, "collision": collision, "ledges": ledges, "grass": grass,
         "connections": connections, "warps": warps or [], "show_map_name": show_name,
-        "elevation": elevation,
+        "elevation": elevation, "water": water,
     }
     json.dump(data, open(OUT / f"{name}.json", "w"))
     print(f"{name}: {W}x{H}, {len(used)} metatiles, "
@@ -205,16 +216,19 @@ WARP_OVERRIDES = {
     ],
     # Intro : le joueur démarre directement dans safari_entrance (bâtiment
     # d'Entrée réel de la Zone Safari à Parmanie). Coordonnées réelles pret.
+    # Sortie de bâtiment : le tapis lui-même (dernière rangée praticable) ne
+    # déclenche plus rien — seule la tentative d'aller encore plus loin (dans
+    # le mur/bord, une case au-delà du tapis) déclenche le warp. Comme les
+    # warps sont vérifiés avant la collision (voir player.gd::_move), ça
+    # fonctionne même si cette case est solide dans les données brutes. Une
+    # seule case (le milieu, celle du vrai tapis visible à l'écran), pas les
+    # 3 de large comme les portes d'entrée. Décidé le 13/07/2026.
     "safari_office": [
-        {"x": 5, "y": 9, "target": "fuchsia_city", "tx": 28, "ty": 17},
-        {"x": 6, "y": 9, "target": "fuchsia_city", "tx": 28, "ty": 17},
-        {"x": 7, "y": 9, "target": "fuchsia_city", "tx": 28, "ty": 17},
+        {"x": 6, "y": 10, "target": "fuchsia_city", "tx": 28, "ty": 17},
     ],
     "safari_entrance": [
-        {"x": 4, "y": 1, "target": "safari_zone_center", "tx": 26, "ty": 30},
-        {"x": 3, "y": 7, "target": "fuchsia_city", "tx": 24, "ty": 6},
-        {"x": 4, "y": 7, "target": "fuchsia_city", "tx": 24, "ty": 6},
-        {"x": 5, "y": 7, "target": "fuchsia_city", "tx": 24, "ty": 6},
+        {"x": 4, "y": 0, "target": "safari_zone_center", "tx": 26, "ty": 30},
+        {"x": 4, "y": 8, "target": "fuchsia_city", "tx": 24, "ty": 6},
     ],
     "fuchsia_city": [
         {"x": 24, "y": 5, "target": "safari_entrance", "tx": 4, "ty": 7},
@@ -230,79 +244,57 @@ WARP_OVERRIDES = {
         {"x": 27, "y": 30, "target": "safari_entrance", "tx": 4, "ty": 2},
         {"x": 25, "y": 5, "target": "safari_zone_north", "tx": 30, "ty": 34},
         {"x": 26, "y": 5, "target": "safari_zone_north", "tx": 31, "ty": 34},
-        {"x": 27, "y": 5, "target": "safari_zone_north", "tx": 32, "ty": 34},
         {"x": 8, "y": 17, "target": "safari_zone_west", "tx": 40, "ty": 26},
         {"x": 8, "y": 18, "target": "safari_zone_west", "tx": 40, "ty": 27},
-        {"x": 8, "y": 19, "target": "safari_zone_west", "tx": 40, "ty": 28},
         {"x": 43, "y": 15, "target": "safari_zone_east", "tx": 8, "ty": 26},
         {"x": 43, "y": 16, "target": "safari_zone_east", "tx": 8, "ty": 27},
-        {"x": 43, "y": 17, "target": "safari_zone_east", "tx": 8, "ty": 28},
         {"x": 29, "y": 25, "target": "safari_rest_house_center", "tx": 4, "ty": 9},
     ],
     "safari_zone_east": [
         {"x": 8, "y": 9, "target": "safari_zone_north", "tx": 48, "ty": 31},
         {"x": 8, "y": 10, "target": "safari_zone_north", "tx": 48, "ty": 32},
-        {"x": 8, "y": 11, "target": "safari_zone_north", "tx": 48, "ty": 33},
         {"x": 8, "y": 26, "target": "safari_zone_center", "tx": 43, "ty": 15},
         {"x": 8, "y": 27, "target": "safari_zone_center", "tx": 43, "ty": 16},
-        {"x": 8, "y": 28, "target": "safari_zone_center", "tx": 43, "ty": 17},
         {"x": 40, "y": 14, "target": "safari_rest_house_east", "tx": 4, "ty": 9},
     ],
     "safari_zone_north": [
         {"x": 10, "y": 34, "target": "safari_zone_west", "tx": 30, "ty": 5},
         {"x": 11, "y": 34, "target": "safari_zone_west", "tx": 31, "ty": 5},
-        {"x": 12, "y": 34, "target": "safari_zone_west", "tx": 32, "ty": 5},
         {"x": 20, "y": 34, "target": "safari_zone_west", "tx": 37, "ty": 5},
         {"x": 21, "y": 34, "target": "safari_zone_west", "tx": 38, "ty": 5},
-        {"x": 22, "y": 34, "target": "safari_zone_west", "tx": 39, "ty": 5},
         {"x": 48, "y": 31, "target": "safari_zone_east", "tx": 8, "ty": 9},
         {"x": 48, "y": 32, "target": "safari_zone_east", "tx": 8, "ty": 10},
-        {"x": 48, "y": 33, "target": "safari_zone_east", "tx": 8, "ty": 11},
         {"x": 30, "y": 34, "target": "safari_zone_center", "tx": 25, "ty": 5},
         {"x": 31, "y": 34, "target": "safari_zone_center", "tx": 26, "ty": 5},
-        {"x": 32, "y": 34, "target": "safari_zone_center", "tx": 27, "ty": 5},
         {"x": 43, "y": 8, "target": "safari_rest_house_north", "tx": 4, "ty": 9},
     ],
     "safari_zone_west": [
         {"x": 30, "y": 5, "target": "safari_zone_north", "tx": 10, "ty": 34},
         {"x": 31, "y": 5, "target": "safari_zone_north", "tx": 11, "ty": 34},
-        {"x": 32, "y": 5, "target": "safari_zone_north", "tx": 12, "ty": 34},
         {"x": 37, "y": 5, "target": "safari_zone_north", "tx": 20, "ty": 34},
         {"x": 38, "y": 5, "target": "safari_zone_north", "tx": 21, "ty": 34},
-        {"x": 39, "y": 5, "target": "safari_zone_north", "tx": 22, "ty": 34},
         {"x": 40, "y": 26, "target": "safari_zone_center", "tx": 8, "ty": 17},
         {"x": 40, "y": 27, "target": "safari_zone_center", "tx": 8, "ty": 18},
-        {"x": 40, "y": 28, "target": "safari_zone_center", "tx": 8, "ty": 19},
         {"x": 12, "y": 7, "target": "safari_secret_house", "tx": 4, "ty": 9},
         {"x": 19, "y": 18, "target": "safari_rest_house_west", "tx": 4, "ty": 9},
     ],
     "safari_rest_house_center": [
-        {"x": 3, "y": 9, "target": "safari_zone_center", "tx": 29, "ty": 26},
-        {"x": 4, "y": 9, "target": "safari_zone_center", "tx": 29, "ty": 26},
-        {"x": 5, "y": 9, "target": "safari_zone_center", "tx": 29, "ty": 26},
+        {"x": 4, "y": 10, "target": "safari_zone_center", "tx": 29, "ty": 26},
     ],
     "safari_rest_house_east": [
-        {"x": 3, "y": 9, "target": "safari_zone_east", "tx": 40, "ty": 15},
-        {"x": 4, "y": 9, "target": "safari_zone_east", "tx": 40, "ty": 15},
-        {"x": 5, "y": 9, "target": "safari_zone_east", "tx": 40, "ty": 15},
+        {"x": 4, "y": 10, "target": "safari_zone_east", "tx": 40, "ty": 15},
     ],
     "safari_rest_house_north": [
-        {"x": 3, "y": 9, "target": "safari_zone_north", "tx": 43, "ty": 9},
-        {"x": 4, "y": 9, "target": "safari_zone_north", "tx": 43, "ty": 9},
-        {"x": 5, "y": 9, "target": "safari_zone_north", "tx": 43, "ty": 9},
+        {"x": 4, "y": 10, "target": "safari_zone_north", "tx": 43, "ty": 9},
     ],
     "safari_rest_house_west": [
-        {"x": 3, "y": 9, "target": "safari_zone_west", "tx": 19, "ty": 19},
-        {"x": 4, "y": 9, "target": "safari_zone_west", "tx": 19, "ty": 19},
-        {"x": 5, "y": 9, "target": "safari_zone_west", "tx": 19, "ty": 19},
+        {"x": 4, "y": 10, "target": "safari_zone_west", "tx": 19, "ty": 19},
     ],
     # Zone Safari Ouest : la Maison secrète (item rare dans le vrai jeu, pas
     # encore intégrée à notre histoire). Warp posé pour être complet/fidèle,
     # contenu (PNJ/objet) pas encore décidé.
     "safari_secret_house": [
-        {"x": 3, "y": 9, "target": "safari_zone_west", "tx": 12, "ty": 8},
-        {"x": 4, "y": 9, "target": "safari_zone_west", "tx": 12, "ty": 8},
-        {"x": 5, "y": 9, "target": "safari_zone_west", "tx": 12, "ty": 8},
+        {"x": 4, "y": 10, "target": "safari_zone_west", "tx": 12, "ty": 8},
     ],
 }
 
