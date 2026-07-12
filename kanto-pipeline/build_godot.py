@@ -24,7 +24,17 @@ def render_half(entries, half, pt, st, pals):
         R.render_subtile(img, pos[i][0], pos[i][1], entries[half*4+i], pt, st, pals)
     return img
 
-def build(name, layout_dir, primary, secondary, connections, warps=None):
+# Métatiles dont le classement pret (attrs bits 29-30) place la moitié haute
+# en "above" (par-dessus le joueur), ce qui est correct pour la plupart des
+# usages (cimes d'arbres...) mais produit un rendu cassé (sprite du joueur
+# coupé) sur des cases précises signalées par Gus le 13/07/2026 — forcés en
+# "covered" (tout en bas) ici, uniquement là où c'est confirmé sans usage
+# légitime ailleurs sur la même carte (vérifié : occurrence unique).
+FORCE_COVERED_METATILES = {
+    "safari_zone_east": {826},   # (35,17)-(43,17), sommet du talus
+}
+
+def build(name, layout_dir, primary, secondary, connections, warps=None, show_name=True):
     prim = PRET / f"data/tilesets/primary/{primary}"
     sec = PRET / f"data/tilesets/secondary/{secondary}"
     pals = R.load_palettes(prim, sec)
@@ -55,6 +65,7 @@ def build(name, layout_dir, primary, secondary, connections, warps=None):
     rows = (len(used) + cols - 1) // cols
     below = Image.new("RGBA", (cols*16, rows*16), (0, 0, 0, 0))
     above = Image.new("RGBA", (cols*16, rows*16), (0, 0, 0, 0))
+    forced_covered = FORCE_COVERED_METATILES.get(name, set())
     above_flags = []
     for k, mid in enumerate(used):
         entries, attr = get(mid)
@@ -63,7 +74,7 @@ def build(name, layout_dir, primary, secondary, connections, warps=None):
         high = render_half(entries, 1, pt, st, pals)
         b = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         a = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        if lt == 1:  # COVERED : tout en bas
+        if mid in forced_covered or lt == 1:  # COVERED : tout en bas
             b.alpha_composite(low); b.alpha_composite(high)
         else:
             b.alpha_composite(low); a.alpha_composite(high)
@@ -78,6 +89,12 @@ def build(name, layout_dir, primary, secondary, connections, warps=None):
 
     cells = [idx_of[v & 0x3FF] for v in grid]
     collision = [1 if ((v >> 10) & 0x3) != 0 else 0 for v in grid]
+
+    # Élévation (pret include/fieldmap.h : MAPGRID_ELEVATION_MASK = 0xF000,
+    # bits 12-15). Deux cases adjacentes d'élévations différentes et non
+    # nulles sont infranchissables (falaise) même sans collision propre sur
+    # les tuiles elles-mêmes — élévation 0 = "passe-partout" (ex. ponts).
+    elevation = [(v >> 12) & 0xF for v in grid]
 
     # Rebords (ledges) : franchissables dans un seul sens (saut de 2 cases).
     # Comportement metatile = attrs bits 0-8 (pret src/fieldmap.c). Constantes
@@ -95,7 +112,8 @@ def build(name, layout_dir, primary, secondary, connections, warps=None):
         "name": name, "width": W, "height": H, "atlas_cols": cols,
         "tiles": used, "above": above_flags,
         "cells": cells, "collision": collision, "ledges": ledges, "grass": grass,
-        "connections": connections, "warps": warps or [],
+        "connections": connections, "warps": warps or [], "show_map_name": show_name,
+        "elevation": elevation,
     }
     json.dump(data, open(OUT / f"{name}.json", "w"))
     print(f"{name}: {W}x{H}, {len(used)} metatiles, "
@@ -120,7 +138,8 @@ def build_map(pret_map, godot_name):
               "target": c["map"].replace("MAP_", "").lower()}
              for c in (mj.get("connections") or [])]
     build(godot_name, L["id"], tileset_folder(L["primary_tileset"]),
-          tileset_folder(L["secondary_tileset"]), conns, WARP_OVERRIDES.get(godot_name))
+          tileset_folder(L["secondary_tileset"]), conns, WARP_OVERRIDES.get(godot_name),
+          mj.get("show_map_name", True))
 
 # Warps ponctuels ajoutés à la main sur des maps déjà générées : portes vers
 # les grottes génériques (build_cave.py) + accès direct Route2<->Foret de Jade

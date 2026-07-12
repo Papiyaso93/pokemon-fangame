@@ -82,6 +82,7 @@ size = Vector2(14, 14)
 [node name="Map" type="Node2D" unique_id=394650604]
 script = ExtResource("1_6f8p0")
 metadata/map_size = Vector2i(9, 9)
+metadata/show_map_name = false
 metadata/connections = []
 metadata/ledges = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
 metadata/warps = [{

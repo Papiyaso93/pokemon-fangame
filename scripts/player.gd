@@ -33,6 +33,7 @@ var connections: Array = []
 var ledges: Array = []
 var grass: Array = []
 var warps: Array = []
+var elevation: Array = []
 var pending_encounter_check := false
 var current_speed := SPEED
 var is_jumping := false
@@ -43,6 +44,8 @@ var origin_map_name := ""      # nom de la carte de cette scène (celle avec Pla
 var current_map_name := ""     # nom de la carte "effective" sous les pieds du joueur
 var last_banner_name := ""     # dernier nom FRANÇAIS affiché (évite les doublons entre
                                 # cartes scindées en plusieurs scènes, ex. route21_north/south)
+var show_map_name := true      # fidèle FRLG (map.json: show_map_name) : false pour les
+                                # intérieurs (MAP_TYPE_INDOOR) — pas de bandeau à l'entrée.
 
 # Toutes les cartes chargées en recouvrement (origine incluse, en zones[0]) :
 # {name, rect (Rect2 monde, coords locales à cette scène), size (Vector2i,
@@ -73,7 +76,8 @@ func _ready() -> void:
 	# ce _ready() (change_scene_to_file en cours), on ne peut pas encore lui
 	# ajouter/retirer des nœuds à ce moment précis.
 	call_deferred("_load_world")
-	call_deferred("_show_location_banner", current_map_name)
+	if show_map_name:
+		call_deferred("_show_location_banner", current_map_name)
 
 # Le spritesheet en dur dans player.tscn est red_normal ; les 4 apparences
 # (voir PlayerData.APPEARANCES) partagent le même format 144×32/9 frames,
@@ -102,6 +106,10 @@ func _read_map_meta() -> void:
 		grass = root.get_meta("grass")
 	if root and root.has_meta("warps"):
 		warps = root.get_meta("warps")
+	if root and root.has_meta("show_map_name"):
+		show_map_name = root.get_meta("show_map_name")
+	if root and root.has_meta("elevation"):
+		elevation = root.get_meta("elevation")
 
 # ── Transitions fluides (voir HANDOFF.md) ──────────────────────────────────
 # Au lieu de recharger la scène en franchissant un bord connecté, on charge
@@ -125,6 +133,7 @@ func _load_world() -> void:
 		"grass": grass,
 		"warps": warps,
 		"connections": connections,
+		"elevation": elevation,
 	}
 	zones = [origin_zone]
 	var queue: Array = [origin_zone]
@@ -154,6 +163,7 @@ func _load_world() -> void:
 				"grass": node.get_meta("grass", []),
 				"warps": node.get_meta("warps", []),
 				"connections": n_connections,
+				"elevation": node.get_meta("elevation", []),
 			}
 			_attach_layers(root, node, world_off)
 			zones.append(zone)
@@ -306,6 +316,29 @@ func _is_grass(tile: Vector2i) -> bool:
 	var idx := local.y * size.x + local.x
 	var arr: Array = zone.grass
 	return idx >= 0 and idx < arr.size() and bool(arr[idx])
+
+# Élévation d'une case (0 si zone/case introuvable ou hors tableau — traité
+# comme "passe-partout", cf. _elevation_blocks()).
+func _elevation_at(tile: Vector2i) -> int:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
+		return 0
+	var local: Vector2i = res[1]
+	var size: Vector2i = zone.size
+	if local.x < 0 or local.y < 0 or local.x >= size.x or local.y >= size.y:
+		return 0
+	var idx := local.y * size.x + local.x
+	var arr: Array = zone.get("elevation", [])
+	return int(arr[idx]) if idx >= 0 and idx < arr.size() else 0
+
+# Fidèle FRLG : deux cases adjacentes d'élévations différentes et non nulles
+# sont infranchissables (falaise), même sans collision propre sur les tuiles
+# elles-mêmes. Élévation 0 = "passe-partout" (ponts, cases neutres).
+func _elevation_blocks(from_tile: Vector2i, to_tile: Vector2i) -> bool:
+	var e_from := _elevation_at(from_tile)
+	var e_to := _elevation_at(to_tile)
+	return e_from != 0 and e_to != 0 and e_from != e_to
 
 # Warp ponctuel sur cette case (porte, entrée de grotte...), ou null si aucun.
 func _warp_at(tile: Vector2i) -> Dictionary:
@@ -504,7 +537,7 @@ func _check_input() -> void:
 		return
 
 	var motion := dir * TILE_SIZE
-	if test_move(global_transform, motion):
+	if test_move(global_transform, motion) or _elevation_blocks(cur, tgt):
 		_play("face")            # bloqué : face à l'obstacle, sans avancer
 	else:
 		current_speed = SPEED

@@ -55,6 +55,8 @@ func _build(name: String) -> void:
 	var collision: Array = data["collision"]
 	var connections: Array = data.get("connections", [])
 	var warps: Array = data.get("warps", [])
+	var show_map_name: bool = data.get("show_map_name", true)
+	var elevation: Array = data.get("elevation", [])
 
 	# ── TileSet ──
 	var ts := TileSet.new()
@@ -96,6 +98,8 @@ func _build(name: String) -> void:
 	root.set_meta("ledges", ledges)
 	root.set_meta("grass", grass)
 	root.set_meta("warps", warps)
+	root.set_meta("show_map_name", show_map_name)
+	root.set_meta("elevation", elevation)
 
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
 	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts
