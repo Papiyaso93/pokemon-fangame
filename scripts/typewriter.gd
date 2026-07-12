@@ -21,12 +21,12 @@ var _char_timer := 0.0
 func _init(target_label: Label) -> void:
 	label = target_label
 
-func start(new_text: String) -> void:
+func start(new_text: String, prefix_len: int = 0) -> void:
 	text = new_text
-	revealed = 0
+	revealed = clampi(prefix_len, 0, text.length())
 	typing = true
 	_char_timer = 0.0
-	label.text = ""
+	label.text = text.substr(0, revealed)
 
 # Affiche le texte en entier immédiatement (appui du joueur pendant la frappe).
 func skip() -> void:

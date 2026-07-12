@@ -70,6 +70,8 @@ func _ready() -> void:
 	base_escape_factor = maxf(2.0, species_flee_rate * 100.0 / 1275.0)
 	catch_factor = base_catch_factor
 	sprite.texture = load("res://assets/pokemon/%s/front.png" % species_key)
+	if species_key not in PlayerData.pokedex_seen:
+		PlayerData.pokedex_seen.append(species_key)
 
 	typewriter = Typewriter.new(label)
 	name_label.text = species_name.to_upper()
@@ -218,6 +220,8 @@ func _on_ball_pressed() -> void:
 	if shakes >= 4:
 		await _say("Gotcha ! %s a été capturé !" % species_name, 1.5)
 		SafariState.caught.append(species_name)
+		if species_key not in PlayerData.pokedex_caught:
+			PlayerData.pokedex_caught.append(species_key)
 	else:
 		await _say(ESCAPE_MESSAGES[shakes], 1.3)
 

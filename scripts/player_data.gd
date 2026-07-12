@@ -21,3 +21,10 @@ var chosen_class := ""      # "" tant que non choisi ; "competiteur" (chercheur 
                              # pas à l'arrivée.
 var intro_complete := false # true une fois qu'on a parlé à Anselme (débloque la porte nord)
 var starter_species := ""   # premier partenaire choisi au Parc Safari (débloque la porte sud)
+
+# Pokédex (test, cf. HANDOFF.md) : clés SpeciesData.SPECIES (ex. "bulbasaur"),
+# pas les noms français affichés. "Capturé" implique "Vu" mais les deux
+# tableaux sont tenus à jour séparément (fidèle au vrai jeu, 2 drapeaux
+# distincts par espèce).
+var pokedex_seen: Array[String] = []
+var pokedex_caught: Array[String] = []

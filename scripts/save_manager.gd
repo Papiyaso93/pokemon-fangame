@@ -82,6 +82,8 @@ func save_to_slot(n: int) -> void:
 		"chosen_class": PlayerData.chosen_class,
 		"intro_complete": PlayerData.intro_complete,
 		"starter_species": PlayerData.starter_species,
+		"pokedex_seen": PlayerData.pokedex_seen,
+		"pokedex_caught": PlayerData.pokedex_caught,
 		"map_name": map_name,
 		"tile_x": local_tile.x,
 		"tile_y": local_tile.y,
@@ -111,6 +113,14 @@ func load_from_slot(n: int) -> void:
 	PlayerData.chosen_class = String(data.get("chosen_class", ""))
 	PlayerData.intro_complete = bool(data.get("intro_complete", false))
 	PlayerData.starter_species = String(data.get("starter_species", ""))
+	var seen: Array[String] = []
+	for s in data.get("pokedex_seen", []):
+		seen.append(String(s))
+	PlayerData.pokedex_seen = seen
+	var caught_dex: Array[String] = []
+	for s in data.get("pokedex_caught", []):
+		caught_dex.append(String(s))
+	PlayerData.pokedex_caught = caught_dex
 
 	SafariState.active = bool(data.get("safari_active", false))
 	SafariState.balls = int(data.get("safari_balls", SafariState.STARTING_BALLS))

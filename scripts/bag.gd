@@ -9,6 +9,8 @@ signal closed
 # Échap pour revenir — même principe que scripts/region_map.gd.
 
 const TabDimAlpha := 0.5
+const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
+const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Clés"
 
 # Soulignement façon onglet de navigateur : une bordure basse pleine sur
 # l'onglet actif, rien du tout sur les autres (pas juste une même bordure
@@ -16,11 +18,14 @@ const TabDimAlpha := 0.5
 var _underline_style: StyleBoxFlat
 var _no_underline_style: StyleBoxEmpty
 
+@onready var root: Control = $Root
 @onready var tabs_row: HBoxContainer = $Root/Center/Window/VBox/TabsRow
-@onready var empty_label: Label = $Root/Center/Window/VBox/ContentArea/EmptyLabel
+@onready var empty_label: Label = $Root/Center/Window/VBox/ContentArea/Center/EmptyLabel
+@onready var pokedex_button: Button = $Root/Center/Window/VBox/ContentArea/Center/PokedexButton
 
 var current_pocket := 0
 var tab_buttons: Array[Button] = []
+var pokedex_screen: Node = null
 
 func _ready() -> void:
 	_underline_style = StyleBoxFlat.new()
@@ -49,6 +54,7 @@ func _ready() -> void:
 		btn.pressed.connect(_on_tab_pressed.bind(i))
 		tabs_row.add_child(btn)
 		tab_buttons.append(btn)
+	pokedex_button.pressed.connect(_on_pokedex_pressed)
 	_update_tabs()
 
 func _on_tab_pressed(index: int) -> void:
@@ -62,9 +68,22 @@ func _update_tabs() -> void:
 		var style: StyleBox = _underline_style if is_current else _no_underline_style
 		for state in ["normal", "hover", "pressed", "focus"]:
 			tab_buttons[i].add_theme_stylebox_override(state, style)
-	# Rien d'autre à afficher pour l'instant : pas de vrai inventaire (v1
-	# test), donc le contenu de chaque poche est toujours vide.
-	empty_label.text = "Aucun objet"
+	# Pas de vrai inventaire pour l'instant (v1 test) — seule exception : le
+	# Pokédex (test), toujours présent dans la poche Objets Clés en attendant
+	# de définir à quel moment le joueur l'obtient réellement.
+	var showing_pokedex := current_pocket == KEY_ITEMS_POCKET_INDEX
+	pokedex_button.visible = showing_pokedex
+	empty_label.visible = not showing_pokedex
+
+func _on_pokedex_pressed() -> void:
+	pokedex_screen = PokedexScreenScene.instantiate()
+	get_tree().root.add_child(pokedex_screen)
+	root.visible = false
+	pokedex_screen.closed.connect(_on_pokedex_closed)
+
+func _on_pokedex_closed() -> void:
+	pokedex_screen = null
+	root.visible = true
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

@@ -191,6 +191,42 @@ metadata/warps = [{
 "ty": 2.0,
 "x": 27.0,
 "y": 30.0
+}, {
+"target": "safari_zone_east",
+"tx": 1.0,
+"ty": 17.0,
+"x": 50.0,
+"y": 17.0
+}, {
+"target": "safari_zone_east",
+"tx": 1.0,
+"ty": 18.0,
+"x": 50.0,
+"y": 18.0
+}, {
+"target": "safari_zone_north",
+"tx": 27.0,
+"ty": 38.0,
+"x": 24.0,
+"y": 0.0
+}, {
+"target": "safari_zone_north",
+"tx": 28.0,
+"ty": 38.0,
+"x": 25.0,
+"y": 0.0
+}, {
+"target": "safari_zone_west",
+"tx": 46.0,
+"ty": 18.0,
+"x": 0.0,
+"y": 17.0
+}, {
+"target": "safari_zone_west",
+"tx": 46.0,
+"ty": 19.0,
+"x": 0.0,
+"y": 18.0
 }]
 
 [node name="Below" type="TileMapLayer" parent="." unique_id=752680310]

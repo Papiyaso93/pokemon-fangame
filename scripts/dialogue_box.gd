@@ -57,7 +57,15 @@ func _show_next() -> void:
 	_show_page()
 
 func _show_page() -> void:
-	typewriter.start(pages[page_idx])
+	# Fenêtre glissante (voir _paginate) : à partir de la 2e page, la 1re ligne
+	# de la page courante est toujours la dernière ligne déjà affichée à la
+	# page précédente. On l'affiche instantanément (pas de retype, jamais de
+	# boîte vide) et on n'anime que la ligne réellement nouvelle.
+	var prefix_len := 0
+	if page_idx > 0:
+		var first_line := pages[page_idx].split("\n")[0]
+		prefix_len = first_line.length() + 1   # +1 pour le \n déjà "acquis"
+	typewriter.start(pages[page_idx], prefix_len)
 
 func _on_page_typed() -> void:
 	arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()

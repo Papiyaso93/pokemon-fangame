@@ -112,7 +112,7 @@ func on_gate_blocked(warp: Dictionary, player: Node) -> void:
 		var louise := get_node_or_null("worker_f")
 		lines = louise.get_lines() if louise else ["Va d'abord voir Anselme."]
 	else:
-		lines = ["Ton premier partenaire t'attend !"]
+		lines = ["Rejoins Camille dans la maison de la zone 1 du parc."]
 
 	var dialogue := DialogueBoxScene.instantiate()
 	get_tree().current_scene.add_child(dialogue)

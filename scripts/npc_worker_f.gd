@@ -11,16 +11,18 @@ const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const ClassChoiceScene := preload("res://scenes/ui/class_choice.tscn")
 
 const INTRO_LINES: Array[String] = [
-	"Bien, %s. C'est noté. Passons aux choses sérieuses : qu'est-ce que tu comptes faire de ta vie, ici ?",
-	"À 18 ans, tout le monde doit se trouver une voie. Il y en a deux à Kanto : Compétiteur et Chercheur.",
-	"Je pourrais t'en parler, mais franchement, je ne suis pas la mieux placée pour ça.",
-	"Va voir Anselme, en face. Il va te donner plus de détails.",
+	"Bien, %s. C'est noté.",
+	"Le voyage a dû être long.",
+	"Les cours, c'est du passé pour toi maintenant. À 18 ans, il est temps de trouver sa voie.",
+	"Il y en a deux, à Kanto : Compétiteur et Chercheur.",
+	"Je pourrais t'en dire plus, mais franchement, je ne suis pas la mieux placée pour ça.",
+	"Va voir Anselme, en face. Il va s'occuper de toi.",
 ]
 
 # Réutilisé aussi par safari_entrance_gate.gd::on_gate_blocked() si le joueur
 # essaie de sortir avant d'avoir parlé à Anselme.
 const WAITING_FOR_ANSELME: Array[String] = [
-	"Va voir Anselme, en face. Il va te donner plus de détails.",
+	"Va voir Anselme, en face. Il va s'occuper de toi.",
 ]
 
 const WAITING_FOR_PARTNER: Array[String] = [

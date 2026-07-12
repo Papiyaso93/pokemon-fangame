@@ -71,12 +71,22 @@ custom_minimum_size = Vector2(480, 280)
 layout_mode = 2
 theme_override_styles/panel = SubResource("WindowStyle")
 
-[node name="EmptyLabel" type="Label" parent="Root/Center/Window/VBox/ContentArea"]
+[node name="Center" type="CenterContainer" parent="Root/Center/Window/VBox/ContentArea"]
+layout_mode = 2
+
+[node name="EmptyLabel" type="Label" parent="Root/Center/Window/VBox/ContentArea/Center"]
 layout_mode = 2
 text = "Aucun objet"
-horizontal_alignment = 1
-vertical_alignment = 1
 modulate = Color(1, 1, 1, 0.6)
+
+[node name="PokedexButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Pokédex (test)"
 
 [node name="Hint" type="HBoxContainer" parent="Root/Center/Window/VBox"]
 layout_mode = 2

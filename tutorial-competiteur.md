@@ -1,5 +1,13 @@
 # Tutoriel Compétiteur — proposition de scénario
 
+**⚠️ Organisation remplacée par `acte1-parc-safari.md` (10/07/2026).** Le Parc
+Safari est devenu le vrai premier acte de l'histoire (voir `scenario.md`) : les
+tutos Compétiteur/Chercheur ne sont plus optionnels ni indépendants, ils
+forment un seul parcours guidé obligatoire. Les dialogues et brouillons de
+combat ci-dessous restent réutilisables tels quels et sont référencés depuis
+`acte1-parc-safari.md`, mais pour la structure/l'ordre/les objets clés,
+c'est ce nouveau document qui fait foi.
+
 **Statut : proposition à valider avec l'ami de Gus.** Rien n'est encore implémenté ni
 tranché définitivement — ce document sert de support pour la discussion, à mettre à
 jour au fil des décisions.

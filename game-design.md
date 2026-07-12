@@ -64,6 +64,29 @@ Fan-game Pokémon basé sur la région de Kanto. Le joueur a 18 ans et doit choi
 
 ---
 
+## Le Pokédex
+
+Remis à tout le monde pendant l'acte 1 (Parc Safari), quelle que soit la
+classe finalement choisie — voir `acte1-parc-safari.md` pour le moment
+narratif exact.
+
+- Contrairement aux jeux originaux, **toutes les espèces de Kanto sont déjà
+  répertoriées dès le départ** (hors légendaires) — pas de dex à remplir
+  espèce par espèce.
+- Les entrées des espèces **rares restent incomplètes** tant qu'elles n'ont
+  pas été suffisamment étudiées/rencontrées.
+- Le contenu affiché diffère selon la classe :
+  - **Compétiteur** : données orientées combat/stratégie (types, capacités,
+    matchups).
+  - **Chercheur** : données approfondies (mesures, comportement) — certaines
+    entrées nécessitent plusieurs captures de la **même** espèce pour se
+    compléter (ex. taille moyenne réelle de l'espèce).
+
+❓ Détail technique de "l'incomplétude" par rareté et du système de capture
+répétée pour le Chercheur — à définir au moment de l'implémentation.
+
+---
+
 ## Le pivot criminel
 
 ### Déclenchement

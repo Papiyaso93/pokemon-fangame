@@ -13,14 +13,29 @@ const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
 const PRESENTATION: Array[String] = [
 	"Ah, on m'a prévenu de ton arrivée. Compétiteur ou Chercheur, telle est la question.",
 	"Avant tout, une chose à savoir : ici, rien n'est gratuit. Tu vas devoir gagner ta vie, peu importe la voie choisie.",
-	"Le Compétiteur, c'est la voie du combat : tu montes les échelons des arènes jusqu'à la Ligue, et chaque victoire te rapporte de quoi vivre.",
-	"Le Chercheur, c'est la voie du terrain : tu travailles pour le laboratoire du Professeur Chen, payé pour chaque découverte que tu feras.",
-	"Juste là, dans le Parc Safari, tu trouveras un compétiteur aguerri et un assistant du Professeur Chen : ils pourront te donner un aperçu de chaque voie.",
-	"Si tu sais déjà ce que tu veux, fonce directement dans les hautes herbes.",
-	"Voilà 30 Safari Balls.",
+	"Les arènes, c'est le tronc commun à tout le monde : badge après badge, jusqu'à la Ligue. Une sorte de formation pratique, pour passer de débutant à confirmé.",
+	"Le Compétiteur vit des tournois et des grands combats. Le Chercheur, lui, vit de ce qu'il découvre sur le terrain, pour le laboratoire du Professeur Chen.",
+	"Pas la peine de choisir tout de suite : tu vas pouvoir tester les deux avant de te décider. Direction la première maison, en zone 1 : Camille, l'assistant du Professeur Chen, t'y attend.",
+	"Les Pokémon ne se montreront pas tant que tu n'as pas de Safari Balls avec toi.",
+	"Avant que j'oublie : appuie sur Échap à tout moment pour ouvrir le menu pause et sauvegarder, si jamais tu as besoin de souffler.",
+]
+
+# BEAT 3B (voir acte1-parc-safari.md) : Anselme doit réapparaître en personne
+# dans le Parc Safari juste après les 2 tutos (Camille puis Yohan) pour
+# remettre les 30 Safari Balls à ce moment-là seulement, et confirmer qu'à
+# partir de là les Pokémon sauvages se montrent enfin. PAS ENCORE IMPLÉMENTÉ :
+# ça suppose que les tutos Camille/Yohan existent et posent un flag de
+# complétion, ce qui n'est pas le cas aujourd'hui (sprites posés, aucune
+# interaction codée). En attendant, le comportement actuel reste inchangé :
+# SafariState.enter() donne les 30 balls dès l'entrée dans une carte
+# safari_zone_*, sans passer par une réplique dédiée. Dialogues prêts,
+# prévus pour être branchés ici une fois les tutos codés :
+const PARK_HANDOFF: Array[String] = [
+	"Tu as vu les deux facettes, maintenant. Voilà 30 Safari Balls : à partir de maintenant, les Pokémon sauvages vont enfin se montrer dans les hautes herbes.",
 	"Tu peux croiser n'importe quel Pokémon de base de Kanto au parc Safari. Les Pokémon de base sont ceux qui n'ont encore jamais évolué. Certains sont très communs, d'autres beaucoup plus rares, et encore plus durs à attraper.",
-	"Dès que tu n'as plus de Safari Balls, tu seras ramené ici, alors ne les gaspille pas.",
+	"Dès que tu n'as plus de Safari Balls, tu seras ramené à l'entrée, alors ne les gaspille pas.",
 	"Tu peux attraper autant de Pokémon que tu veux, pas de panique. Tu pourras ensuite choisir lequel tu voudras garder pour être ton tout premier partenaire.",
+	"Bon, je te laisse. À tout à l'heure !",
 ]
 
 const ASK_FINISHED: Array[String] = [

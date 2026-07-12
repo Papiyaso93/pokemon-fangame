@@ -8,7 +8,7 @@ func _ready() -> void:
 	dialogue.finished.connect(_on_intro_dialogue_finished)
 	var lines: Array[String] = [
 		"Bienvenue à Kanto !",
-		"Tu n'es pas la première personne à débarquer ici les mains vides et pleine d'espoir. Et tu seras loin d'être la dernière.",
+		"Tu n'es pas la première personne à débarquer ici sans un sou en poche, avec juste l'envie d'y arriver. Et tu seras loin d'être la dernière.",
 		"Mais avant de rêver, on fait les choses dans l'ordre : dis-moi qui tu es.",
 	]
 	dialogue.say(lines)
