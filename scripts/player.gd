@@ -427,14 +427,18 @@ func _try_interact() -> void:
 		var target_tile := cur + offset * dist
 		for npc in npcs:
 			if npc.tile() == target_tile:
-				_talk_to(npc)
+				_talk_to(npc, cur)
 				return
 
-func _talk_to(npc: Node) -> void:
+func _talk_to(npc: Node, player_tile: Vector2i) -> void:
+	if npc.has_method("face_toward"):
+		npc.face_toward(player_tile)
 	var lines: Array[String] = npc.get_lines()
 	if lines.is_empty():
 		return
 	is_busy = true
+	is_moving = false
+	_play("face")
 	var dialogue := DialogueBoxScene.instantiate()
 	get_tree().current_scene.add_child(dialogue)
 	dialogue.finished.connect(func():

@@ -5,6 +5,8 @@
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_0cxls"]
 [ext_resource type="Script" uid="uid://wo77dsdtl5lj" path="res://scripts/player.gd" id="4_y1744"]
 
+[ext_resource type="PackedScene" path="res://scenes/npc/npc.tscn" id="5_npc"]
+[ext_resource type="Script" path="res://scripts/npc_yohan_zone3.gd" id="6_npc"]
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_k4soj"]
 texture = ExtResource("1_k4soj")
 0:0/0 = 0
@@ -73,6 +75,7 @@ sources/1 = SubResource("TileSetAtlasSource_fb2e1")
 sources/2 = SubResource("TileSetAtlasSource_7k1tg")
 
 [node name="Map" type="Node2D" unique_id=1856395032]
+y_sort_enabled = true
 metadata/map_size = Vector2i(13, 11)
 metadata/connections = []
 metadata/ledges = ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
@@ -108,6 +111,7 @@ position = Vector2(96, 144)
 script = ExtResource("4_y1744")
 
 [node name="Above" type="TileMapLayer" parent="." unique_id=1132066412]
+z_index = 1
 tile_map_data = PackedByteArray("AAAAAAEAAQAGAAAAAAABAAEAAQAGAAAAAAAHAAEAAQAGAAAAAAAIAAEAAQAGAAAAAAAIAAUAAQAJAAAAAAAJAAUAAQANAAAAAAAKAAUAAQANAAAAAAALAAUAAQANAAAAAAAMAAUAAQANAAAAAAAAAAoAAQAAAAAAAAABAAoAAQAAAAAAAAACAAoAAQAAAAAAAAAGAAoAAQAAAAAAAAAHAAoAAQAAAAAAAAAIAAoAAQAAAAAAAAAJAAoAAQAAAAAAAAAKAAoAAQAAAAAAAAALAAoAAQAAAAAAAAAMAAoAAQAAAAAAAAA=")
 tile_set = SubResource("TileSet_3yu8b")
 
@@ -115,3 +119,9 @@ tile_set = SubResource("TileSet_3yu8b")
 visible = false
 tile_map_data = PackedByteArray("AAAAAAAAAgAAAAAAAAABAAAAAgAAAAAAAAACAAAAAgAAAAAAAAADAAAAAgAAAAAAAAAEAAAAAgAAAAAAAAAFAAAAAgAAAAAAAAAGAAAAAgAAAAAAAAAHAAAAAgAAAAAAAAAIAAAAAgAAAAAAAAAJAAAAAgAAAAAAAAAKAAAAAgAAAAAAAAALAAAAAgAAAAAAAAAMAAAAAgAAAAAAAAAAAAEAAgAAAAAAAAABAAEAAgAAAAAAAAACAAEAAgAAAAAAAAADAAEAAgAAAAAAAAAEAAEAAgAAAAAAAAAFAAEAAgAAAAAAAAAGAAEAAgAAAAAAAAAHAAEAAgAAAAAAAAAIAAEAAgAAAAAAAAAJAAEAAgAAAAAAAAAKAAEAAgAAAAAAAAALAAEAAgAAAAAAAAAMAAEAAgAAAAAAAAAAAAIAAgAAAAAAAAABAAIAAgAAAAAAAAAHAAIAAgAAAAAAAAAIAAIAAgAAAAAAAAAIAAYAAgAAAAAAAAAJAAYAAgAAAAAAAAAKAAYAAgAAAAAAAAALAAYAAgAAAAAAAAAMAAYAAgAAAAAAAAAIAAcAAgAAAAAAAAALAAcAAgAAAAAAAAAMAAcAAgAAAAAAAAAIAAgAAgAAAAAAAAAKAAgAAgAAAAAAAAALAAgAAgAAAAAAAAAMAAgAAgAAAAAAAAAIAAkAAgAAAAAAAAAKAAkAAgAAAAAAAAALAAkAAgAAAAAAAAAMAAkAAgAAAAAAAAAAAAoAAgAAAAAAAAABAAoAAgAAAAAAAAACAAoAAgAAAAAAAAADAAoAAgAAAAAAAAAEAAoAAgAAAAAAAAAFAAoAAgAAAAAAAAAGAAoAAgAAAAAAAAAHAAoAAgAAAAAAAAAIAAoAAgAAAAAAAAAJAAoAAgAAAAAAAAAKAAoAAgAAAAAAAAALAAoAAgAAAAAAAAAMAAoAAgAAAAAAAAA=")
 tile_set = SubResource("TileSet_3yu8b")
+
+[node name="yohan" type="StaticBody2D" parent="." instance=ExtResource("5_npc")]
+script = ExtResource("6_npc")
+position = Vector2(48, 64)
+sprite_name = "cooltrainer"
+facing = "south"

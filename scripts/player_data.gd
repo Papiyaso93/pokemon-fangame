@@ -28,3 +28,12 @@ var starter_species := ""   # premier partenaire choisi au Parc Safari (débloqu
 # distincts par espèce).
 var pokedex_seen: Array[String] = []
 var pokedex_caught: Array[String] = []
+
+# Acte 1 (voir acte1-parc-safari.md) : progression du parcours guidé dans le
+# Parc Safari. Chaque case à true une fois qu'on a parlé au PNJ concerné dans
+# la maison de repos correspondante — sert aussi à débloquer l'accès à la
+# zone suivante (voir scripts/safari_zone_gate.gd).
+var camille_zone1_done := false
+var camille_zone2_done := false
+var yohan_zone3_done := false
+var yohan_zone4_done := false

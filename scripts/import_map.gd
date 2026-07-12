@@ -101,8 +101,16 @@ func _build(name: String) -> void:
 	root.set_meta("show_map_name", show_map_name)
 	root.set_meta("elevation", elevation)
 
+	# Tri par position Y activé sur la racine : le joueur et les PNJ (ajoutés à
+	# la main, voir scripts/npc.gd) se dessinent alors dans le bon ordre l'un
+	# par rapport à l'autre selon qui est le plus au sud à l'écran, au lieu de
+	# suivre l'ordre fixe d'ajout dans la scène. "Above" garde un z_index
+	# supérieur pour continuer à toujours passer devant (cimes d'arbres,
+	# rebords de falaise...), peu importe le tri Y.
+	root.y_sort_enabled = true
+
 	var below := TileMapLayer.new(); below.name = "Below"; below.tile_set = ts
-	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts
+	var above := TileMapLayer.new(); above.name = "Above"; above.tile_set = ts; above.z_index = 1
 	var coll := TileMapLayer.new(); coll.name = "Collision"; coll.tile_set = ts
 	coll.visible = false
 

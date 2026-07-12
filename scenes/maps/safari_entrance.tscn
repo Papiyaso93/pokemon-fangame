@@ -80,6 +80,7 @@ sources/2 = SubResource("TileSetAtlasSource_6f8p0")
 size = Vector2(14, 14)
 
 [node name="Map" type="Node2D" unique_id=394650604]
+y_sort_enabled = true
 script = ExtResource("1_6f8p0")
 metadata/map_size = Vector2i(9, 9)
 metadata/show_map_name = false
@@ -120,6 +121,7 @@ position = Vector2(64, 112)
 script = ExtResource("4_p3o5m")
 
 [node name="Above" type="TileMapLayer" parent="." unique_id=1477549524]
+z_index = 1
 tile_map_data = PackedByteArray("AAAAAAEAAQANAAAAAAABAAEAAQANAAAAAAACAAEAAQAAAAEAAAAGAAEAAQAAAAEAAAAHAAEAAQANAAAAAAAIAAEAAQANAAAAAAAAAAgAAQAAAAAAAAABAAgAAQAAAAAAAAACAAgAAQAAAAAAAAAGAAgAAQAAAAAAAAAHAAgAAQAAAAAAAAAIAAgAAQAAAAAAAAA=")
 tile_set = SubResource("TileSet_dvh8p")
 
