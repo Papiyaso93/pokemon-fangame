@@ -135,6 +135,8 @@ dialogues ci-dessous.
      Yohan ou par le dresseur adverse — ❓ non tranché).
      - 🎓 **Moment pédagogique** : bases du combat (types, effets météo)
        enseignées naturellement par le déroulé du combat lui-même.
+   - Récompense : **5 Répulsifs** (décidé le 13/07/2026) ✅ câblé en test —
+     voir section "Objets clés récupérés" plus bas pour le détail.
 
 6. **Yohan — action 2 : combat duo révélé** (même zone ou zone ❓)
    - Repris de `tutorial-competiteur.md` : nouvelle équipe prêtée par Yohan
@@ -203,9 +205,28 @@ encore placeholder ("Pouet.") sauf zone 1 :
    le déblocage des rencontres sauvages (`PARK_HANDOFF`) ✅ câblé en test
    (voir point 7 ci-dessus). La mécanique de pêche elle-même est prête côté
    code (`scripts/player.gd`).
-4. **Zone 3 (Yohan) : aucun objet donné** pour l'instant, décidé le 13/07/2026
+4. **Zone 3 (Yohan) : 5 Répulsifs**, décidé le 13/07/2026 ✅ câblé en test
+   (`PlayerData.repel_count`/`repel_steps_remaining`, voir
+   `scripts/npc_yohan_zone3.gd`) — un seul palier (pas de Super/Max
+   Répulsif), utilisable depuis la poche "Objets" du sac. Suppression
+   d'encontre simplifiée (pas de comparaison de niveau avec l'équipe : le
+   joueur n'a encore aucun Pokémon à ce stade), 100 pas de durée. Utile dès
+   maintenant dans le Parc Safari (seul endroit avec des rencontres
+   sauvages pour l'instant), et réutilisable plus tard une fois les
+   rencontres overworld implémentées.
 5. Objet de Surf (Yohan, **zone 4**) ✅ implémenté (mécanique de Surf fonctionnelle, dialogue encore placeholder)
-6. Carte de Kanto (Anselme, à la sortie du bâtiment) — pas encore câblée
+6. **Vélo (zone 2, Camille)** — décidé le 13/07/2026 ✅ câblé en test
+   (`PlayerData.has_bike`/`is_biking`, voir `scripts/npc_camille_zone2.gd`) :
+   remplace la canne à pêche comme récompense de zone 2 (qui a migré chez
+   Anselme, voir point 3). Utile aux deux classes pour se déplacer plus vite
+   (x2, `BIKE_SPEED` dans `scripts/player.gd`). Se monte/descend depuis la
+   poche "Objets Rares" du sac (bascule, pas de confirmation). Descend
+   automatiquement en entrant dans un bâtiment/une grotte (même logique que
+   le Surf sur terre ferme) — pas de vélo en intérieur. Sprites réels FRLG
+   (`red_bike.png`/`green_bike.png`, copiés depuis `kanto-pipeline/`)
+   seulement pour red_normal/green_normal, comme le Surf ; layout des poses
+   pas encore vérifié visuellement en jeu, à ajuster si besoin.
+7. Carte de Kanto (Anselme, à la sortie du bâtiment) — pas encore câblée
 
 ## Le Minidraco chromatique — fil narratif Chercheur
 

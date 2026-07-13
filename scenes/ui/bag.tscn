@@ -125,6 +125,24 @@ expand_icon = false
 alignment = 0
 text = "Canne à pêche"
 
+[node name="BikeButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Vélo"
+
+[node name="RepelButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Répulsif"
+
 [node name="Hint" type="HBoxContainer" parent="Root/Center/Window/VBox"]
 layout_mode = 2
 alignment = 1

@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 signal closed
+signal item_used   # utiliser un objet consommable ferme tout (sac + appelant), voir _on_repel_pressed
 
 # Sac (test) — v1 volontairement vide : juste la navigation entre les 5
 # poches (voir BagData), pas encore d'objets ni de vrai inventaire (cf.
@@ -10,6 +11,8 @@ signal closed
 
 const TabDimAlpha := 0.5
 const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
+const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
+const ITEMS_POCKET_INDEX := 0       # cf. BagData.POCKETS — poche "Objets"
 const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Rares"
 
 # Soulignement façon onglet de navigateur : une bordure basse pleine sur
@@ -19,12 +22,15 @@ var _underline_style: StyleBoxFlat
 var _no_underline_style: StyleBoxEmpty
 
 @onready var root: Control = $Root
+@onready var window_center: CenterContainer = $Root/Center
 @onready var tabs_row: HBoxContainer = $Root/Center/Window/VBox/TabsRow
 @onready var empty_label: Label = $Root/Center/Window/VBox/ContentArea/Center/EmptyLabel
 @onready var item_list: VBoxContainer = $Root/Center/Window/VBox/ContentArea/Center/ItemList
 @onready var pokedex_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/PokedexButton
 @onready var surf_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/SurfButton
 @onready var rod_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/RodButton
+@onready var repel_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/RepelButton
+@onready var bike_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/BikeButton
 
 var current_pocket := 0
 var tab_buttons: Array[Button] = []
@@ -60,6 +66,8 @@ func _ready() -> void:
 	pokedex_button.pressed.connect(_on_pokedex_pressed)
 	surf_button.pressed.connect(_on_water_tool_pressed.bind("surf"))
 	rod_button.pressed.connect(_on_water_tool_pressed.bind("rod"))
+	repel_button.pressed.connect(_on_repel_pressed)
+	bike_button.pressed.connect(_on_bike_pressed)
 	_update_tabs()
 
 func _on_tab_pressed(index: int) -> void:
@@ -73,16 +81,24 @@ func _update_tabs() -> void:
 		var style: StyleBox = _underline_style if is_current else _no_underline_style
 		for state in ["normal", "hover", "pressed", "focus"]:
 			tab_buttons[i].add_theme_stylebox_override(state, style)
-	# Pas de vrai inventaire pour l'instant (v1 test) — seule exception : les
-	# objets rares obtenus pendant l'acte 1 (Pokédex, Surf...), affichés ici
-	# dès qu'on les a reçus (voir acte1-parc-safari.md).
+	# Pas de vrai inventaire pour l'instant (v1 test) — seules exceptions : les
+	# objets rares obtenus pendant l'acte 1 (Pokédex, Surf...) dans la poche
+	# "Objets Rares", et le Répulsif (consommable, voir zone 3) dans la poche
+	# "Objets" — affichés ici dès qu'on les a reçus (acte1-parc-safari.md).
 	var in_key_pocket := current_pocket == KEY_ITEMS_POCKET_INDEX
+	var in_items_pocket := current_pocket == ITEMS_POCKET_INDEX
 	pokedex_button.visible = in_key_pocket and PlayerData.camille_zone1_done
 	surf_button.visible = in_key_pocket and PlayerData.has_surf
 	rod_button.visible = in_key_pocket and PlayerData.has_fishing_rod
-	var has_any_item := pokedex_button.visible or surf_button.visible or rod_button.visible
-	item_list.visible = in_key_pocket and has_any_item
-	empty_label.visible = not (in_key_pocket and has_any_item)
+	bike_button.visible = in_key_pocket and PlayerData.has_bike
+	if bike_button.visible:
+		bike_button.text = "Descendre du vélo" if PlayerData.is_biking else "Monter à vélo"
+	repel_button.visible = in_items_pocket and PlayerData.repel_count > 0
+	if repel_button.visible:
+		repel_button.text = "Répulsif x%d" % PlayerData.repel_count
+	var has_any_item := pokedex_button.visible or surf_button.visible or rod_button.visible or bike_button.visible or repel_button.visible
+	item_list.visible = (in_key_pocket or in_items_pocket) and has_any_item
+	empty_label.visible = not item_list.visible
 
 	# Si on a les deux objets d'eau, celui actuellement actif (voir
 	# PlayerData.preferred_water_tool) reste en pleine opacité, l'autre se
@@ -95,6 +111,48 @@ func _update_tabs() -> void:
 func _on_water_tool_pressed(tool_name: String) -> void:
 	PlayerData.preferred_water_tool = tool_name
 	_update_tabs()
+
+# Bascule monter/descendre (pas de confirmation, contrairement au Surf qui
+# demande "Tu veux surfer ?" — le vélo est réversible et sans risque). Ferme
+# tout comme un objet consommable : pas de raison de traîner dans le sac une
+# fois qu'on vient de changer de mode de déplacement.
+func _on_bike_pressed() -> void:
+	PlayerData.is_biking = not PlayerData.is_biking
+	var player := get_tree().get_first_node_in_group("player")
+	if player:
+		player._update_movement_sprite()
+	item_used.emit()
+	queue_free()
+
+# Consommable (contrairement au Surf/à la canne) : un vrai usage réussi ferme
+# tout d'un coup (sac + menu pause appelant), pas de raison de laisser le
+# joueur traîner dans un menu une fois l'effet lancé — voir item_used, géré
+# par pause_menu.gd. Un usage refusé (déjà actif) ne change rien : on reste
+# dans le sac, rien n'a été consommé.
+func _on_repel_pressed() -> void:
+	if PlayerData.repel_steps_remaining > 0:
+		await _show_blocking_message("Un Répulsif est déjà actif ! Inutile d'en relancer un autre pour l'instant.")
+		window_center.visible = true
+		_update_tabs()
+		return
+	PlayerData.repel_count -= 1
+	PlayerData.repel_steps_remaining = PlayerData.REPEL_DURATION_STEPS
+	await _show_blocking_message("Tu utilises un Répulsif ! Les Pokémon sauvages t'éviteront pendant un moment.")
+	item_used.emit()
+	queue_free()
+
+# Ne masque que la fenêtre (pas tout `root`) : le fond bleu du sac reste
+# visible derrière le message, moins bizarre que de révéler le jeu par
+# transparence — surtout que dans le cas "déjà actif" on revient dessus juste
+# après (voir _on_repel_pressed).
+func _show_blocking_message(text: String) -> void:
+	window_center.visible = false
+	var dialogue := DialogueBoxScene.instantiate()
+	get_tree().root.add_child(dialogue)
+	var lines: Array[String] = [text]
+	dialogue.say(lines)
+	await dialogue.finished
+	dialogue.queue_free()
 
 func _on_pokedex_pressed() -> void:
 	pokedex_screen = PokedexScreenScene.instantiate()

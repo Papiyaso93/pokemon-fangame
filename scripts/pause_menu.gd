@@ -118,12 +118,20 @@ func _on_bag_pressed() -> void:
 	get_tree().root.add_child(bag)
 	window.visible = false
 	bag.closed.connect(_on_bag_closed)
+	bag.item_used.connect(_on_bag_item_used)
 
 func _on_bag_closed() -> void:
 	bag = null
 	window.visible = true
 	if first_button:
 		first_button.grab_focus()
+
+# Un objet consommable vient d'être utilisé pour de vrai (voir bag.gd,
+# item_used) : on ne revient pas sur ce menu, on ferme tout d'un coup jusqu'au
+# jeu directement — pas de raison de repasser par le menu pause juste après.
+func _on_bag_item_used() -> void:
+	bag = null
+	closed.emit()
 
 # Retour à l'écran-titre, fondu noir comme un warp normal (pas de sauvegarde
 # automatique — si le joueur veut garder sa progression, il doit sauvegarder

@@ -3,6 +3,7 @@ extends CharacterBody2D
 # Déplacement fidèle FRLG (case par case, 60 px/s, tap-to-turn) + transitions
 # entre maps quand on franchit un bord connecté.
 const SPEED := 60.0
+const BIKE_SPEED := 240.0   # vélo : x4, plus fidèle au Vélo Turbo des jeux d'origine (x2 se sentait trop timide)
 const JUMP_SPEED := 120.0   # rebord : saut de 2 cases, plus rapide qu'un pas normal
 const TILE_SIZE := 16
 const TURN_TIME := 0.1
@@ -38,6 +39,7 @@ var elevation: Array = []
 var water: Array = []
 var is_surfing := false
 var pending_encounter_check := false
+var pending_repel_expired_notice := false   # voir _consume_repel_step()
 var current_speed := SPEED
 var is_jumping := false
 var jump_total_dist := 0.0
@@ -71,7 +73,11 @@ func _ready() -> void:
 			position = Vector2(_entry_tile(Transitions.from_dir, Transitions.cross)) * TILE_SIZE
 		Transitions.pending = false
 	move_target = position
-	_play("face")
+	# Vélo persisté (PlayerData, contrairement à is_surfing qui repart toujours
+	# à false vu que rien ne le sauvegarde) : il faut réappliquer le bon sprite
+	# à chaque arrivée sur une nouvelle scène, sinon l'apparence reste "normale"
+	# jusqu'au prochain aller-retour dans le sac.
+	_update_movement_sprite()
 
 	origin_map_name = get_tree().current_scene.scene_file_path.get_file().get_basename()
 	current_map_name = origin_map_name
@@ -97,6 +103,7 @@ func _apply_appearance() -> void:
 			if frame_tex is AtlasTexture:
 				(frame_tex as AtlasTexture).atlas = tex
 	_prepare_surf_sprite_frames()
+	_prepare_bike_sprite_frames()
 
 # Sprites de Surf réels (vrai jeu FRLG). Contrairement à ce qu'on pourrait
 # croire, l'image "posée" red_surf.png/green_surf.png n'est PAS celle utilisée
@@ -124,17 +131,43 @@ func _prepare_surf_sprite_frames() -> void:
 	var surf_path := "res://assets/characters/%s.png" % surf_name
 	if not ResourceLoader.exists(surf_path):
 		return
-	surf_sprite_frames = _build_surf_sprite_frames(load(surf_path))
+	surf_sprite_frames = _build_directional_pose_frames(load(surf_path))
 
-# 3 poses fixes seulement (sud/nord/ouest, 16 px chacune) — pas de cycle de
-# marche, fidèle à sAnimTable_RedGreenSurf (face ET déplacement utilisent la
-# même pose unique par direction dans le vrai jeu).
-func _build_surf_sprite_frames(tex: Texture2D) -> SpriteFrames:
+# Vélo (zone 2, Camille — voir acte1-parc-safari.md) : même situation que le
+# Surf, sprites réels FRLG (red_bike.png/green_bike.png) seulement pour
+# red_normal/green_normal, pas pour Brendan/May. Même hypothèse de layout que
+# le Surf (3 poses fixes sud/nord/ouest, 16 px chacune) tant que non vérifiée
+# visuellement en jeu — à ajuster si la pose affichée ne correspond pas.
+const BIKE_TEXTURE := {"red_normal": "red_bike", "green_normal": "green_bike"}
+var bike_sprite_frames: SpriteFrames = null
+
+func _prepare_bike_sprite_frames() -> void:
+	if normal_sprite_frames == null:
+		normal_sprite_frames = anim.sprite_frames
+	var bike_name: String = BIKE_TEXTURE.get(PlayerData.appearance, "")
+	bike_sprite_frames = null
+	if bike_name.is_empty():
+		return
+	var bike_path := "res://assets/characters/%s.png" % bike_name
+	if not ResourceLoader.exists(bike_path):
+		return
+	bike_sprite_frames = _build_directional_pose_frames(load(bike_path), 32)
+
+# 3 poses fixes seulement (sud/nord/ouest) — pas de cycle de marche, fidèle à
+# sAnimTable_RedGreenSurf (face ET déplacement utilisent la même pose unique
+# par direction dans le vrai jeu). Réutilisé pour le Vélo aussi, mais avec une
+# largeur de frame différente (32 px, pas 16) : red_bike.png/green_bike.png
+# font 288 px de large comme red_normal.png (144 px, 9 frames de 16 px) mais
+# en 2x plus large — signe que ses frames sont deux fois plus larges (9
+# frames de 32 px), pas deux fois plus nombreuses (constaté visuellement,
+# 13/07/2026 : le sprite Vélo apparaissait coupé en deux avec des frames de
+# 16 px).
+func _build_directional_pose_frames(tex: Texture2D, frame_width: int = 16) -> SpriteFrames:
 	var at: Array[AtlasTexture] = []
 	for i in range(3):
 		var a := AtlasTexture.new()
 		a.atlas = tex
-		a.region = Rect2(i * 16, 0, 16, 32)
+		a.region = Rect2(i * frame_width, 0, frame_width, 32)
 		at.append(a)
 	var sf := SpriteFrames.new()
 	for anim_name in ["face_south", "walk_south"]:
@@ -148,13 +181,15 @@ func _build_surf_sprite_frames(tex: Texture2D) -> SpriteFrames:
 		sf.add_frame(anim_name, at[2])
 	return sf
 
-# Bascule vers/depuis le sprite de Surf (appelé par _start_surfing() et par
-# la descente automatique dans _move_toward_target()). Ne change rien si
-# aucun sprite de Surf n'existe pour l'apparence actuelle (Brendan/May).
-func _update_surf_sprite() -> void:
+# Bascule le sprite affiché selon l'état de déplacement actuel (Surf > Vélo >
+# normal), appelée à chaque changement de l'un des deux. Ne change rien si
+# aucun sprite dédié n'existe pour l'apparence actuelle (Brendan/May).
+func _update_movement_sprite() -> void:
 	if is_surfing and surf_sprite_frames != null:
 		anim.sprite_frames = surf_sprite_frames
-	elif normal_sprite_frames != null:
+	elif PlayerData.is_biking and bike_sprite_frames != null:
+		anim.sprite_frames = bike_sprite_frames
+	else:
 		anim.sprite_frames = normal_sprite_frames
 	_play("face" if state != MOVING else "walk")
 
@@ -619,6 +654,14 @@ func _check_input() -> void:
 		var path := "res://scenes/maps/%s.tscn" % target
 		if ResourceLoader.exists(path):
 			is_busy = true
+			# Descente automatique du Vélo en empruntant un warp vers un vrai
+			# bâtiment/une grotte — pas de vélo en intérieur, même logique
+			# silencieuse que le Surf qui descend automatiquement sur terre ferme.
+			# Exception : les 4 zones du Parc Safari se traversent aussi via des
+			# warps (pas des connexions de bord de carte comme les routes), mais
+			# restent des zones EXTÉRIEURES — on y reste à vélo.
+			if target not in SafariState.SAFARI_MAPS:
+				PlayerData.is_biking = false
 			Transitions.pending = true
 			Transitions.direct = true
 			Transitions.facing = String(warp.get("face", facing))
@@ -637,6 +680,7 @@ func _check_input() -> void:
 		move_target = position + dir * TILE_SIZE * 2
 		is_moving = true
 		pending_encounter_check = false
+		_consume_repel_step()
 		_play("walk")
 		return
 
@@ -645,12 +689,21 @@ func _check_input() -> void:
 	if test_move(global_transform, motion) or _elevation_blocks(cur, tgt) or water_blocks:
 		_play("face")            # bloqué : face à l'obstacle, sans avancer
 	else:
-		current_speed = SPEED
+		current_speed = BIKE_SPEED if (PlayerData.is_biking and not is_surfing) else SPEED
 		is_jumping = false
 		move_target = position + motion
 		is_moving = true
-		pending_encounter_check = SafariState.active and SafariState.hunting_unlocked and _is_grass(tgt)
+		pending_encounter_check = SafariState.active and SafariState.hunting_unlocked and PlayerData.repel_steps_remaining <= 0 and _is_grass(tgt)
+		_consume_repel_step()
 		_play("walk")
+
+# Décompte du Répulsif (voir PlayerData.repel_steps_remaining) : 1 pas
+# consommé par case franchie, en herbe ou non, comme dans les jeux d'origine.
+func _consume_repel_step() -> void:
+	if PlayerData.repel_steps_remaining > 0:
+		PlayerData.repel_steps_remaining -= 1
+		if PlayerData.repel_steps_remaining == 0:
+			pending_repel_expired_notice = true
 
 func _try_transition(dir: Vector2, cur: Vector2i) -> void:
 	var dname := _dir_name(dir)
@@ -689,16 +742,29 @@ func _move_toward_target(delta: float) -> void:
 		# pied sur une case praticable à sec (pas de confirmation nécessaire).
 		if is_surfing and not _is_water(Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))):
 			is_surfing = false
-			_update_surf_sprite()
+			_update_movement_sprite()
 		if pending_encounter_check:
 			pending_encounter_check = false
 			if randf() < ENCOUNTER_CHANCE:
 				_start_encounter()
+		if pending_repel_expired_notice:
+			pending_repel_expired_notice = false
+			_notify_repel_expired()
 	else:
 		position += diff.normalized() * step
 	if is_jumping:
 		var progress := 1.0 - (move_target - position).length() / jump_total_dist
 		anim.position.y = -JUMP_ARC_HEIGHT * sin(progress * PI)
+
+# Fidèle FRLG : message automatique dès que le Répulsif arrive à 0 pas
+# restants, affiché une fois la case d'arrivée atteinte (voir
+# _move_toward_target). Bloque le déplacement le temps du message, comme
+# n'importe quelle autre boîte de dialogue.
+func _notify_repel_expired() -> void:
+	is_busy = true
+	_play("face")
+	await _say_line("Le Répulsif a cessé de faire effet !")
+	is_busy = false
 
 # Petite boîte de dialogue à une seule ligne, attend que le joueur la ferme.
 func _say_line(text: String) -> void:
@@ -737,7 +803,7 @@ func _start_surfing() -> void:
 
 	await _say_line("Tu montes sur la planche et te lances sur l'eau !")
 	is_surfing = true
-	_update_surf_sprite()
+	_update_movement_sprite()
 
 	# Fidèle FRLG : monter sur l'eau avance automatiquement d'une case (voir
 	# object_event_anims.h::ANIM_GET_ON_OFF_POKEMON_*). On pilote le pas à la

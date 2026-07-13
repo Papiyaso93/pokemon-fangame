@@ -42,6 +42,13 @@ var yohan_zone4_done := false
 # acte1-parc-safari.md — récompenses définitives à retravailler plus tard).
 var has_fishing_rod := false   # Anselme, PARK_HANDOFF (beat 3b)
 var has_surf := false          # Yohan, zone 4
+var has_bike := false          # Camille, zone 2
+
+# true tant qu'on est effectivement en train de rouler (bascule depuis le
+# sac, voir scripts/bag.gd) — descend automatiquement en entrant dans un
+# bâtiment/une grotte (scripts/player.gd, warps), comme le Surf qui descend
+# automatiquement sur terre ferme.
+var is_biking := false
 
 # "surf" ou "rod" : lequel utiliser en faisant face à l'eau quand on a les
 # deux objets à la fois (voir scripts/player.gd::_try_interact). Choisi
@@ -54,3 +61,12 @@ var preferred_water_tool := "surf"
 # voir scripts/npc_anselme_park.gd). Source de vérité persistée pour
 # SafariState.hunting_unlocked (lui n'est pas sauvegardé, voir save_manager.gd).
 var park_handoff_done := false
+
+# Répulsif (zone 3, Yohan — voir npc_yohan_zone3.gd) : un seul palier pour
+# l'instant, pas de Super/Max Répulsif (voir acte1-parc-safari.md). Simplifié
+# à dessein : pas de comparaison de niveau avec l'équipe du joueur (il n'a
+# encore aucun Pokémon à ce stade de l'acte 1) — tant qu'actif, aucune
+# rencontre sauvage ne se déclenche, point.
+const REPEL_DURATION_STEPS := 100   # valeur "Répulsif" classique des jeux d'origine
+var repel_count := 0
+var repel_steps_remaining := 0

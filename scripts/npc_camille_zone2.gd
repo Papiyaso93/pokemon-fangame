@@ -8,9 +8,15 @@ extends "res://scripts/npc.gd"
 # Anselme qui la remettra plus tard, avec les Safari Balls (PARK_HANDOFF,
 # scripts/npc_worker_m.gd) — la mécanique de pêche elle-même reste prête
 # dans scripts/player.gd, juste pas encore accessible.
+# Donne le Vélo à la place (décidé le 13/07/2026) : utile aux deux classes
+# pour se déplacer plus vite, voir PlayerData.has_bike.
 
-const LINES: Array[String] = ["Pouet."]
+const LINES: Array[String] = ["Pouet. Voilà un vélo."]
+const AFTER: Array[String] = ["Pouet."]
 
 func get_lines() -> Array[String]:
-	PlayerData.camille_zone2_done = true
-	return LINES
+	if not PlayerData.camille_zone2_done:
+		PlayerData.camille_zone2_done = true
+		PlayerData.has_bike = true
+		return LINES
+	return AFTER
