@@ -52,41 +52,57 @@ func action_name(slot: int) -> String:
 	return "item_shortcut_%d" % (slot + 1)
 
 # Libellé humain de la touche actuellement assignée à un slot (pour l'écran
-# Options), ex. "1", "F", "Échap"...
+# Options), ex. "1", "F", "Échap"... Utilise `keycode` (touche localisée selon
+# la disposition clavier active), pas `physical_keycode` (toujours la position
+# QWERTY, quelle que soit la disposition réelle — vécu : "Z" en AZERTY
+# capturait/affichait "W", la lettre à la même position en QWERTY).
 func key_label(slot: int) -> String:
 	var events := InputMap.action_get_events(action_name(slot))
 	for event in events:
 		if event is InputEventKey:
-			return OS.get_keycode_string((event as InputEventKey).physical_keycode)
+			return OS.get_keycode_string((event as InputEventKey).keycode)
 	return "(aucune)"
 
-func _physical_keycode(slot: int) -> int:
+func _keycode(slot: int) -> int:
 	var events := InputMap.action_get_events(action_name(slot))
 	for event in events:
 		if event is InputEventKey:
-			return (event as InputEventKey).physical_keycode
+			return (event as InputEventKey).keycode
 	return 0
 
 # Vérifie qu'une touche candidate peut être assignée à ce slot ; retourne un
 # message d'erreur (vide si c'est bon). Appelé par options_menu.gd avant de
 # valider une capture de touche.
-func validate_new_key(slot: int, physical_keycode: int) -> String:
-	if physical_keycode in RESERVED_KEYCODES:
+func validate_new_key(slot: int, keycode: int) -> String:
+	if keycode in RESERVED_KEYCODES:
 		return "Cette touche sert déjà à se déplacer, valider ou annuler."
 	for i in range(SLOT_COUNT):
-		if i != slot and _physical_keycode(i) == physical_keycode:
+		if i != slot and _keycode(i) == keycode:
 			return "Cette touche est déjà assignée à un autre raccourci."
 	return ""
 
-func rebind(slot: int, physical_keycode: int) -> void:
-	_apply_binding(slot, physical_keycode)
-	PlayerData.shortcut_keycodes[slot] = physical_keycode
+func rebind(slot: int, keycode: int) -> void:
+	_apply_binding(slot, keycode)
+	PlayerData.shortcut_keycodes[slot] = keycode
 
-func _apply_binding(slot: int, physical_keycode: int) -> void:
+func _apply_binding(slot: int, keycode: int) -> void:
 	var event := InputEventKey.new()
-	event.physical_keycode = physical_keycode
+	event.keycode = keycode
 	InputMap.action_erase_events(action_name(slot))
 	InputMap.action_add_event(action_name(slot), event)
+
+# Un objet qu'on ne possède pas encore ne doit pas apparaître dans la liste
+# de choix de l'écran Options (voir options_menu.gd::_pick_item()) — "" reste
+# toujours proposé pour pouvoir libérer un slot.
+func is_item_available(item_key: String) -> bool:
+	match item_key:
+		"": return true
+		"pokedex": return PlayerData.camille_zone1_done
+		"surf": return PlayerData.has_surf
+		"rod": return PlayerData.has_fishing_rod
+		"bike": return PlayerData.has_bike
+		"map": return true   # pas encore de vrai flag narratif, voir bag.gd
+		_: return false
 
 # Un objet ne peut être assigné qu'à un seul raccourci à la fois : l'assigner
 # à un nouveau slot le retire de l'ancien (pas de doublon silencieux).

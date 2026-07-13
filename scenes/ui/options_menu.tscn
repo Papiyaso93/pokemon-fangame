@@ -64,6 +64,13 @@ horizontal_alignment = 1
 theme_override_font_sizes/font_size = 16
 modulate = Color(1, 1, 1, 0.6)
 
+[node name="ClickHint" type="Label" parent="Root/Center/Window/VBox"]
+layout_mode = 2
+text = "Clique sur une touche ou un objet pour le changer"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+modulate = Color(1, 1, 1, 0.5)
+
 [node name="Rows" type="VBoxContainer" parent="Root/Center/Window/VBox"]
 layout_mode = 2
 theme = SubResource("RowButtonTheme")
@@ -72,11 +79,6 @@ theme_override_constants/separation = 8
 [node name="Header" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 10
-
-[node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Header"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 0)
-text = ""
 
 [node name="KeyLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Header"]
 layout_mode = 2
@@ -96,11 +98,6 @@ theme_override_font_sizes/font_size = 16
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row1"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 0)
-text = "1"
-
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 0)
@@ -114,11 +111,6 @@ text = "(aucun)"
 [node name="Row2" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 10
-
-[node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row2"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 0)
-text = "2"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
 layout_mode = 2
@@ -134,11 +126,6 @@ text = "(aucun)"
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row3"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 0)
-text = "3"
-
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
 layout_mode = 2
 custom_minimum_size = Vector2(120, 0)
@@ -152,11 +139,6 @@ text = "(aucun)"
 [node name="Row4" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 10
-
-[node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row4"]
-layout_mode = 2
-custom_minimum_size = Vector2(40, 0)
-text = "4"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
 layout_mode = 2
@@ -173,7 +155,7 @@ layout_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 2
 custom_minimum_size = Vector2(360, 0)
-modulate = Color(1, 0.6, 0.6, 1)
+modulate = Color(1, 1, 1, 0.8)
 text = ""
 
 [node name="Hint" type="Label" parent="Root/Center/Window/VBox"]

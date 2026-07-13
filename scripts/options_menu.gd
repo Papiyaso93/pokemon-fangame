@@ -40,27 +40,32 @@ func _refresh_row(slot: int) -> void:
 	if capturing_slot != slot:
 		key_buttons[slot].text = KeyBindings.key_label(slot)
 
-# Même petite liste de choix que bag.gd (scripts/list_picker.gd) : tous les
-# objets assignables, "(aucun)" inclus pour libérer le raccourci.
+# Même petite liste de choix que bag.gd (scripts/list_picker.gd) : seulement
+# les objets déjà possédés (+ "(aucun)" pour libérer le raccourci) — pas de
+# quoi choisir un objet qu'on n'a pas encore. Le menu Options reste affiché
+# derrière (pas de window_center masqué) : la fenêtre de choix se pose
+# par-dessus, comme partout ailleurs.
 func _pick_item(slot: int) -> void:
 	var options := []
 	for item_key in KeyBindings.ITEMS:
-		options.append({"label": String(KeyBindings.ITEMS[item_key]), "value": item_key})
-	window_center.visible = false
+		if KeyBindings.is_item_available(item_key):
+			options.append({"label": String(KeyBindings.ITEMS[item_key]), "value": item_key})
 	var picker := ListPickerScene.instantiate()
 	get_tree().root.add_child(picker)
 	picker.setup(options)
 	var chosen_key = await picker.chosen
 	picker.queue_free()
-	window_center.visible = true
 	if chosen_key != null:
 		KeyBindings.assign_item(slot, String(chosen_key))
 		_refresh_all()   # l'objet a pu disparaître d'un autre slot (voir assign_item)
 
 func _start_capture(slot: int) -> void:
 	capturing_slot = slot
-	error_label.text = ""
-	key_buttons[slot].text = "Appuie sur une touche..."
+	error_label.modulate = Color(1, 1, 1, 0.8)
+	error_label.text = "Appuie sur une touche pour la touche %d..." % (slot + 1)
+	# Texte court : la colonne Touche est dimensionnée pour "Aa" pas pour une
+	# phrase, un texte long ferait bouger toute la ligne (vécu, cf. Gus).
+	key_buttons[slot].text = "..."
 
 func _unhandled_input(event: InputEvent) -> void:
 	if capturing_slot >= 0:
@@ -75,12 +80,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _try_bind_captured_key(event: InputEventKey) -> void:
 	var slot := capturing_slot
-	var code := event.physical_keycode
+	# `keycode` (touche localisée selon la disposition clavier active), pas
+	# `physical_keycode` (toujours la position QWERTY) — voir key_bindings.gd.
+	var code := event.keycode
 	var error := KeyBindings.validate_new_key(slot, code)
 	capturing_slot = -1
 	if error.is_empty():
 		KeyBindings.rebind(slot, code)
 		error_label.text = ""
 	else:
+		error_label.modulate = Color(1, 0.6, 0.6, 1)
 		error_label.text = error
 	_refresh_row(slot)
