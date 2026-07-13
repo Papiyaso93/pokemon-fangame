@@ -134,6 +134,15 @@ expand_icon = false
 alignment = 0
 text = "Vélo"
 
+[node name="MapButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Carte (test)"
+
 [node name="RepelButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
 visible = false
 layout_mode = 2

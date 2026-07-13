@@ -13,7 +13,6 @@ const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
-const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const BagScene := preload("res://scenes/ui/bag.tscn")
 const OptionsMenuScene := preload("res://scenes/ui/options_menu.tscn")
 
@@ -21,7 +20,6 @@ const OptionsMenuScene := preload("res://scenes/ui/options_menu.tscn")
 @onready var quit_button: Button = $Root/Window/Buttons/Quit
 
 var slots_screen: Node = null
-var region_map: Node = null
 var bag: Node = null
 var options_menu: Node = null
 var first_button: Button = null
@@ -54,10 +52,10 @@ func _place_window() -> void:
 	window.position = (viewport_size - min_size) / 2.0
 
 # Échap referme le menu comme "Reprendre" — seulement quand la liste
-# principale est affichée : les sous-écrans (Sac/Carte/Sauvegarde) gèrent
-# déjà eux-mêmes leur propre Échap (voir bag.gd, region_map.gd, save_slots.gd)
-# et redeviennent visibles via leurs signaux respectifs, donc rien à faire ici
-# tant que `window` n'est pas celui qui est montré.
+# principale est affichée : les sous-écrans (Sac/Sauvegarde/Options) gèrent
+# déjà eux-mêmes leur propre Échap (voir bag.gd, save_slots.gd,
+# options_menu.gd) et redeviennent visibles via leurs signaux respectifs,
+# donc rien à faire ici tant que `window` n'est pas celui qui est montré.
 func _unhandled_input(event: InputEvent) -> void:
 	if window.visible and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
@@ -101,22 +99,8 @@ func _on_slot_chosen_for_save(slot: int) -> void:
 func _on_resume_pressed() -> void:
 	closed.emit()
 
-# Entrée "test" (voir HANDOFF.md) : ajoutée à la racine du Viewport, pas à
-# `self`, même piège que _on_save_pressed() (CanvasLayer imbriqué).
-func _on_map_pressed() -> void:
-	region_map = RegionMapScene.instantiate()
-	get_tree().root.add_child(region_map)
-	window.visible = false
-	region_map.closed.connect(_on_region_map_closed)
-
-func _on_region_map_closed() -> void:
-	region_map = null
-	window.visible = true
-	if first_button:
-		first_button.grab_focus()
-
 # Entrée "test" (voir HANDOFF.md) : même piège CanvasLayer imbriqué que
-# _on_save_pressed()/_on_map_pressed() ci-dessus.
+# _on_save_pressed() ci-dessus.
 func _on_bag_pressed() -> void:
 	bag = BagScene.instantiate()
 	get_tree().root.add_child(bag)
@@ -137,7 +121,7 @@ func _on_bag_item_used() -> void:
 	bag = null
 	closed.emit()
 
-# Même piège CanvasLayer imbriqué que _on_save_pressed()/_on_map_pressed().
+# Même piège CanvasLayer imbriqué que _on_save_pressed().
 func _on_options_pressed() -> void:
 	options_menu = OptionsMenuScene.instantiate()
 	get_tree().root.add_child(options_menu)

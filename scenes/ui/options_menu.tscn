@@ -73,7 +73,7 @@ text = "<"
 layout_mode = 2
 custom_minimum_size = Vector2(110, 0)
 horizontal_alignment = 1
-text = "Vélo"
+text = "(aucun)"
 
 [node name="ItemRight" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
 layout_mode = 2
@@ -101,7 +101,7 @@ text = "<"
 layout_mode = 2
 custom_minimum_size = Vector2(110, 0)
 horizontal_alignment = 1
-text = "Répulsif"
+text = "(aucun)"
 
 [node name="ItemRight" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
 layout_mode = 2

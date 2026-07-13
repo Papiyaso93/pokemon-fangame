@@ -11,6 +11,7 @@ signal item_used   # utiliser un objet consommable ferme tout (sac + appelant), 
 
 const TabDimAlpha := 0.5
 const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
+const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const ITEMS_POCKET_INDEX := 0       # cf. BagData.POCKETS — poche "Objets"
 const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Rares"
@@ -31,10 +32,12 @@ var _no_underline_style: StyleBoxEmpty
 @onready var rod_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/RodButton
 @onready var repel_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/RepelButton
 @onready var bike_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/BikeButton
+@onready var map_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/MapButton
 
 var current_pocket := 0
 var tab_buttons: Array[Button] = []
 var pokedex_screen: Node = null
+var region_map_screen: Node = null
 
 func _ready() -> void:
 	_underline_style = StyleBoxFlat.new()
@@ -68,6 +71,7 @@ func _ready() -> void:
 	rod_button.pressed.connect(_on_water_tool_pressed.bind("rod"))
 	repel_button.pressed.connect(_on_repel_pressed)
 	bike_button.pressed.connect(_on_bike_pressed)
+	map_button.pressed.connect(_on_map_pressed)
 	_update_tabs()
 
 func _on_tab_pressed(index: int) -> void:
@@ -93,10 +97,14 @@ func _update_tabs() -> void:
 	bike_button.visible = in_key_pocket and PlayerData.has_bike
 	if bike_button.visible:
 		bike_button.text = "Descendre du vélo" if PlayerData.is_biking else "Monter à vélo"
+	# Carte de Kanto : pas encore de vrai flag narratif (voir
+	# acte1-parc-safari.md, "pas encore câblée") — accès "test" toujours
+	# disponible ici en attendant, comme avant dans le menu pause.
+	map_button.visible = in_key_pocket
 	repel_button.visible = in_items_pocket and PlayerData.repel_count > 0
 	if repel_button.visible:
 		repel_button.text = "Répulsif x%d" % PlayerData.repel_count
-	var has_any_item := pokedex_button.visible or surf_button.visible or rod_button.visible or bike_button.visible or repel_button.visible
+	var has_any_item := pokedex_button.visible or surf_button.visible or rod_button.visible or bike_button.visible or map_button.visible or repel_button.visible
 	item_list.visible = (in_key_pocket or in_items_pocket) and has_any_item
 	empty_label.visible = not item_list.visible
 
@@ -166,6 +174,18 @@ func _on_pokedex_pressed() -> void:
 
 func _on_pokedex_closed() -> void:
 	pokedex_screen = null
+	root.visible = true
+
+# Repris du menu pause (retiré le 13/07/2026, voir acte1-parc-safari.md) :
+# même principe que _on_pokedex_pressed().
+func _on_map_pressed() -> void:
+	region_map_screen = RegionMapScene.instantiate()
+	get_tree().root.add_child(region_map_screen)
+	root.visible = false
+	region_map_screen.closed.connect(_on_map_closed)
+
+func _on_map_closed() -> void:
+	region_map_screen = null
 	root.visible = true
 
 func _unhandled_input(event: InputEvent) -> void:

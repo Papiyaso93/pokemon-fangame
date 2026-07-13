@@ -29,9 +29,9 @@ const RESERVED_KEYCODES := [
 	KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE,
 ]
 
-# Objet assigné à chaque raccourci (index 0-3) — "bike"/"repel" par défaut
-# sur les 2 premiers slots, libres sur les 2 autres pour les futurs objets.
-var slot_items: Array[String] = ["bike", "repel", "", ""]
+# Objet assigné à chaque raccourci (index 0-3) — aucun par défaut, c'est au
+# joueur de choisir depuis l'écran Options.
+var slot_items: Array[String] = ["", "", "", ""]
 
 func _ready() -> void:
 	_load()
