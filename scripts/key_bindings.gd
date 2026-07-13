@@ -2,10 +2,16 @@ extends Node
 
 # Autoload : raccourcis clavier pour utiliser un objet rare directement
 # depuis le jeu, sans passer par le sac (voir scenes/ui/options_menu.tscn).
-# 4 slots fixes (item_shortcut_1..4, définis dans project.godot avec les
-# touches 1/2/3/4 par défaut) — seul l'objet assigné à chaque slot et la
-# touche elle-même sont reconfigurables, pas les touches de déplacement/
+# 4 slots fixes (item_shortcut_1..4) — seul l'objet assigné à chaque slot et
+# la touche elle-même sont reconfigurables, pas les touches de déplacement/
 # validation/annulation (décidé le 13/07/2026, hors scope pour l'instant).
+#
+# Touches par défaut : F1-F4 (voir DEFAULT_KEYCODES), pas 1-4. Essayé 1-4
+# d'abord, mais sur clavier AZERTY la touche physique "1" a le symbole "&"
+# comme caractère PRINCIPAL (le chiffre n'est accessible qu'avec Maj) : ce
+# n'est pas une histoire de mauvaise conversion, c'est réellement l'étiquette
+# de cette touche sur ce clavier. F1-F4 n'ont pas cette ambiguïté (identiques
+# sur (quasi) tous les claviers), donc pas de risque de rejouer ce problème.
 #
 # Fait partie de la sauvegarde (PlayerData.shortcut_slot_items/
 # shortcut_keycodes, voir save_manager.gd) — PAS une préférence
@@ -36,7 +42,7 @@ const RESERVED_KEYCODES := [
 	KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE,
 ]
 
-const DEFAULT_KEYCODES: Array[int] = [KEY_1, KEY_2, KEY_3, KEY_4]
+const DEFAULT_KEYCODES: Array[int] = [KEY_F1, KEY_F2, KEY_F3, KEY_F4]
 
 # Lecture seule pour les appelants externes (options_menu.gd, bag.gd) : les
 # Array étant passés par référence, ceci reflète directement
