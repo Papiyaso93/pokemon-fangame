@@ -230,7 +230,7 @@ func _assign_item_shortcut(item_key: String) -> void:
 	var options := []
 	for i in range(KeyBindings.SLOT_COUNT):
 		var current_item: String = KeyBindings.slot_items[i]
-		var label := "Touche %s" % KeyBindings.key_label(i)
+		var label := 'Touche "%s"' % KeyBindings.key_label(i)
 		if current_item != "":
 			label += " — actuellement : %s" % String(KeyBindings.ITEMS.get(current_item, ""))
 		options.append({"label": label, "value": i})
@@ -242,7 +242,7 @@ func _assign_item_shortcut(item_key: String) -> void:
 	picker.queue_free()
 	if slot != null:
 		KeyBindings.assign_item(int(slot), item_key)
-		await _show_blocking_message("Raccourci assigné à la touche %s !" % KeyBindings.key_label(int(slot)))
+		await _show_blocking_message('Raccourci assigné à la touche "%s" !' % KeyBindings.key_label(int(slot)))
 	window_center.visible = true
 	_update_tabs()
 

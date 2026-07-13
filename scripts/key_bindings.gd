@@ -52,42 +52,47 @@ func action_name(slot: int) -> String:
 	return "item_shortcut_%d" % (slot + 1)
 
 # Libellé humain de la touche actuellement assignée à un slot (pour l'écran
-# Options), ex. "1", "F", "Échap"... Utilise `keycode` (touche localisée selon
-# la disposition clavier active), pas `physical_keycode` (toujours la position
-# QWERTY, quelle que soit la disposition réelle — vécu : "Z" en AZERTY
-# capturait/affichait "W", la lettre à la même position en QWERTY).
+# Options), ex. "1", "F", "Échap"... Capture/assignation basées sur
+# `physical_keycode` (position physique, indépendante du layout — un simple
+# appui suffit toujours, contrairement à `keycode` qui reflète le caractère
+# réellement tapé : sur AZERTY, la rangée de chiffres sans Maj tape des
+# symboles, pas des chiffres, ce qui capturait par ex. "3" comme "QuoteDbl").
+# Pour l'AFFICHAGE en revanche, `OS.get_keycode_string(physical_keycode)`
+# suppose un clavier QWERTY (vécu : "Z" en AZERTY affichait "W", la touche à
+# la même position en QWERTY) — `DisplayServer.keyboard_get_label_from_
+# physical()` convertit correctement vers le libellé réel du layout actif.
 func key_label(slot: int) -> String:
 	var events := InputMap.action_get_events(action_name(slot))
 	for event in events:
 		if event is InputEventKey:
-			return OS.get_keycode_string((event as InputEventKey).keycode)
+			return OS.get_keycode_string(DisplayServer.keyboard_get_label_from_physical((event as InputEventKey).physical_keycode))
 	return "(aucune)"
 
-func _keycode(slot: int) -> int:
+func _physical_keycode(slot: int) -> int:
 	var events := InputMap.action_get_events(action_name(slot))
 	for event in events:
 		if event is InputEventKey:
-			return (event as InputEventKey).keycode
+			return (event as InputEventKey).physical_keycode
 	return 0
 
 # Vérifie qu'une touche candidate peut être assignée à ce slot ; retourne un
 # message d'erreur (vide si c'est bon). Appelé par options_menu.gd avant de
 # valider une capture de touche.
-func validate_new_key(slot: int, keycode: int) -> String:
-	if keycode in RESERVED_KEYCODES:
+func validate_new_key(slot: int, physical_keycode: int) -> String:
+	if physical_keycode in RESERVED_KEYCODES:
 		return "Cette touche sert déjà à se déplacer, valider ou annuler."
 	for i in range(SLOT_COUNT):
-		if i != slot and _keycode(i) == keycode:
+		if i != slot and _physical_keycode(i) == physical_keycode:
 			return "Cette touche est déjà assignée à un autre raccourci."
 	return ""
 
-func rebind(slot: int, keycode: int) -> void:
-	_apply_binding(slot, keycode)
-	PlayerData.shortcut_keycodes[slot] = keycode
+func rebind(slot: int, physical_keycode: int) -> void:
+	_apply_binding(slot, physical_keycode)
+	PlayerData.shortcut_keycodes[slot] = physical_keycode
 
-func _apply_binding(slot: int, keycode: int) -> void:
+func _apply_binding(slot: int, physical_keycode: int) -> void:
 	var event := InputEventKey.new()
-	event.keycode = keycode
+	event.physical_keycode = physical_keycode
 	InputMap.action_erase_events(action_name(slot))
 	InputMap.action_add_event(action_name(slot), event)
 
