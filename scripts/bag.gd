@@ -268,6 +268,7 @@ func _on_pokedex_pressed() -> void:
 func _on_pokedex_closed() -> void:
 	pokedex_screen = null
 	root.visible = true
+	pokedex_button.grab_focus()
 
 # Repris du menu pause (retiré le 13/07/2026, voir acte1-parc-safari.md) :
 # même principe que _on_pokedex_pressed().
@@ -280,6 +281,7 @@ func _on_map_pressed() -> void:
 func _on_map_closed() -> void:
 	region_map_screen = null
 	root.visible = true
+	map_button.grab_focus()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
