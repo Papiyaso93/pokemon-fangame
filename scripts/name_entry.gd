@@ -20,11 +20,21 @@ func _ready() -> void:
 	window.visible = false
 	name_edit.max_length = PlayerData.NAME_MAX_LENGTH
 	name_edit.text_submitted.connect(_on_confirm)
+	name_edit.text_changed.connect(_on_name_changed)
 	confirm_button.pressed.connect(func(): _on_confirm(name_edit.text))
 	await get_tree().process_frame
 	_place_window()
 	window.visible = true
 	name_edit.grab_focus()
+
+# Empêche de commencer le nom par une espace : facile à taper par erreur en
+# spammant Espace pour accélérer les dialogues (touche déjà utilisée pour
+# ça ailleurs dans le jeu) juste avant que le focus arrive sur ce champ.
+# N'importe où après le premier vrai caractère reste permis (noms composés).
+func _on_name_changed(new_text: String) -> void:
+	if not new_text.is_empty() and new_text.strip_edges(true, false).is_empty():
+		name_edit.text = ""
+		name_edit.caret_column = 0
 
 func _place_window() -> void:
 	var min_size := window.get_combined_minimum_size()

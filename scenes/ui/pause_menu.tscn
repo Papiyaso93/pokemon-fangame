@@ -76,7 +76,7 @@ custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
 alignment = 0
-text = "Sac (test)"
+text = "Sac"
 
 [node name="Quit" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2

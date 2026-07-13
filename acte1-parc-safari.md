@@ -53,11 +53,13 @@ dialogues ci-dessous.
      besoin de le remettre en scène.
    - Les **30 Safari Balls ne sont plus données à ce stade** : elles seront
      remises par Anselme en personne, dans le parc, juste après les 2 tutos
-     (voir étape 7 bis ci-dessous, `PARK_HANDOFF` dans le script). ⚠️ Pas
-     encore câblé en jeu : suppose que les tutos Camille/Yohan existent et
-     posent un flag de complétion, ce qui n'est pas le cas aujourd'hui. En
-     attendant, le comportement actuel (balls données dès l'entrée dans le
-     parc via `SafariState.enter()`) reste inchangé.
+     (voir étape 7 bis ci-dessous, `PARK_HANDOFF` dans le script). ⚠️ Câblé en
+     test bout en bout (13/07/2026, voir point 7 plus bas) mais sur une
+     condition simplifiée (`PlayerData.has_surf`) plutôt qu'un vrai flag de
+     complétion des 2 tutos, qui n'existe pas encore. Le comportement des
+     balls elles-mêmes reste inchangé (données dès l'entrée dans le parc via
+     `SafariState.enter()`) : ce qui change vraiment avec Anselme, c'est le
+     déblocage des rencontres sauvages et la canne à pêche.
    - 🎓 **Moment pédagogique** : rappel qu'on peut **sauvegarder à tout
      moment** via le menu pause.
 
@@ -157,6 +159,17 @@ dialogues ci-dessous.
    partenaire) + *"Bon, je te laisse. À tout à l'heure !"* → il repart, les
    Pokémon deviennent disponibles dans les hautes herbes à partir de là.
    → capture libre (mécanique existante, 4 sous-zones ouvertes).
+   - ✅ **Câblé en test bout en bout (13/07/2026)**, voir
+     `scripts/npc_anselme_park.gd` : posé dans `safari_secret_house` (la
+     maison secrète de la zone 4, atteignable depuis `safari_zone_west`,
+     jusque-là vide de tout PNJ), conditionné à `PlayerData.has_surf` plutôt
+     qu'à un vrai flag de complétion des 2 tutos (placeholder simple en
+     attendant le contenu réel des zones 2/3). Donne la canne à pêche et
+     débloque `SafariState.hunting_unlocked` ; les 30 Safari Balls restent
+     données par `SafariState.enter()` comme avant (déjà 30 à ce stade,
+     jamais entamées puisqu'aucune rencontre n'était possible avant). À
+     déplacer/retravailler une fois la vraie condition de complétion des
+     tutos posée.
 
 8. Retour au bâtiment → choix du partenaire (inchangé) → choix de classe
    avec Louise (inchangé) → à ce moment, **le rival et l'allié·e sont déjà
@@ -183,13 +196,13 @@ besoin de le remettre en scène (décidé 12/07/2026).
 l'issue de la conversation dans la maison de repos correspondante, dialogues
 encore placeholder ("Pouet.") sauf zone 1 :
 
-1. 30 Safari Balls (Anselme, dans le parc, après les 2 tutos — `PARK_HANDOFF`, pas encore câblé)
+1. 30 Safari Balls (Anselme, dans le parc, après les 2 tutos — `PARK_HANDOFF`) ✅ câblé en test (voir point 7 ci-dessus), toujours données via `SafariState.enter()` en pratique
 2. Pokédex (Camille, **zone 1**) ✅ implémenté, dialogue validé — plus dans le sac tant que non reçu
 3. Canne à pêche — **retirée de la zone 2** (décidé 13/07/2026 : inutile tant
-   que la capture n'est pas débloquée). Remise plus tard par Anselme en même
-   temps que les Safari Balls (`PARK_HANDOFF`). La mécanique de pêche
-   elle-même est prête côté code (`scripts/player.gd`), juste pas encore
-   accessible.
+   que la capture n'est pas débloquée). Remise par Anselme en même temps que
+   le déblocage des rencontres sauvages (`PARK_HANDOFF`) ✅ câblé en test
+   (voir point 7 ci-dessus). La mécanique de pêche elle-même est prête côté
+   code (`scripts/player.gd`).
 4. **Zone 3 (Yohan) : aucun objet donné** pour l'instant, décidé le 13/07/2026
 5. Objet de Surf (Yohan, **zone 4**) ✅ implémenté (mécanique de Surf fonctionnelle, dialogue encore placeholder)
 6. Carte de Kanto (Anselme, à la sortie du bâtiment) — pas encore câblée
@@ -249,6 +262,10 @@ tant qu'ils n'ont pas été retravaillés).
 
 ## Questions ouvertes / à trancher
 
+- **Anselme/`PARK_HANDOFF`** : câblé en test (13/07/2026) dans
+  `safari_secret_house`, condition = `PlayerData.has_surf`. À terme, il
+  faudra conditionner son apparition/dialogue à un vrai flag de complétion
+  des 2 tutos plutôt qu'à la possession du Surf (qui n'est qu'un proxy).
 - Assignation précise des zones (1/2/3/4 du Parc Safari) une fois la vraie
   carte sous les yeux — actuellement des placeholders dans ce document.
 - Dialogues détaillés des 2 combats Compétiteur — brouillons existants jugés

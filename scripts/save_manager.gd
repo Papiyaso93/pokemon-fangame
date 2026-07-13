@@ -90,6 +90,8 @@ func save_to_slot(n: int) -> void:
 		"yohan_zone4_done": PlayerData.yohan_zone4_done,
 		"has_fishing_rod": PlayerData.has_fishing_rod,
 		"has_surf": PlayerData.has_surf,
+		"preferred_water_tool": PlayerData.preferred_water_tool,
+		"park_handoff_done": PlayerData.park_handoff_done,
 		"map_name": map_name,
 		"tile_x": local_tile.x,
 		"tile_y": local_tile.y,
@@ -125,6 +127,8 @@ func load_from_slot(n: int) -> void:
 	PlayerData.yohan_zone4_done = bool(data.get("yohan_zone4_done", false))
 	PlayerData.has_fishing_rod = bool(data.get("has_fishing_rod", false))
 	PlayerData.has_surf = bool(data.get("has_surf", false))
+	PlayerData.preferred_water_tool = String(data.get("preferred_water_tool", "surf"))
+	PlayerData.park_handoff_done = bool(data.get("park_handoff_done", false))
 	var seen: Array[String] = []
 	for s in data.get("pokedex_seen", []):
 		seen.append(String(s))
@@ -136,6 +140,7 @@ func load_from_slot(n: int) -> void:
 
 	SafariState.active = bool(data.get("safari_active", false))
 	SafariState.balls = int(data.get("safari_balls", SafariState.STARTING_BALLS))
+	SafariState.hunting_unlocked = PlayerData.park_handoff_done
 	var caught: Array[String] = []
 	for s in data.get("safari_caught", []):
 		caught.append(String(s))

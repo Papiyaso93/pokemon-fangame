@@ -24,6 +24,7 @@ var _no_underline_style: StyleBoxEmpty
 @onready var item_list: VBoxContainer = $Root/Center/Window/VBox/ContentArea/Center/ItemList
 @onready var pokedex_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/PokedexButton
 @onready var surf_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/SurfButton
+@onready var rod_button: Button = $Root/Center/Window/VBox/ContentArea/Center/ItemList/RodButton
 
 var current_pocket := 0
 var tab_buttons: Array[Button] = []
@@ -57,6 +58,8 @@ func _ready() -> void:
 		tabs_row.add_child(btn)
 		tab_buttons.append(btn)
 	pokedex_button.pressed.connect(_on_pokedex_pressed)
+	surf_button.pressed.connect(_on_water_tool_pressed.bind("surf"))
+	rod_button.pressed.connect(_on_water_tool_pressed.bind("rod"))
 	_update_tabs()
 
 func _on_tab_pressed(index: int) -> void:
@@ -76,9 +79,22 @@ func _update_tabs() -> void:
 	var in_key_pocket := current_pocket == KEY_ITEMS_POCKET_INDEX
 	pokedex_button.visible = in_key_pocket and PlayerData.camille_zone1_done
 	surf_button.visible = in_key_pocket and PlayerData.has_surf
-	var has_any_item := pokedex_button.visible or surf_button.visible
+	rod_button.visible = in_key_pocket and PlayerData.has_fishing_rod
+	var has_any_item := pokedex_button.visible or surf_button.visible or rod_button.visible
 	item_list.visible = in_key_pocket and has_any_item
 	empty_label.visible = not (in_key_pocket and has_any_item)
+
+	# Si on a les deux objets d'eau, celui actuellement actif (voir
+	# PlayerData.preferred_water_tool) reste en pleine opacité, l'autre se
+	# dim comme un onglet inactif (même TabDimAlpha) — seul indice visuel
+	# qu'appuyer dessus l'active.
+	var both_water_tools := surf_button.visible and rod_button.visible
+	surf_button.modulate.a = 1.0 if (not both_water_tools or PlayerData.preferred_water_tool == "surf") else TabDimAlpha
+	rod_button.modulate.a = 1.0 if (not both_water_tools or PlayerData.preferred_water_tool == "rod") else TabDimAlpha
+
+func _on_water_tool_pressed(tool_name: String) -> void:
+	PlayerData.preferred_water_tool = tool_name
+	_update_tabs()
 
 func _on_pokedex_pressed() -> void:
 	pokedex_screen = PokedexScreenScene.instantiate()

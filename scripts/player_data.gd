@@ -40,5 +40,17 @@ var yohan_zone4_done := false
 
 # Objets clés donnés pendant les zones du Parc Safari (test, voir
 # acte1-parc-safari.md — récompenses définitives à retravailler plus tard).
-var has_fishing_rod := false   # Camille, zone 2
+var has_fishing_rod := false   # Anselme, PARK_HANDOFF (beat 3b)
 var has_surf := false          # Yohan, zone 4
+
+# "surf" ou "rod" : lequel utiliser en faisant face à l'eau quand on a les
+# deux objets à la fois (voir scripts/player.gd::_try_interact). Choisi
+# depuis le sac (scripts/bag.gd, boutons Surf/Canne) — sans ça, un seul des
+# deux serait jamais utilisable une fois qu'on possède l'autre.
+var preferred_water_tool := "surf"
+
+# true une fois qu'Anselme a remis la canne à pêche + les Safari Balls et
+# débloqué les rencontres sauvages dans le parc (PARK_HANDOFF, beat 3b —
+# voir scripts/npc_anselme_park.gd). Source de vérité persistée pour
+# SafariState.hunting_unlocked (lui n'est pas sauvegardé, voir save_manager.gd).
+var park_handoff_done := false

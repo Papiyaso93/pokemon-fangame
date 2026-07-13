@@ -84,8 +84,12 @@ func _ready() -> void:
 	_set_buttons_enabled(false)
 	for btn in [ball_button, bait_button, rock_button, run_button]:
 		btn.icon = BlankTexture
-		btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
-		btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
+		# Le survol souris déplace le focus clavier au lieu de gérer sa propre
+		# flèche : sinon 2 flèches peuvent s'afficher à la fois (une au clavier,
+		# une à la souris) si elles ne pointent pas le même bouton.
+		btn.mouse_entered.connect(func(): btn.grab_focus())
+		btn.focus_entered.connect(func(): btn.icon = ArrowTexture)
+		btn.focus_exited.connect(func(): btn.icon = BlankTexture)
 
 	var back_path := "res://assets/characters/%s_back.png" % PlayerData.appearance
 	if ResourceLoader.exists(back_path):
@@ -131,6 +135,10 @@ func _set_buttons_enabled(enabled: bool) -> void:
 	bait_button.disabled = not enabled
 	rock_button.disabled = not enabled
 	run_button.disabled = not enabled
+	# Focus par défaut sur la première action jouable (voir yes_no_choice.gd) :
+	# Safari Ball, sauf s'il n'en reste plus, auquel cas Appât prend sa place.
+	if enabled:
+		(bait_button if ball_button.disabled else ball_button).grab_focus()
 
 # Même comportement que dialogue_box.gd (via le composant partagé Typewriter) :
 # un appui pendant la frappe affiche le reste du texte instantanément ; un

@@ -48,6 +48,7 @@ func _ready() -> void:
 	scroll.get_v_scroll_bar().value_changed.connect(_update_arrows)
 
 func setup(species_list: Array[String]) -> void:
+	var first_button: Button = null
 	for species in species_list:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(200, 0)
@@ -56,10 +57,16 @@ func setup(species_list: Array[String]) -> void:
 		btn.expand_icon = false
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.icon = BlankTexture
-		btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
-		btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
+		# Le survol souris déplace le focus clavier au lieu de gérer sa propre
+		# flèche : sinon 2 flèches peuvent s'afficher à la fois (une au clavier,
+		# une à la souris) si elles ne pointent pas le même bouton.
+		btn.mouse_entered.connect(func(): btn.grab_focus())
+		btn.focus_entered.connect(func(): btn.icon = ArrowTexture)
+		btn.focus_exited.connect(func(): btn.icon = BlankTexture)
 		btn.pressed.connect(func(): chosen.emit(species))
 		buttons_box.add_child(btn)
+		if first_button == null:
+			first_button = btn
 	await get_tree().process_frame
 	var natural_height: float = buttons_box.get_combined_minimum_size().y
 	scrollable = natural_height > MAX_LIST_HEIGHT
@@ -73,6 +80,10 @@ func setup(species_list: Array[String]) -> void:
 	_place_window()
 	_update_arrows(0.0)
 	window.visible = true
+	# Focus par défaut sur la première capture (voir yes_no_choice.gd) ; fait
+	# aussi défiler la liste jusqu'à elle si besoin (comportement natif Godot).
+	if first_button:
+		first_button.grab_focus()
 
 # Taille la fenêtre à son contenu (PanelContainer ne le fait pas tout seul
 # hors d'un Container parent) et la cale en haut à droite de la boîte de

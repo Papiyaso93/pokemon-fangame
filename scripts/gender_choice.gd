@@ -17,14 +17,24 @@ const MARGIN_BOTTOM := 172.0
 
 func _ready() -> void:
 	window.visible = false
+	var first_button: Button = null
 	for btn in window.get_node("Buttons").get_children():
 		if btn is Button:
 			btn.icon = BlankTexture
-			btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
-			btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
+			# Le survol souris déplace le focus clavier au lieu de gérer sa propre
+			# flèche : sinon 2 flèches peuvent s'afficher à la fois (une au
+			# clavier, une à la souris) si elles ne pointent pas le même bouton.
+			btn.mouse_entered.connect(func(): btn.grab_focus())
+			btn.focus_entered.connect(func(): btn.icon = ArrowTexture)
+			btn.focus_exited.connect(func(): btn.icon = BlankTexture)
+			if first_button == null:
+				first_button = btn
 	await get_tree().process_frame
 	_place_window()
 	window.visible = true
+	# Focus par défaut sur la première option (voir yes_no_choice.gd).
+	if first_button:
+		first_button.grab_focus()
 
 func _place_window() -> void:
 	var min_size := window.get_combined_minimum_size()

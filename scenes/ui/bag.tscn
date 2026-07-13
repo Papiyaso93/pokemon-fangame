@@ -30,6 +30,19 @@ Button/styles/pressed = SubResource("Tab_empty")
 Button/styles/focus = SubResource("Tab_empty")
 Button/font_sizes/font_size = 18
 
+[sub_resource type="StyleBoxEmpty" id="ItemButton_empty"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="Theme" id="ItemButtonTheme"]
+Button/styles/normal = SubResource("ItemButton_empty")
+Button/styles/hover = SubResource("ItemButton_empty")
+Button/styles/pressed = SubResource("ItemButton_empty")
+Button/styles/focus = SubResource("ItemButton_empty")
+Button/styles/disabled = SubResource("ItemButton_empty")
+
 [node name="Bag" type="CanvasLayer"]
 script = ExtResource("1_script")
 
@@ -57,7 +70,7 @@ theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Root/Center/Window/VBox"]
 layout_mode = 2
-text = "Sac (test)"
+text = "Sac"
 horizontal_alignment = 1
 
 [node name="TabsRow" type="HBoxContainer" parent="Root/Center/Window/VBox"]
@@ -82,6 +95,7 @@ modulate = Color(1, 1, 1, 0.6)
 [node name="ItemList" type="VBoxContainer" parent="Root/Center/Window/VBox/ContentArea/Center"]
 visible = false
 layout_mode = 2
+theme = SubResource("ItemButtonTheme")
 theme_override_constants/separation = 4
 
 [node name="PokedexButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
@@ -101,6 +115,15 @@ icon_alignment = 0
 expand_icon = false
 alignment = 0
 text = "Planche de Surf"
+
+[node name="RodButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Canne à pêche"
 
 [node name="Hint" type="HBoxContainer" parent="Root/Center/Window/VBox"]
 layout_mode = 2

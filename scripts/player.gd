@@ -469,7 +469,7 @@ func _physics_process(delta: float) -> void:
 		interact_cooldown -= delta
 	if is_busy:
 		return
-	if is_moving == false and turn_timer <= 0.0 and Input.is_action_just_pressed("ui_cancel"):
+	if is_moving == false and turn_timer <= 0.0 and interact_cooldown <= 0.0 and Input.is_action_just_pressed("ui_cancel"):
 		_open_pause_menu()
 		return
 	if is_moving == false and turn_timer <= 0.0 and interact_cooldown <= 0.0 and Input.is_action_just_pressed("ui_accept"):
@@ -517,10 +517,15 @@ func _try_interact() -> void:
 				_talk_to(npc, cur)
 				return
 	# Rien à qui parler : essaie la Canne à pêche/le Surf si on fait face à
-	# l'eau (test, pas encore de vrai menu de sac pour choisir l'objet — voir
-	# acte1-parc-safari.md). Surf est prioritaire s'il est disponible.
+	# l'eau. Si on a les deux, PlayerData.preferred_water_tool tranche (choisi
+	# depuis le sac, scripts/bag.gd) — sinon celui qu'on possède gagne.
 	if not is_surfing and _is_water(cur + offset):
-		if PlayerData.has_surf:
+		if PlayerData.has_surf and PlayerData.has_fishing_rod:
+			if PlayerData.preferred_water_tool == "rod":
+				_start_fishing()
+			else:
+				_start_surfing()
+		elif PlayerData.has_surf:
 			_start_surfing()
 		elif PlayerData.has_fishing_rod:
 			_start_fishing()

@@ -17,7 +17,7 @@ const MAPS := [
 	"saffron_city", "saffron_city_connection", "vermilion_city", "viridian_city",
 	"viridian_forest",
 	"cave_diglett", "cave_mtmoon", "cave_rocktunnel", "cave_seafoam", "cave_victoryroad",
-	"safari_office", "safari_secret_house",
+	"safari_office",
 	# "safari_entrance" retiré DEFINITIVEMENT : contient des PNJ + un script de
 	# verrouillage ajoutés à la main (setup_safari_entrance_npcs.gd,
 	# setup_safari_entrance_gate.gd). Ne JAMAIS le remettre dans cette liste
@@ -30,6 +30,9 @@ const MAPS := [
 	# régénérer le JSON (build_godot.py), patcher le .tscn à la main pour n'y
 	# reporter QUE le changement de terrain/warps, puis revérifier que les PNJ
 	# sont toujours là — jamais via ce script tant qu'ils sont dedans.
+	#
+	# "safari_secret_house" retiré le 13/07/2026, même raison : PNJ Anselme
+	# ajouté à la main dedans (voir npc_anselme_park.gd, beat 3b).
 ]
 
 func _run() -> void:

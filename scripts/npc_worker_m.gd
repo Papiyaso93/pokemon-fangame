@@ -20,16 +20,14 @@ const PRESENTATION: Array[String] = [
 	"Avant que j'oublie : appuie sur Échap à tout moment pour ouvrir le menu pause et sauvegarder, si jamais tu as besoin de souffler.",
 ]
 
-# BEAT 3B (voir acte1-parc-safari.md) : Anselme doit réapparaître en personne
-# dans le Parc Safari juste après les 2 tutos (Camille puis Yohan) pour
-# remettre les 30 Safari Balls à ce moment-là seulement, et confirmer qu'à
-# partir de là les Pokémon sauvages se montrent enfin. PAS ENCORE IMPLÉMENTÉ :
-# ça suppose que les tutos Camille/Yohan existent et posent un flag de
-# complétion, ce qui n'est pas le cas aujourd'hui (sprites posés, aucune
-# interaction codée). En attendant, le comportement actuel reste inchangé :
-# SafariState.enter() donne les 30 balls dès l'entrée dans une carte
-# safari_zone_*, sans passer par une réplique dédiée. Dialogues prêts,
-# prévus pour être branchés ici une fois les tutos codés :
+# BEAT 3B (voir acte1-parc-safari.md) : Anselme réapparaît en personne dans
+# le Parc Safari une fois les 2 tutos (Camille puis Yohan) terminés, pour
+# remettre la canne à pêche et débloquer les rencontres sauvages. Test bout
+# en bout (13/07/2026) : câblé via scripts/npc_anselme_park.gd, un PNJ à part
+# posé dans safari_rest_house_west, conditionné à PlayerData.has_surf plutôt
+# qu'à un vrai flag de complétion des tutos (pas encore posé) — sera affiné
+# une fois le contenu réel des zones 2/3 décidé. Ce tableau de dialogue reste
+# la version canonique, réutilisée telle quelle par ce PNJ (WorkerM.PARK_HANDOFF).
 const PARK_HANDOFF: Array[String] = [
 	"Tu as vu les deux facettes, maintenant. Voilà 30 Safari Balls : à partir de maintenant, les Pokémon sauvages vont enfin se montrer dans les hautes herbes.",
 	"Tu peux croiser n'importe quel Pokémon de base de Kanto au parc Safari. Les Pokémon de base sont ceux qui n'ont encore jamais évolué. Certains sont très communs, d'autres beaucoup plus rares, et encore plus durs à attraper.",

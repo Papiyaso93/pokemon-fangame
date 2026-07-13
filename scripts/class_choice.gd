@@ -17,17 +17,27 @@ func _ready() -> void:
 	# sinon la fenêtre apparaît une frame en haut à gauche (position par
 	# défaut) avant de "sauter" à sa place, un flash bref mais visible.
 	window.visible = false
+	var first_button: Button = null
 	for btn in window.get_node("Buttons").get_children():
 		if btn is Button:
 			# Icône transparente par défaut (même taille que la flèche) pour que
 			# la place soit toujours réservée : la fenêtre ne doit pas changer
 			# de largeur quand la flèche apparaît/disparaît au survol.
 			btn.icon = BlankTexture
-			btn.mouse_entered.connect(func(): btn.icon = ArrowTexture)
-			btn.mouse_exited.connect(func(): btn.icon = BlankTexture)
+			# Le survol souris déplace le focus clavier au lieu de gérer sa propre
+			# flèche : sinon 2 flèches peuvent s'afficher à la fois (une au
+			# clavier, une à la souris) si elles ne pointent pas le même bouton.
+			btn.mouse_entered.connect(func(): btn.grab_focus())
+			btn.focus_entered.connect(func(): btn.icon = ArrowTexture)
+			btn.focus_exited.connect(func(): btn.icon = BlankTexture)
+			if first_button == null:
+				first_button = btn
 	await get_tree().process_frame
 	_place_window()
 	window.visible = true
+	# Focus par défaut sur la première option (voir yes_no_choice.gd).
+	if first_button:
+		first_button.grab_focus()
 
 # Taille la fenêtre à son contenu (PanelContainer ne le fait pas tout seul
 # hors d'un Container parent) et la cale en haut à droite de la boîte de
