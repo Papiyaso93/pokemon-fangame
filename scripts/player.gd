@@ -48,9 +48,9 @@ const JUMP_ARC_HEIGHT := 6.0   # pixels, arc visuel du saut de rebord
 var origin_map_name := ""      # nom de la carte de cette scène (celle avec Player/Camera)
 var current_map_name := ""     # nom de la carte "effective" sous les pieds du joueur
 var last_banner_name := ""     # dernier nom FRANÇAIS affiché (évite les doublons entre
-                                # cartes scindées en plusieurs scènes, ex. route21_north/south)
+								# cartes scindées en plusieurs scènes, ex. route21_north/south)
 var show_map_name := true      # fidèle FRLG (map.json: show_map_name) : false pour les
-                                # intérieurs (MAP_TYPE_INDOOR) — pas de bandeau à l'entrée.
+								# intérieurs (MAP_TYPE_INDOOR) — pas de bandeau à l'entrée.
 
 # Toutes les cartes chargées en recouvrement (origine incluse, en zones[0]) :
 # {name, rect (Rect2 monde, coords locales à cette scène), size (Vector2i,
@@ -104,6 +104,7 @@ func _apply_appearance() -> void:
 				(frame_tex as AtlasTexture).atlas = tex
 	_prepare_surf_sprite_frames()
 	_prepare_bike_sprite_frames()
+	_prepare_fishing_sprite_frames()
 
 # Sprites de Surf réels (vrai jeu FRLG). Contrairement à ce qu'on pourrait
 # croire, l'image "posée" red_surf.png/green_surf.png n'est PAS celle utilisée
@@ -152,6 +153,79 @@ func _prepare_bike_sprite_frames() -> void:
 	if not ResourceLoader.exists(bike_path):
 		return
 	bike_sprite_frames = _build_directional_pose_frames(load(bike_path), 32)
+
+# Canne à pêche (voir acte1-parc-safari.md, _start_fishing()) : sprites réels
+# FRLG (red_fish.png/green_fish.png, 32 px/frame comme le Vélo), seulement
+# red_normal/green_normal. Contrairement à Surf/Vélo, on a un vrai petit cycle
+# d'animation (lancer de ligne, attente, touche) — voir _build_fishing_sprite_
+# frames() pour le détail des frames, copié depuis object_event_anims.h
+# (sAnimTable_RedGreenFish) pour rester fidèle aux timings d'origine.
+const FISH_TEXTURE := {"red_normal": "red_fish", "green_normal": "green_fish"}
+var fish_sprite_frames: SpriteFrames = null
+
+func _prepare_fishing_sprite_frames() -> void:
+	if normal_sprite_frames == null:
+		normal_sprite_frames = anim.sprite_frames
+	var fish_name: String = FISH_TEXTURE.get(PlayerData.appearance, "")
+	fish_sprite_frames = null
+	if fish_name.is_empty():
+		return
+	var fish_path := "res://assets/characters/%s.png" % fish_name
+	if not ResourceLoader.exists(fish_path):
+		return
+	fish_sprite_frames = _build_fishing_sprite_frames(load(fish_path))
+
+# 4 frames par direction (west=0-3, north=4-7, south=8-11, est = ouest
+# retourné comme partout ailleurs) : 0=canne rangée, 1-2=lancer en cours,
+# 3=canne tenue en l'air (attente/ferrage). Timings en ticks à 60 IPS, copiés
+# tels quels de sAnim_TakeOutRod*/PutAwayRod*/HookedPokemon* pour rester
+# fidèle au vrai jeu plutôt que d'inventer des durées.
+func _build_fishing_sprite_frames(tex: Texture2D) -> SpriteFrames:
+	var frame_tex: Array[AtlasTexture] = []
+	for i in range(12):
+		var a := AtlasTexture.new()
+		a.atlas = tex
+		a.region = Rect2(i * 32, 0, 32, 32)
+		frame_tex.append(a)
+
+	var sf := SpriteFrames.new()
+	var bases := {"west": 0, "north": 4, "south": 8}
+	for dir: String in bases:
+		var base: int = bases[dir]
+
+		var cast_name: String = "cast_" + dir
+		sf.add_animation(cast_name)
+		sf.set_animation_speed(cast_name, 60.0)
+		sf.set_animation_loop(cast_name, false)
+		for i in range(4):
+			sf.add_frame(cast_name, frame_tex[base + i], 4)
+
+		var idle_name: String = "idle_rod_" + dir
+		sf.add_animation(idle_name)
+		sf.set_animation_speed(idle_name, 60.0)
+		sf.add_frame(idle_name, frame_tex[base + 3], 1)
+
+		# sAnim_HookedPokemon* : 2 allers-retours puis pause longue avant de
+		# reboucler (ANIMCMD_LOOP(1) = 1 répétition en plus, puis 30 ticks
+		# d'arrêt sur la dernière frame avant de repartir du début).
+		var bite_name: String = "bite_" + dir
+		sf.add_animation(bite_name)
+		sf.set_animation_speed(bite_name, 60.0)
+		sf.add_frame(bite_name, frame_tex[base + 2], 6)
+		sf.add_frame(bite_name, frame_tex[base + 3], 6)
+		sf.add_frame(bite_name, frame_tex[base + 2], 6)
+		sf.add_frame(bite_name, frame_tex[base + 3], 6)
+		sf.add_frame(bite_name, frame_tex[base + 3], 30)
+
+		var putaway_name: String = "putaway_" + dir
+		sf.add_animation(putaway_name)
+		sf.set_animation_speed(putaway_name, 60.0)
+		sf.set_animation_loop(putaway_name, false)
+		sf.add_frame(putaway_name, frame_tex[base + 3], 4)
+		sf.add_frame(putaway_name, frame_tex[base + 2], 6)
+		sf.add_frame(putaway_name, frame_tex[base + 1], 6)
+		sf.add_frame(putaway_name, frame_tex[base + 0], 6)
+	return sf
 
 # 3 poses fixes seulement (sud/nord/ouest) — pas de cycle de marche, fidèle à
 # sAnimTable_RedGreenSurf (face ET déplacement utilisent la même pose unique
@@ -832,14 +906,22 @@ const FISH_HOOK_WINDOW := 1.5   # secondes pour appuyer une fois la touche affic
 func _start_fishing() -> void:
 	is_busy = true
 	_play("face")
+	var animated := fish_sprite_frames != null
+	if animated:
+		anim.sprite_frames = fish_sprite_frames
+		_play("cast")
+		await anim.animation_finished
+		_play("idle_rod")
+
 	await _say_line("Tu lances ta ligne à l'eau...")
 	await get_tree().create_timer(randf_range(0.8, 1.6)).timeout
 	if randf() >= FISH_BITE_CHANCE:
 		await _say_line("Ce n'était rien...")
-		is_busy = false
-		interact_cooldown = 0.2
+		await _end_fishing(animated)
 		return
 
+	if animated:
+		_play("bite")
 	await _say_line("Oh ! Une touche !")
 	var hooked := false
 	var remaining := FISH_HOOK_WINDOW
@@ -851,12 +933,22 @@ func _start_fishing() -> void:
 		await get_tree().process_frame
 	if not hooked:
 		await _say_line("Zut, ça s'est échappé !")
-		is_busy = false
-		interact_cooldown = 0.2
+		await _end_fishing(animated)
 		return
 
-	is_busy = false
+	await _end_fishing(animated)
 	_start_encounter()
+
+# Range la canne (animation inverse du lancer) avant de rendre la main —
+# seulement si un vrai sprite de pêche est actif (sinon rien à ranger, voir
+# fish_sprite_frames). Remet ensuite le bon sprite (normal/Surf/Vélo).
+func _end_fishing(animated: bool) -> void:
+	if animated:
+		_play("putaway")
+		await anim.animation_finished
+		_update_movement_sprite()
+	is_busy = false
+	interact_cooldown = 0.2
 
 func _start_encounter() -> void:
 	_play("face")

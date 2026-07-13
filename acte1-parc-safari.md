@@ -204,7 +204,10 @@ encore placeholder ("Pouet.") sauf zone 1 :
    que la capture n'est pas débloquée). Remise par Anselme en même temps que
    le déblocage des rencontres sauvages (`PARK_HANDOFF`) ✅ câblé en test
    (voir point 7 ci-dessus). La mécanique de pêche elle-même est prête côté
-   code (`scripts/player.gd`).
+   code (`scripts/player.gd`), avec une vraie animation (lancer de ligne,
+   attente, touche, rangement de la canne) ✅ ajoutée le 13/07/2026, sprites
+   réels FRLG `red_fish.png`/`green_fish.png` (red_normal/green_normal
+   seulement, comme Surf/Vélo).
 4. **Zone 3 (Yohan) : 5 Répulsifs**, décidé le 13/07/2026 ✅ câblé en test
    (`PlayerData.repel_count`/`repel_steps_remaining`, voir
    `scripts/npc_yohan_zone3.gd`) — un seul palier (pas de Super/Max
