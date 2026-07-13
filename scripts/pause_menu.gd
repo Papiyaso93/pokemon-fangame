@@ -1,8 +1,10 @@
 extends CanvasLayer
 
-# Mini-menu pause (Start), minimal pour l'instant : seulement Sauvegarder et
-# Reprendre. Le vrai menu FRLG (Pokédex/Pokémon/Sac/Dresseur/Options/Sortie)
-# viendra plus tard, au fur et à mesure que ces systèmes existeront.
+# Mini-menu pause (Start), minimal pour l'instant. Le vrai menu FRLG
+# (Pokédex/Pokémon/Dresseur) viendra plus tard, au fur et à mesure que ces
+# systèmes existeront. Options ne couvre pour l'instant que les raccourcis
+# objets (voir scripts/key_bindings.gd) — pas de remapping déplacement/
+# validation/annulation.
 
 signal closed
 
@@ -13,6 +15,7 @@ const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
 const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const BagScene := preload("res://scenes/ui/bag.tscn")
+const OptionsMenuScene := preload("res://scenes/ui/options_menu.tscn")
 
 @onready var window: PanelContainer = $Root/Window
 @onready var quit_button: Button = $Root/Window/Buttons/Quit
@@ -20,6 +23,7 @@ const BagScene := preload("res://scenes/ui/bag.tscn")
 var slots_screen: Node = null
 var region_map: Node = null
 var bag: Node = null
+var options_menu: Node = null
 var first_button: Button = null
 
 func _ready() -> void:
@@ -132,6 +136,19 @@ func _on_bag_closed() -> void:
 func _on_bag_item_used() -> void:
 	bag = null
 	closed.emit()
+
+# Même piège CanvasLayer imbriqué que _on_save_pressed()/_on_map_pressed().
+func _on_options_pressed() -> void:
+	options_menu = OptionsMenuScene.instantiate()
+	get_tree().root.add_child(options_menu)
+	window.visible = false
+	options_menu.closed.connect(_on_options_closed)
+
+func _on_options_closed() -> void:
+	options_menu = null
+	window.visible = true
+	if first_button:
+		first_button.grab_focus()
 
 # Retour à l'écran-titre, fondu noir comme un warp normal (pas de sauvegarde
 # automatique — si le joueur veut garder sa progression, il doit sauvegarder

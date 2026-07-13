@@ -115,12 +115,12 @@ func _on_water_tool_pressed(tool_name: String) -> void:
 # Bascule monter/descendre (pas de confirmation, contrairement au Surf qui
 # demande "Tu veux surfer ?" — le vélo est réversible et sans risque). Ferme
 # tout comme un objet consommable : pas de raison de traîner dans le sac une
-# fois qu'on vient de changer de mode de déplacement.
+# fois qu'on vient de changer de mode de déplacement. Logique réelle partagée
+# avec le raccourci clavier, voir player.gd::toggle_bike().
 func _on_bike_pressed() -> void:
-	PlayerData.is_biking = not PlayerData.is_biking
 	var player := get_tree().get_first_node_in_group("player")
 	if player:
-		player._update_movement_sprite()
+		player.toggle_bike()
 	item_used.emit()
 	queue_free()
 
@@ -128,18 +128,22 @@ func _on_bike_pressed() -> void:
 # tout d'un coup (sac + menu pause appelant), pas de raison de laisser le
 # joueur traîner dans un menu une fois l'effet lancé — voir item_used, géré
 # par pause_menu.gd. Un usage refusé (déjà actif) ne change rien : on reste
-# dans le sac, rien n'a été consommé.
+# dans le sac, rien n'a été consommé. État réel partagé avec le raccourci
+# clavier (player.gd::apply_repel_effect()), mais l'affichage du message
+# reste local au sac (garde le fond bleu visible derrière, voir
+# _show_blocking_message) plutôt que de passer par le dialogue overworld.
 func _on_repel_pressed() -> void:
-	if PlayerData.repel_steps_remaining > 0:
-		await _show_blocking_message("Un Répulsif est déjà actif ! Inutile d'en relancer un autre pour l'instant.")
+	var player := get_tree().get_first_node_in_group("player")
+	if not player:
+		return
+	var result: Dictionary = player.apply_repel_effect()
+	await _show_blocking_message(String(result["message"]))
+	if result["consumed"]:
+		item_used.emit()
+		queue_free()
+	else:
 		window_center.visible = true
 		_update_tabs()
-		return
-	PlayerData.repel_count -= 1
-	PlayerData.repel_steps_remaining = PlayerData.REPEL_DURATION_STEPS
-	await _show_blocking_message("Tu utilises un Répulsif ! Les Pokémon sauvages t'éviteront pendant un moment.")
-	item_used.emit()
-	queue_free()
 
 # Ne masque que la fenêtre (pas tout `root`) : le fond bleu du sac reste
 # visible derrière le message, moins bizarre que de révéler le jeu par

@@ -267,6 +267,41 @@ func _update_movement_sprite() -> void:
 		anim.sprite_frames = normal_sprite_frames
 	_play("face" if state != MOVING else "walk")
 
+# Bascule monter/descendre le Vélo — logique partagée entre le sac
+# (scripts/bag.gd) et les raccourcis clavier (voir _check_item_shortcuts()),
+# pour ne pas la dupliquer. Pas de confirmation (contrairement au Surf) : le
+# Vélo est réversible et sans risque.
+func toggle_bike() -> void:
+	PlayerData.is_biking = not PlayerData.is_biking
+	_update_movement_sprite()
+
+# État seul (pas d'affichage) : voir use_repel() pour l'appel direct depuis
+# le jeu (raccourci clavier) et bag.gd::_on_repel_pressed() pour l'appel
+# depuis le sac — chacun garde son propre mécanisme de dialogue (celui du sac
+# doit rester par-dessus sa propre fenêtre, voir bag.gd::_show_blocking_
+# message ; celui-ci, ajouté à current_scene comme tout dialogue overworld,
+# ne doit pas passer par ici pour éviter un souci d'ordre d'affichage).
+# "consumed" = true si effectivement utilisé, false si rien n'a changé
+# (déjà actif, ou plus aucun Répulsif) — "message" à afficher dans tous les cas.
+func apply_repel_effect() -> Dictionary:
+	if PlayerData.repel_count <= 0:
+		return {"consumed": false, "message": "Tu n'as plus de Répulsif."}
+	if PlayerData.repel_steps_remaining > 0:
+		return {"consumed": false, "message": "Un Répulsif est déjà actif ! Inutile d'en relancer un autre pour l'instant."}
+	PlayerData.repel_count -= 1
+	PlayerData.repel_steps_remaining = PlayerData.REPEL_DURATION_STEPS
+	return {"consumed": true, "message": "Tu utilises un Répulsif ! Les Pokémon sauvages t'éviteront pendant un moment."}
+
+# Utilisation directe depuis le jeu (raccourci clavier, voir
+# _check_item_shortcuts()) : affiche le message via le dialogue overworld
+# habituel (_say_line, current_scene).
+func use_repel() -> void:
+	var result := apply_repel_effect()
+	is_busy = true
+	await _say_line(String(result["message"]))
+	is_busy = false
+	interact_cooldown = 0.2
+
 func _read_map_meta() -> void:
 	var root := get_parent()
 	if root and root.has_meta("map_size"):
@@ -584,6 +619,8 @@ func _physics_process(delta: float) -> void:
 	if is_moving == false and turn_timer <= 0.0 and interact_cooldown <= 0.0 and Input.is_action_just_pressed("ui_accept"):
 		_try_interact()
 		return
+	if is_moving == false and turn_timer <= 0.0 and interact_cooldown <= 0.0 and _check_item_shortcuts():
+		return
 	if turn_timer > 0.0:
 		turn_timer -= delta
 		if _input_dir() == Vector2.ZERO:
@@ -638,6 +675,31 @@ func _try_interact() -> void:
 			_start_surfing()
 		elif PlayerData.has_fishing_rod:
 			_start_fishing()
+
+# Raccourcis objets configurables (voir scripts/key_bindings.gd et
+# scenes/ui/options_menu.tscn) : jusqu'à 4 touches directes pour utiliser un
+# objet sans passer par le sac. Retourne true si une touche assignée vient
+# d'être pressée (même si l'objet n'est pas encore possédé — un message
+# l'explique plutôt que de ne rien faire silencieusement).
+func _check_item_shortcuts() -> bool:
+	for i in range(KeyBindings.SLOT_COUNT):
+		if Input.is_action_just_pressed(KeyBindings.action_name(i)):
+			var item_key: String = KeyBindings.slot_items[i]
+			if item_key.is_empty():
+				continue
+			_use_shortcut_item(item_key)
+			return true
+	return false
+
+func _use_shortcut_item(item_key: String) -> void:
+	match item_key:
+		"bike":
+			if PlayerData.has_bike:
+				toggle_bike()
+			else:
+				_say_line("Tu n'as pas de Vélo.")
+		"repel":
+			use_repel()
 
 func _talk_to(npc: Node, player_tile: Vector2i) -> void:
 	if npc.has_method("face_toward"):
