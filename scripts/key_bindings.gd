@@ -36,7 +36,7 @@ const RESERVED_KEYCODES := [
 	KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE,
 ]
 
-const DEFAULT_KEYCODES := [KEY_1, KEY_2, KEY_3, KEY_4]
+const DEFAULT_KEYCODES: Array[int] = [KEY_1, KEY_2, KEY_3, KEY_4]
 
 # Lecture seule pour les appelants externes (options_menu.gd, bag.gd) : les
 # Array étant passés par référence, ceci reflète directement
