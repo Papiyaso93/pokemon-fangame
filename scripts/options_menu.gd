@@ -61,8 +61,7 @@ func _pick_item(slot: int) -> void:
 
 func _start_capture(slot: int) -> void:
 	capturing_slot = slot
-	error_label.modulate = Color(1, 1, 1, 0.8)
-	error_label.text = "Appuie sur une touche pour définir le raccourci..."
+	error_label.text = "Appuie sur une touche pour définir le raccourci"
 	# Texte court : la colonne Touche est dimensionnée pour "Aa" pas pour une
 	# phrase, un texte long ferait bouger toute la ligne (vécu, cf. Gus).
 	key_buttons[slot].text = "..."
@@ -80,8 +79,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _try_bind_captured_key(event: InputEventKey) -> void:
 	var slot := capturing_slot
-	# `physical_keycode` (position physique, indépendante du layout) — voir
-	# key_bindings.gd pour le pourquoi (capture ET affichage).
 	var code := event.physical_keycode
 	var error := KeyBindings.validate_new_key(slot, code)
 	capturing_slot = -1
@@ -89,10 +86,5 @@ func _try_bind_captured_key(event: InputEventKey) -> void:
 		KeyBindings.rebind(slot, code)
 		error_label.text = ""
 	else:
-		# Rouge foncé, pas un rose pâle : la police bitmap du jeu a une ombre
-		# portée claire par glyphe qui devient un bloc coloré très visible
-		# avec une teinte pâle (vécu, cf. HANDOFF.md) — une teinte foncée ne
-		# fait qu'assombrir l'encre, sans cet effet de surlignage.
-		error_label.modulate = Color(0.85, 0.15, 0.15, 1)
 		error_label.text = error
 	_refresh_row(slot)

@@ -6,12 +6,12 @@ extends Node
 # la touche elle-même sont reconfigurables, pas les touches de déplacement/
 # validation/annulation (décidé le 13/07/2026, hors scope pour l'instant).
 #
-# Touches par défaut : F1-F4 (voir DEFAULT_KEYCODES), pas 1-4. Essayé 1-4
-# d'abord, mais sur clavier AZERTY la touche physique "1" a le symbole "&"
-# comme caractère PRINCIPAL (le chiffre n'est accessible qu'avec Maj) : ce
-# n'est pas une histoire de mauvaise conversion, c'est réellement l'étiquette
-# de cette touche sur ce clavier. F1-F4 n'ont pas cette ambiguïté (identiques
-# sur (quasi) tous les claviers), donc pas de risque de rejouer ce problème.
+# Touches par défaut : 1/2/3/4 (voir DEFAULT_KEYCODES). Sur clavier AZERTY,
+# la touche physique "1" tape "&" sans Maj (le chiffre est secondaire) — donc
+# l'affichage peut afficher une autre lettre que celle vraiment tapée pour
+# certaines touches (ex. Z affiché "W", vécu). Assumé (choix de Gus,
+# 13/07/2026) : on préfère des raccourcis simples à retenir (1-4) plutôt
+# qu'un affichage garanti exact sur tous les claviers.
 #
 # Fait partie de la sauvegarde (PlayerData.shortcut_slot_items/
 # shortcut_keycodes, voir save_manager.gd) — PAS une préférence
@@ -42,7 +42,7 @@ const RESERVED_KEYCODES := [
 	KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE,
 ]
 
-const DEFAULT_KEYCODES: Array[int] = [KEY_F1, KEY_F2, KEY_F3, KEY_F4]
+const DEFAULT_KEYCODES: Array[int] = [KEY_1, KEY_2, KEY_3, KEY_4]
 
 # Lecture seule pour les appelants externes (options_menu.gd, bag.gd) : les
 # Array étant passés par référence, ceci reflète directement
@@ -58,20 +58,17 @@ func action_name(slot: int) -> String:
 	return "item_shortcut_%d" % (slot + 1)
 
 # Libellé humain de la touche actuellement assignée à un slot (pour l'écran
-# Options), ex. "1", "F", "Échap"... Capture/assignation basées sur
-# `physical_keycode` (position physique, indépendante du layout — un simple
-# appui suffit toujours, contrairement à `keycode` qui reflète le caractère
-# réellement tapé : sur AZERTY, la rangée de chiffres sans Maj tape des
-# symboles, pas des chiffres, ce qui capturait par ex. "3" comme "QuoteDbl").
-# Pour l'AFFICHAGE en revanche, `OS.get_keycode_string(physical_keycode)`
-# suppose un clavier QWERTY (vécu : "Z" en AZERTY affichait "W", la touche à
-# la même position en QWERTY) — `DisplayServer.keyboard_get_label_from_
-# physical()` convertit correctement vers le libellé réel du layout actif.
+# Options), ex. "1", "F", "Échap"... Capture/assignation ET affichage basés
+# sur `physical_keycode` (position physique, indépendante du layout — un
+# simple appui suffit toujours). `OS.get_keycode_string()` suppose un clavier
+# QWERTY, donc l'affichage peut ne pas correspondre à la touche vraiment
+# tapée sur un autre layout (ex. AZERTY : Z affiché "W") — assumé, voir plus
+# haut.
 func key_label(slot: int) -> String:
 	var events := InputMap.action_get_events(action_name(slot))
 	for event in events:
 		if event is InputEventKey:
-			return OS.get_keycode_string(DisplayServer.keyboard_get_label_from_physical((event as InputEventKey).physical_keycode))
+			return OS.get_keycode_string((event as InputEventKey).physical_keycode)
 	return "(aucune)"
 
 func _physical_keycode(slot: int) -> int:
