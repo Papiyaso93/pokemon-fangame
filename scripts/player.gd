@@ -651,19 +651,13 @@ func _try_interact() -> void:
 			if npc.tile() == target_tile:
 				_talk_to(npc, cur)
 				return
-	# Rien à qui parler : essaie la Canne à pêche/le Surf si on fait face à
-	# l'eau. Si on a les deux, PlayerData.preferred_water_tool tranche (choisi
-	# depuis le sac, scripts/bag.gd) — sinon celui qu'on possède gagne.
-	if not is_surfing and _is_water(cur + offset):
-		if PlayerData.has_surf and PlayerData.has_fishing_rod:
-			if PlayerData.preferred_water_tool == "rod":
-				_start_fishing()
-			else:
-				_start_surfing()
-		elif PlayerData.has_surf:
-			_start_surfing()
-		elif PlayerData.has_fishing_rod:
-			_start_fishing()
+	# Rien à qui parler : la touche d'action face à l'eau ne déclenche QUE le
+	# Surf (fidèle FRLG — la Canne à pêche n'est jamais utilisable par cette
+	# touche, seulement via son raccourci dédié ou "Utiliser" dans le sac,
+	# voir _use_shortcut_item()/bag.gd). Si le joueur a les deux objets, le
+	# Surf gagne toujours.
+	if not is_surfing and PlayerData.has_surf and _is_water(cur + offset):
+		_start_surfing()
 
 # Raccourcis objets configurables (voir scripts/key_bindings.gd et
 # scenes/ui/options_menu.tscn) : jusqu'à 4 touches directes pour utiliser un
@@ -682,33 +676,66 @@ func _check_item_shortcuts() -> bool:
 
 # Seuls les objets rares sont assignables à un raccourci (décidé le
 # 13/07/2026, voir KeyBindings.ITEMS) — les consommables (Répulsif) ne le
-# sont plus, ils restent accessibles seulement depuis le sac.
+# sont plus, ils restent accessibles seulement depuis le sac. Surf/Canne
+# déclenchent directement l'action (plus de "préférence" — voir _try_interact()
+# qui donne toujours la main au Surf) : c'est la seule façon de pêcher sans
+# repasser par le sac, fidèle au bouton Select des vrais jeux.
+# is_busy bloque le déplacement pendant tout l'appel (y compris les messages
+# de refus) — sinon le joueur peut continuer à marcher sous la boîte de
+# dialogue, celle-ci se refermant seule quand ui_accept est repressé.
 func _use_shortcut_item(item_key: String) -> void:
+	is_busy = true
 	match item_key:
 		"bike":
-			if PlayerData.has_bike:
-				toggle_bike()
+			if not PlayerData.has_bike:
+				await _say_line("Tu n'as pas de Vélo.")
+			elif not PlayerData.is_biking and is_indoors():
+				await _say_line("Impossible de faire du vélo ici.")
 			else:
-				_say_line("Tu n'as pas de Vélo.")
+				toggle_bike()
 		"pokedex":
 			if PlayerData.camille_zone1_done:
 				await _open_pokedex_screen()
 			else:
-				_say_line("Tu n'as pas de Pokédex.")
+				await _say_line("Tu n'as pas de Pokédex.")
 		"surf":
-			if PlayerData.has_surf:
-				PlayerData.preferred_water_tool = "surf"
-				_say_line("Surf sélectionné comme outil actif face à l'eau.")
+			if not PlayerData.has_surf:
+				await _say_line("Tu n'as pas de planche de Surf.")
+			elif is_surfing:
+				await _say_line("Tu surfes déjà.")
+			elif not _is_facing_water():
+				await _say_line("Il n'y a pas d'eau ici.")
 			else:
-				_say_line("Tu n'as pas de planche de Surf.")
+				await _start_surfing()
 		"rod":
-			if PlayerData.has_fishing_rod:
-				PlayerData.preferred_water_tool = "rod"
-				_say_line("Canne à pêche sélectionnée comme outil actif face à l'eau.")
+			if not PlayerData.has_fishing_rod:
+				await _say_line("Tu n'as pas de canne à pêche.")
+			elif not _can_fish_here():
+				await _say_line("Il n'y a pas d'eau ici.")
 			else:
-				_say_line("Tu n'as pas de canne à pêche.")
+				await _start_fishing()
 		"map":
 			await _open_region_map_screen()
+	is_busy = false
+
+# Vrai partout où l'intérieur/l'extérieur compte (Vélo) : même métadonnée que
+# le bandeau de nom de carte (root.get_meta("show_map_name"), voir
+# _read_map_meta()) — false pour les bâtiments/grottes (MAP_TYPE_INDOOR).
+func is_indoors() -> bool:
+	return not show_map_name
+
+func _tile_under_player() -> Vector2i:
+	return Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))
+
+# Face à l'eau, prêt à surfer — is_surfing (déjà sur l'eau) est vérifié à part
+# par l'appelant.
+func _is_facing_water() -> bool:
+	return _is_water(_tile_under_player() + _facing_offset(facing))
+
+# Peut lancer la Canne à pêche : déjà sur l'eau (en Surf) ou face à l'eau
+# depuis la terre ferme.
+func _can_fish_here() -> bool:
+	return is_surfing or _is_facing_water()
 
 func _open_pokedex_screen() -> void:
 	is_busy = true
@@ -938,6 +965,23 @@ func _say_line(text: String) -> void:
 	await dialogue.finished
 	dialogue.queue_free()
 
+# Points d'entrée publics pour le sac (scripts/bag.gd, "Utiliser" sur Surf/
+# Canne) : mêmes contraintes que la touche d'action/le raccourci (voir
+# can_use_surf_here()/can_use_rod_here()), à vérifier par l'appelant AVANT de
+# fermer le sac, pour pouvoir afficher un message d'erreur sans avoir à le
+# rouvrir.
+func can_use_surf_here() -> bool:
+	return PlayerData.has_surf and not is_surfing and _is_facing_water()
+
+func can_use_rod_here() -> bool:
+	return PlayerData.has_fishing_rod and _can_fish_here()
+
+func start_surfing_from_bag() -> void:
+	await _start_surfing()
+
+func start_fishing_from_bag() -> void:
+	await _start_fishing()
+
 # Surf (test, voir acte1-parc-safari.md) : confirmation Oui/Non avant de se
 # lancer (fidèle FRLG, évite un faux clic), la descente reste automatique dès
 # qu'on retouche terre (voir _move_toward_target()). Vrai sprite FRLG
@@ -988,7 +1032,12 @@ func _start_surfing() -> void:
 # Canne à pêche (test, voir acte1-parc-safari.md) : lancer de ligne, attente,
 # touche aléatoire, puis fenêtre courte pour ferrer avant que le poisson ne
 # reparte — fidèle à la structure du vrai jeu (une seule canne pour
-# l'instant, pas de distinction Vieille Canne/Canne Suprême).
+# l'instant, pas de distinction Vieille Canne/Canne Suprême). Fonctionne aussi
+# en Surf (raccourci uniquement, voir _use_shortcut_item()) : on réutilise
+# volontairement l'anim de pêche "à pied" telle quelle — la décompilation
+# FireRed/LeafGreen ne contient aucun sprite dédié pêche+Surf, le vrai jeu
+# fait exactement pareil (on quitte visuellement la planche le temps de
+# pêcher, _update_movement_sprite() la restaure après via _end_fishing()).
 const FISH_BITE_CHANCE := 0.5
 const FISH_HOOK_WINDOW := 1.5   # secondes pour appuyer une fois la touche affichée
 

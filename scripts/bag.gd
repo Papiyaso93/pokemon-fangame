@@ -21,12 +21,12 @@ const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Rare
 
 # Libellé de l'action "utiliser" par objet rare (voir _on_key_item_selected) —
 # le Vélo n'y est pas : son libellé dépend de l'état (monter/descendre),
-# calculé à la volée.
+# calculé à la volée. Surf/Canne utilisent le "Utiliser" par défaut (voir plus
+# bas) : ça déclenche directement l'action, comme un raccourci (décidé le
+# 13/07/2026 — plus de "outil actif", voir _use_key_item()).
 const KEY_ITEM_USE_LABELS := {
 	"pokedex": "Ouvrir",
 	"map": "Ouvrir",
-	"surf": "Choisir comme outil actif pour l'eau",
-	"rod": "Choisir comme outil actif pour l'eau",
 }
 
 # Soulignement façon onglet de navigateur : une bordure basse pleine sur
@@ -133,14 +133,6 @@ func _update_tabs() -> void:
 	item_list.visible = (in_key_pocket or in_items_pocket) and has_any_item
 	empty_label.visible = not item_list.visible
 
-	# Si on a les deux objets d'eau, celui actuellement actif (voir
-	# PlayerData.preferred_water_tool) reste en pleine opacité, l'autre se
-	# dim comme un onglet inactif (même TabDimAlpha) — seul indice visuel
-	# qu'appuyer dessus l'active.
-	var both_water_tools := surf_button.visible and rod_button.visible
-	surf_button.modulate.a = 1.0 if (not both_water_tools or PlayerData.preferred_water_tool == "surf") else TabDimAlpha
-	rod_button.modulate.a = 1.0 if (not both_water_tools or PlayerData.preferred_water_tool == "rod") else TabDimAlpha
-
 	# Focus clavier par défaut sur la première entrée visible de la poche
 	# courante (recalculé à chaque changement de poche/état, la liste visible
 	# n'étant pas figée).
@@ -206,22 +198,50 @@ func _on_key_item_selected(item_key: String) -> void:
 # pause_menu.gd. Logique réelle partagée avec le raccourci clavier
 # (player.gd::toggle_bike()). Pokédex/Carte : rouvrent l'écran existant, on
 # reste dans le sac une fois refermés (comme avant cette fonctionnalité).
-# Surf/Canne : deviennent l'outil actif pour l'eau, on reste dans le sac.
+# Surf/Canne : déclenchent directement l'action (comme le raccourci clavier,
+# voir player.gd::_use_shortcut_item()) — même contraintes de terrain (face à
+# l'eau) qu'ailleurs, un refus affiche un message et laisse le sac ouvert.
 func _use_key_item(item_key: String) -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	if not player:
+		return
 	match item_key:
 		"bike":
-			var player := get_tree().get_first_node_in_group("player")
-			if player:
-				player.toggle_bike()
+			if not PlayerData.is_biking and player.is_indoors():
+				await _show_blocking_message("Impossible de faire du vélo ici.")
+				window_center.visible = true
+				_update_tabs()
+				return
+			player.toggle_bike()
 			item_used.emit()
 			queue_free()
 		"pokedex":
 			_on_pokedex_pressed()
 		"map":
 			_on_map_pressed()
-		"surf", "rod":
-			PlayerData.preferred_water_tool = item_key
-			_update_tabs()
+		"surf":
+			if player.is_surfing:
+				await _show_blocking_message("Tu surfes déjà.")
+				window_center.visible = true
+				_update_tabs()
+				return
+			if not player.can_use_surf_here():
+				await _show_blocking_message("Il n'y a pas d'eau ici.")
+				window_center.visible = true
+				_update_tabs()
+				return
+			item_used.emit()
+			queue_free()
+			player.start_surfing_from_bag()
+		"rod":
+			if not player.can_use_rod_here():
+				await _show_blocking_message("Il n'y a pas d'eau ici.")
+				window_center.visible = true
+				_update_tabs()
+				return
+			item_used.emit()
+			queue_free()
+			player.start_fishing_from_bag()
 
 # Choix de la touche (1-4) à laquelle assigner cet objet — affiche l'objet
 # déjà en place sur chaque touche, le cas échéant (voir KeyBindings.assign_item :

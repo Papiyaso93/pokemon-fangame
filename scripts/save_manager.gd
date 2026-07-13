@@ -92,7 +92,6 @@ func save_to_slot(n: int) -> void:
 		"has_surf": PlayerData.has_surf,
 		"has_bike": PlayerData.has_bike,
 		"is_biking": PlayerData.is_biking,
-		"preferred_water_tool": PlayerData.preferred_water_tool,
 		"park_handoff_done": PlayerData.park_handoff_done,
 		"repel_count": PlayerData.repel_count,
 		"repel_steps_remaining": PlayerData.repel_steps_remaining,
@@ -135,7 +134,6 @@ func load_from_slot(n: int) -> void:
 	PlayerData.has_surf = bool(data.get("has_surf", false))
 	PlayerData.has_bike = bool(data.get("has_bike", false))
 	PlayerData.is_biking = bool(data.get("is_biking", false))
-	PlayerData.preferred_water_tool = String(data.get("preferred_water_tool", "surf"))
 	PlayerData.park_handoff_done = bool(data.get("park_handoff_done", false))
 	PlayerData.repel_count = int(data.get("repel_count", 0))
 	PlayerData.repel_steps_remaining = int(data.get("repel_steps_remaining", 0))

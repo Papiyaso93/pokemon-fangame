@@ -50,12 +50,6 @@ var has_bike := false          # Camille, zone 2
 # automatiquement sur terre ferme.
 var is_biking := false
 
-# "surf" ou "rod" : lequel utiliser en faisant face à l'eau quand on a les
-# deux objets à la fois (voir scripts/player.gd::_try_interact). Choisi
-# depuis le sac (scripts/bag.gd, boutons Surf/Canne) — sans ça, un seul des
-# deux serait jamais utilisable une fois qu'on possède l'autre.
-var preferred_water_tool := "surf"
-
 # true une fois qu'Anselme a remis la canne à pêche + les Safari Balls et
 # débloqué les rencontres sauvages dans le parc (PARK_HANDOFF, beat 3b —
 # voir scripts/npc_anselme_park.gd). Source de vérité persistée pour
