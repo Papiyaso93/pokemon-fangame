@@ -22,6 +22,15 @@ func _ready() -> void:
 	window.visible = false
 
 func setup(options: Array) -> void:
+	# Fond vide façon liste (pas le bouton gris par défaut du moteur) — même
+	# esprit que ItemButtonTheme dans bag.tscn, mais appliqué en code puisque
+	# ces boutons sont créés dynamiquement.
+	var empty_style := StyleBoxEmpty.new()
+	empty_style.content_margin_left = 8.0
+	empty_style.content_margin_top = 4.0
+	empty_style.content_margin_right = 8.0
+	empty_style.content_margin_bottom = 4.0
+
 	var first_button: Button = null
 	for option in options:
 		var opt: Dictionary = option
@@ -32,6 +41,8 @@ func setup(options: Array) -> void:
 		btn.expand_icon = false
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.icon = BlankTexture
+		for state in ["normal", "hover", "pressed", "focus"]:
+			btn.add_theme_stylebox_override(state, empty_style)
 		# Même principe que partout ailleurs : le survol souris déplace le
 		# focus clavier au lieu de gérer sa propre flèche (évite le double
 		# affichage si souris et clavier ne pointent pas le même bouton).

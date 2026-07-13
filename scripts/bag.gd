@@ -129,12 +129,15 @@ func _on_item_selected(item_key: String) -> void:
 	var use_label := "Utiliser"
 	if item_key == "bike":
 		use_label = "Descendre du vélo" if PlayerData.is_biking else "Monter à vélo"
-	window_center.visible = false
+	# Le menu du sac reste affiché derrière (pas de root.visible/window_center
+	# masqué ici) : la fenêtre de choix se pose par-dessus, comme les autres
+	# choix qui accompagnent un dialogue ailleurs dans le jeu.
 	var picker := ListPickerScene.instantiate()
 	get_tree().root.add_child(picker)
 	picker.setup([
 		{"label": use_label, "value": "use"},
 		{"label": "Assigner un raccourci", "value": "assign"},
+		{"label": "Annuler", "value": "cancel"},
 	])
 	var action = await picker.chosen
 	picker.queue_free()
@@ -144,7 +147,6 @@ func _on_item_selected(item_key: String) -> void:
 		"assign":
 			await _assign_item_shortcut(item_key)
 		_:
-			window_center.visible = true
 			_update_tabs()
 
 # Vélo : bascule monter/descendre (pas de confirmation, contrairement au Surf
@@ -186,6 +188,7 @@ func _assign_item_shortcut(item_key: String) -> void:
 		if current_item != "":
 			label += " — actuellement : %s" % String(KeyBindings.ITEMS.get(current_item, ""))
 		options.append({"label": label, "value": i})
+	options.append({"label": "Annuler", "value": null})
 	var picker := ListPickerScene.instantiate()
 	get_tree().root.add_child(picker)
 	picker.setup(options)
