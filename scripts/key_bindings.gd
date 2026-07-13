@@ -77,7 +77,13 @@ func _apply_binding(slot: int, physical_keycode: int) -> void:
 	InputMap.action_erase_events(action_name(slot))
 	InputMap.action_add_event(action_name(slot), event)
 
+# Un objet ne peut être assigné qu'à un seul raccourci à la fois : l'assigner
+# à un nouveau slot le retire de l'ancien (pas de doublon silencieux).
 func assign_item(slot: int, item_key: String) -> void:
+	if item_key != "":
+		for i in range(SLOT_COUNT):
+			if i != slot and slot_items[i] == item_key:
+				slot_items[i] = ""
 	slot_items[slot] = item_key
 	_save()
 

@@ -65,19 +65,10 @@ layout_mode = 2
 custom_minimum_size = Vector2(90, 0)
 text = "Touche 1"
 
-[node name="ItemLeft" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
 layout_mode = 2
-text = "<"
-
-[node name="ItemLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row1"]
-layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
-horizontal_alignment = 1
+custom_minimum_size = Vector2(150, 0)
 text = "(aucun)"
-
-[node name="ItemRight" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
-layout_mode = 2
-text = ">"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
 layout_mode = 2
@@ -93,19 +84,10 @@ layout_mode = 2
 custom_minimum_size = Vector2(90, 0)
 text = "Touche 2"
 
-[node name="ItemLeft" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
 layout_mode = 2
-text = "<"
-
-[node name="ItemLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row2"]
-layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
-horizontal_alignment = 1
+custom_minimum_size = Vector2(150, 0)
 text = "(aucun)"
-
-[node name="ItemRight" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
-layout_mode = 2
-text = ">"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
 layout_mode = 2
@@ -121,19 +103,10 @@ layout_mode = 2
 custom_minimum_size = Vector2(90, 0)
 text = "Touche 3"
 
-[node name="ItemLeft" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
 layout_mode = 2
-text = "<"
-
-[node name="ItemLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row3"]
-layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
-horizontal_alignment = 1
+custom_minimum_size = Vector2(150, 0)
 text = "(aucun)"
-
-[node name="ItemRight" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
-layout_mode = 2
-text = ">"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
 layout_mode = 2
@@ -149,19 +122,10 @@ layout_mode = 2
 custom_minimum_size = Vector2(90, 0)
 text = "Touche 4"
 
-[node name="ItemLeft" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
 layout_mode = 2
-text = "<"
-
-[node name="ItemLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row4"]
-layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
-horizontal_alignment = 1
+custom_minimum_size = Vector2(150, 0)
 text = "(aucun)"
-
-[node name="ItemRight" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
-layout_mode = 2
-text = ">"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
 layout_mode = 2

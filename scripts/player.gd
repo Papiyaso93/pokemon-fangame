@@ -276,8 +276,8 @@ func toggle_bike() -> void:
 	_update_movement_sprite()
 
 # État seul (pas d'affichage) : voir use_repel() pour l'appel direct depuis
-# le jeu (raccourci clavier) et bag.gd::_on_repel_pressed() pour l'appel
-# depuis le sac — chacun garde son propre mécanisme de dialogue (celui du sac
+# le jeu (raccourci clavier) et bag.gd::_use_item() pour l'appel depuis le
+# sac — chacun garde son propre mécanisme de dialogue (celui du sac
 # doit rester par-dessus sa propre fenêtre, voir bag.gd::_show_blocking_
 # message ; celui-ci, ajouté à current_scene comme tout dialogue overworld,
 # ne doit pas passer par ici pour éviter un souci d'ordre d'affichage).

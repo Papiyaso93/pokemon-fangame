@@ -8,11 +8,13 @@ extends CanvasLayer
 signal closed
 
 const ROW_COUNT := 4
+const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
 
 @onready var root: Control = $Root
+@onready var window_center: CenterContainer = $Root/Center
 @onready var error_label: Label = $Root/Center/Window/VBox/ErrorLabel
 
-var item_labels: Array[Label] = []
+var item_buttons: Array[Button] = []
 var key_buttons: Array[Button] = []
 
 var capturing_slot := -1   # -1 = pas en train de capturer une touche
@@ -20,12 +22,11 @@ var capturing_slot := -1   # -1 = pas en train de capturer une touche
 func _ready() -> void:
 	for i in ROW_COUNT:
 		var row := get_node("Root/Center/Window/VBox/Rows/Row%d" % (i + 1))
-		var item_label: Label = row.get_node("ItemLabel")
+		var item_button: Button = row.get_node("ItemButton")
 		var key_button: Button = row.get_node("KeyButton")
-		item_labels.append(item_label)
+		item_buttons.append(item_button)
 		key_buttons.append(key_button)
-		row.get_node("ItemLeft").pressed.connect(_cycle_item.bind(i, -1))
-		row.get_node("ItemRight").pressed.connect(_cycle_item.bind(i, 1))
+		item_button.pressed.connect(_pick_item.bind(i))
 		key_button.pressed.connect(_start_capture.bind(i))
 	_refresh_all()
 
@@ -35,17 +36,26 @@ func _refresh_all() -> void:
 
 func _refresh_row(slot: int) -> void:
 	var item_key: String = KeyBindings.slot_items[slot]
-	item_labels[slot].text = String(KeyBindings.ITEMS.get(item_key, "(aucun)"))
+	item_buttons[slot].text = String(KeyBindings.ITEMS.get(item_key, "(aucun)"))
 	if capturing_slot != slot:
 		key_buttons[slot].text = KeyBindings.key_label(slot)
 
-func _cycle_item(slot: int, direction: int) -> void:
-	var keys := KeyBindings.ITEMS.keys()
-	var current: String = KeyBindings.slot_items[slot]
-	var idx := keys.find(current)
-	idx = (idx + direction + keys.size()) % keys.size()
-	KeyBindings.assign_item(slot, keys[idx])
-	_refresh_row(slot)
+# Même petite liste de choix que bag.gd (scripts/list_picker.gd) : tous les
+# objets assignables, "(aucun)" inclus pour libérer le raccourci.
+func _pick_item(slot: int) -> void:
+	var options := []
+	for item_key in KeyBindings.ITEMS:
+		options.append({"label": String(KeyBindings.ITEMS[item_key]), "value": item_key})
+	window_center.visible = false
+	var picker := ListPickerScene.instantiate()
+	get_tree().root.add_child(picker)
+	picker.setup(options)
+	var chosen_key = await picker.chosen
+	picker.queue_free()
+	window_center.visible = true
+	if chosen_key != null:
+		KeyBindings.assign_item(slot, String(chosen_key))
+		_refresh_all()   # l'objet a pu disparaître d'un autre slot (voir assign_item)
 
 func _start_capture(slot: int) -> void:
 	capturing_slot = slot

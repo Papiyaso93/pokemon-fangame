@@ -1,0 +1,35 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/list_picker.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_window"]
+[ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="3_theme"]
+
+[sub_resource type="StyleBoxTexture" id="WindowStyle"]
+texture = ExtResource("2_window")
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[node name="ListPicker" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+theme = ExtResource("3_theme")
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Window" type="PanelContainer" parent="Root"]
+theme_override_styles/panel = SubResource("WindowStyle")
+
+[node name="VBox" type="VBoxContainer" parent="Root/Window"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Buttons" type="VBoxContainer" parent="Root/Window/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4

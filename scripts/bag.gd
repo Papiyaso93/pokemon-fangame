@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 signal closed
-signal item_used   # utiliser un objet consommable ferme tout (sac + appelant), voir _on_repel_pressed
+signal item_used   # utiliser un objet consommable ferme tout (sac + appelant), voir _use_item()
 
 # Sac (test) — v1 volontairement vide : juste la navigation entre les 5
 # poches (voir BagData), pas encore d'objets ni de vrai inventaire (cf.
@@ -13,6 +13,7 @@ const TabDimAlpha := 0.5
 const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
 const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
+const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
 const ITEMS_POCKET_INDEX := 0       # cf. BagData.POCKETS — poche "Objets"
 const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Rares"
 
@@ -69,8 +70,8 @@ func _ready() -> void:
 	pokedex_button.pressed.connect(_on_pokedex_pressed)
 	surf_button.pressed.connect(_on_water_tool_pressed.bind("surf"))
 	rod_button.pressed.connect(_on_water_tool_pressed.bind("rod"))
-	repel_button.pressed.connect(_on_repel_pressed)
-	bike_button.pressed.connect(_on_bike_pressed)
+	repel_button.pressed.connect(_on_item_selected.bind("repel"))
+	bike_button.pressed.connect(_on_item_selected.bind("bike"))
 	map_button.pressed.connect(_on_map_pressed)
 	_update_tabs()
 
@@ -120,30 +121,51 @@ func _on_water_tool_pressed(tool_name: String) -> void:
 	PlayerData.preferred_water_tool = tool_name
 	_update_tabs()
 
-# Bascule monter/descendre (pas de confirmation, contrairement au Surf qui
-# demande "Tu veux surfer ?" — le vélo est réversible et sans risque). Ferme
-# tout comme un objet consommable : pas de raison de traîner dans le sac une
-# fois qu'on vient de changer de mode de déplacement. Logique réelle partagée
-# avec le raccourci clavier, voir player.gd::toggle_bike().
-func _on_bike_pressed() -> void:
-	var player := get_tree().get_first_node_in_group("player")
-	if player:
-		player.toggle_bike()
-	item_used.emit()
-	queue_free()
+# Sélectionner Vélo/Répulsif ouvre un petit menu "Utiliser"/"Assigner un
+# raccourci" (comme Utiliser/Donner/Enregistrer dans le sac des vrais jeux
+# Pokémon) plutôt que de déclencher l'action directement — nécessaire pour
+# offrir l'assignation de raccourci sans dupliquer un bouton par ligne.
+func _on_item_selected(item_key: String) -> void:
+	var use_label := "Utiliser"
+	if item_key == "bike":
+		use_label = "Descendre du vélo" if PlayerData.is_biking else "Monter à vélo"
+	window_center.visible = false
+	var picker := ListPickerScene.instantiate()
+	get_tree().root.add_child(picker)
+	picker.setup([
+		{"label": use_label, "value": "use"},
+		{"label": "Assigner un raccourci", "value": "assign"},
+	])
+	var action = await picker.chosen
+	picker.queue_free()
+	match action:
+		"use":
+			await _use_item(item_key)
+		"assign":
+			await _assign_item_shortcut(item_key)
+		_:
+			window_center.visible = true
+			_update_tabs()
 
-# Consommable (contrairement au Surf/à la canne) : un vrai usage réussi ferme
-# tout d'un coup (sac + menu pause appelant), pas de raison de laisser le
-# joueur traîner dans un menu une fois l'effet lancé — voir item_used, géré
-# par pause_menu.gd. Un usage refusé (déjà actif) ne change rien : on reste
-# dans le sac, rien n'a été consommé. État réel partagé avec le raccourci
-# clavier (player.gd::apply_repel_effect()), mais l'affichage du message
-# reste local au sac (garde le fond bleu visible derrière, voir
-# _show_blocking_message) plutôt que de passer par le dialogue overworld.
-func _on_repel_pressed() -> void:
+# Vélo : bascule monter/descendre (pas de confirmation, contrairement au Surf
+# qui demande "Tu veux surfer ?" — le vélo est réversible et sans risque).
+# Répulsif : consommable, un usage refusé (déjà actif/plus aucun) ne change
+# rien, on reste dans le sac. Dans les deux cas, un vrai usage réussi ferme
+# tout d'un coup (sac + menu pause appelant) — voir item_used, géré par
+# pause_menu.gd. Logique réelle partagée avec le raccourci clavier
+# (player.gd::toggle_bike()/apply_repel_effect()).
+func _use_item(item_key: String) -> void:
 	var player := get_tree().get_first_node_in_group("player")
 	if not player:
+		window_center.visible = true
+		_update_tabs()
 		return
+	if item_key == "bike":
+		player.toggle_bike()
+		item_used.emit()
+		queue_free()
+		return
+	# "repel"
 	var result: Dictionary = player.apply_repel_effect()
 	await _show_blocking_message(String(result["message"]))
 	if result["consumed"]:
@@ -153,10 +175,32 @@ func _on_repel_pressed() -> void:
 		window_center.visible = true
 		_update_tabs()
 
+# Choix de la touche (1-4) à laquelle assigner cet objet — affiche l'objet
+# déjà en place sur chaque touche, le cas échéant (voir KeyBindings.assign_item :
+# le retire automatiquement de son ancien raccourci s'il en avait un).
+func _assign_item_shortcut(item_key: String) -> void:
+	var options := []
+	for i in range(KeyBindings.SLOT_COUNT):
+		var current_item: String = KeyBindings.slot_items[i]
+		var label := "Touche %s" % KeyBindings.key_label(i)
+		if current_item != "":
+			label += " — actuellement : %s" % String(KeyBindings.ITEMS.get(current_item, ""))
+		options.append({"label": label, "value": i})
+	var picker := ListPickerScene.instantiate()
+	get_tree().root.add_child(picker)
+	picker.setup(options)
+	var slot = await picker.chosen
+	picker.queue_free()
+	if slot != null:
+		KeyBindings.assign_item(int(slot), item_key)
+		await _show_blocking_message("Raccourci assigné à la touche %s !" % KeyBindings.key_label(int(slot)))
+	window_center.visible = true
+	_update_tabs()
+
 # Ne masque que la fenêtre (pas tout `root`) : le fond bleu du sac reste
 # visible derrière le message, moins bizarre que de révéler le jeu par
 # transparence — surtout que dans le cas "déjà actif" on revient dessus juste
-# après (voir _on_repel_pressed).
+# après (voir _use_item()).
 func _show_blocking_message(text: String) -> void:
 	window_center.visible = false
 	var dialogue := DialogueBoxScene.instantiate()
