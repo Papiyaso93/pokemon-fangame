@@ -14,12 +14,17 @@ const SETTINGS_PATH := "user://keybindings.json"
 const SLOT_COUNT := 4
 
 # Objets assignables à un raccourci : clé interne -> libellé affiché dans
-# l'écran Options. "" = aucun objet assigné à ce slot. Liste ouverte, à
-# étendre à mesure que de nouveaux objets rapides existent.
+# l'écran Options. "" = aucun objet assigné à ce slot. Uniquement les objets
+# rares (décidé le 13/07/2026) : les consommables (Répulsif...) ne se
+# raccourcissent pas, seulement les objets qu'on garde et ressort souvent.
+# Liste ouverte, à étendre à mesure que de nouveaux objets rares existent.
 const ITEMS := {
 	"": "(aucun)",
+	"pokedex": "Pokédex",
+	"surf": "Planche de Surf",
+	"rod": "Canne à pêche",
 	"bike": "Vélo",
-	"repel": "Répulsif",
+	"map": "Carte",
 }
 
 # Touches déjà utilisées ailleurs (déplacement/validation/annulation) —
@@ -97,7 +102,11 @@ func _load() -> void:
 		return
 	var items: Array = parsed.get("slot_items", [])
 	for i in range(mini(SLOT_COUNT, items.size())):
-		slot_items[i] = String(items[i])
+		var item_key := String(items[i])
+		# Objet devenu invalide entre-temps (ex. Répulsif, plus assignable
+		# depuis le 13/07/2026) : on libère le slot plutôt que de garder une
+		# clé fantôme.
+		slot_items[i] = item_key if ITEMS.has(item_key) else ""
 	var codes: Array = parsed.get("physical_keycodes", [])
 	for i in range(mini(SLOT_COUNT, codes.size())):
 		var code := int(codes[i])

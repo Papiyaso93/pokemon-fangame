@@ -14,6 +14,8 @@ const BattleTransitionScene := preload("res://scenes/ui/battle_transition.tscn")
 const LocationBannerScene := preload("res://scenes/ui/location_banner.tscn")
 const PauseMenuScene := preload("res://scenes/ui/pause_menu.tscn")
 const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
+const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
+const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
 
 # Directions opposées, utilisé pour valider la réciprocité d'une connexion
@@ -275,12 +277,9 @@ func toggle_bike() -> void:
 	PlayerData.is_biking = not PlayerData.is_biking
 	_update_movement_sprite()
 
-# État seul (pas d'affichage) : voir use_repel() pour l'appel direct depuis
-# le jeu (raccourci clavier) et bag.gd::_use_item() pour l'appel depuis le
-# sac — chacun garde son propre mécanisme de dialogue (celui du sac
-# doit rester par-dessus sa propre fenêtre, voir bag.gd::_show_blocking_
-# message ; celui-ci, ajouté à current_scene comme tout dialogue overworld,
-# ne doit pas passer par ici pour éviter un souci d'ordre d'affichage).
+# État seul (pas d'affichage) : le Répulsif n'est plus assignable à un
+# raccourci clavier (voir KeyBindings.ITEMS, décidé le 13/07/2026 — seuls les
+# objets rares le sont), donc appelé uniquement depuis bag.gd::_on_repel_pressed().
 # "consumed" = true si effectivement utilisé, false si rien n'a changé
 # (déjà actif, ou plus aucun Répulsif) — "message" à afficher dans tous les cas.
 func apply_repel_effect() -> Dictionary:
@@ -291,16 +290,6 @@ func apply_repel_effect() -> Dictionary:
 	PlayerData.repel_count -= 1
 	PlayerData.repel_steps_remaining = PlayerData.REPEL_DURATION_STEPS
 	return {"consumed": true, "message": "Tu utilises un Répulsif ! Les Pokémon sauvages t'éviteront pendant un moment."}
-
-# Utilisation directe depuis le jeu (raccourci clavier, voir
-# _check_item_shortcuts()) : affiche le message via le dialogue overworld
-# habituel (_say_line, current_scene).
-func use_repel() -> void:
-	var result := apply_repel_effect()
-	is_busy = true
-	await _say_line(String(result["message"]))
-	is_busy = false
-	interact_cooldown = 0.2
 
 func _read_map_meta() -> void:
 	var root := get_parent()
@@ -691,6 +680,9 @@ func _check_item_shortcuts() -> bool:
 			return true
 	return false
 
+# Seuls les objets rares sont assignables à un raccourci (décidé le
+# 13/07/2026, voir KeyBindings.ITEMS) — les consommables (Répulsif) ne le
+# sont plus, ils restent accessibles seulement depuis le sac.
 func _use_shortcut_item(item_key: String) -> void:
 	match item_key:
 		"bike":
@@ -698,8 +690,43 @@ func _use_shortcut_item(item_key: String) -> void:
 				toggle_bike()
 			else:
 				_say_line("Tu n'as pas de Vélo.")
-		"repel":
-			use_repel()
+		"pokedex":
+			if PlayerData.camille_zone1_done:
+				await _open_pokedex_screen()
+			else:
+				_say_line("Tu n'as pas de Pokédex.")
+		"surf":
+			if PlayerData.has_surf:
+				PlayerData.preferred_water_tool = "surf"
+				_say_line("Surf sélectionné comme outil actif face à l'eau.")
+			else:
+				_say_line("Tu n'as pas de planche de Surf.")
+		"rod":
+			if PlayerData.has_fishing_rod:
+				PlayerData.preferred_water_tool = "rod"
+				_say_line("Canne à pêche sélectionnée comme outil actif face à l'eau.")
+			else:
+				_say_line("Tu n'as pas de canne à pêche.")
+		"map":
+			await _open_region_map_screen()
+
+func _open_pokedex_screen() -> void:
+	is_busy = true
+	var screen := PokedexScreenScene.instantiate()
+	get_tree().current_scene.add_child(screen)
+	await screen.closed
+	screen.queue_free()
+	is_busy = false
+	interact_cooldown = 0.2
+
+func _open_region_map_screen() -> void:
+	is_busy = true
+	var screen := RegionMapScene.instantiate()
+	get_tree().current_scene.add_child(screen)
+	await screen.closed
+	screen.queue_free()
+	is_busy = false
+	interact_cooldown = 0.2
 
 func _talk_to(npc: Node, player_tile: Vector2i) -> void:
 	if npc.has_method("face_toward"):

@@ -1,7 +1,7 @@
 extends CanvasLayer
 
 signal closed
-signal item_used   # utiliser un objet consommable ferme tout (sac + appelant), voir _use_item()
+signal item_used   # utiliser un objet consommable ferme tout (sac + appelant), voir _use_key_item()/_on_repel_pressed()
 
 # Sac (test) — v1 volontairement vide : juste la navigation entre les 5
 # poches (voir BagData), pas encore d'objets ni de vrai inventaire (cf.
@@ -14,8 +14,20 @@ const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
 const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
+const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
+const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const ITEMS_POCKET_INDEX := 0       # cf. BagData.POCKETS — poche "Objets"
 const KEY_ITEMS_POCKET_INDEX := 1   # cf. BagData.POCKETS — poche "Objets Rares"
+
+# Libellé de l'action "utiliser" par objet rare (voir _on_key_item_selected) —
+# le Vélo n'y est pas : son libellé dépend de l'état (monter/descendre),
+# calculé à la volée.
+const KEY_ITEM_USE_LABELS := {
+	"pokedex": "Ouvrir",
+	"map": "Ouvrir",
+	"surf": "Choisir comme outil actif pour l'eau",
+	"rod": "Choisir comme outil actif pour l'eau",
+}
 
 # Soulignement façon onglet de navigateur : une bordure basse pleine sur
 # l'onglet actif, rien du tout sur les autres (pas juste une même bordure
@@ -67,12 +79,23 @@ func _ready() -> void:
 		btn.pressed.connect(_on_tab_pressed.bind(i))
 		tabs_row.add_child(btn)
 		tab_buttons.append(btn)
-	pokedex_button.pressed.connect(_on_pokedex_pressed)
-	surf_button.pressed.connect(_on_water_tool_pressed.bind("surf"))
-	rod_button.pressed.connect(_on_water_tool_pressed.bind("rod"))
-	repel_button.pressed.connect(_on_item_selected.bind("repel"))
-	bike_button.pressed.connect(_on_item_selected.bind("bike"))
-	map_button.pressed.connect(_on_map_pressed)
+
+	repel_button.pressed.connect(_on_repel_pressed)
+	pokedex_button.pressed.connect(_on_key_item_selected.bind("pokedex"))
+	surf_button.pressed.connect(_on_key_item_selected.bind("surf"))
+	rod_button.pressed.connect(_on_key_item_selected.bind("rod"))
+	bike_button.pressed.connect(_on_key_item_selected.bind("bike"))
+	map_button.pressed.connect(_on_key_item_selected.bind("map"))
+
+	# Pointeur clavier par défaut sur les entrées d'objets (voir
+	# _update_item_focus_visuals) : même survol-souris-déplace-le-focus que
+	# partout ailleurs, pour n'avoir jamais deux flèches affichées à la fois.
+	for btn in [pokedex_button, surf_button, rod_button, repel_button, bike_button, map_button]:
+		btn.icon = BlankTexture
+		btn.mouse_entered.connect(func(): btn.grab_focus())
+		btn.focus_entered.connect(func(): btn.icon = ArrowTexture)
+		btn.focus_exited.connect(func(): btn.icon = BlankTexture)
+
 	_update_tabs()
 
 func _on_tab_pressed(index: int) -> void:
@@ -96,8 +119,9 @@ func _update_tabs() -> void:
 	surf_button.visible = in_key_pocket and PlayerData.has_surf
 	rod_button.visible = in_key_pocket and PlayerData.has_fishing_rod
 	bike_button.visible = in_key_pocket and PlayerData.has_bike
-	if bike_button.visible:
-		bike_button.text = "Descendre du vélo" if PlayerData.is_biking else "Monter à vélo"
+	# Toujours "Vélo" (pas "Monter à vélo"/"Descendre du vélo") : cette
+	# nuance vit maintenant dans le menu "Utiliser" qui s'affiche à la
+	# sélection, voir _on_key_item_selected().
 	# Carte de Kanto : pas encore de vrai flag narratif (voir
 	# acte1-parc-safari.md, "pas encore câblée") — accès "test" toujours
 	# disponible ici en attendant, comme avant dans le menu pause.
@@ -117,18 +141,45 @@ func _update_tabs() -> void:
 	surf_button.modulate.a = 1.0 if (not both_water_tools or PlayerData.preferred_water_tool == "surf") else TabDimAlpha
 	rod_button.modulate.a = 1.0 if (not both_water_tools or PlayerData.preferred_water_tool == "rod") else TabDimAlpha
 
-func _on_water_tool_pressed(tool_name: String) -> void:
-	PlayerData.preferred_water_tool = tool_name
-	_update_tabs()
+	# Focus clavier par défaut sur la première entrée visible de la poche
+	# courante (recalculé à chaque changement de poche/état, la liste visible
+	# n'étant pas figée).
+	for btn in [pokedex_button, surf_button, rod_button, bike_button, map_button, repel_button]:
+		if btn.visible:
+			btn.grab_focus()
+			break
 
-# Sélectionner Vélo/Répulsif ouvre un petit menu "Utiliser"/"Assigner un
+# Répulsif : consommable, pas assignable à un raccourci (voir
+# KeyBindings.ITEMS, décidé le 13/07/2026 — seuls les objets rares le sont)
+# donc pas de menu Utiliser/Assigner, action directe comme avant. Un usage
+# refusé (déjà actif/plus aucun) ne change rien, on reste dans le sac. Un
+# usage réussi ferme tout d'un coup (sac + menu pause appelant) — voir
+# item_used, géré par pause_menu.gd. État réel partagé avec player.gd
+# (apply_repel_effect()), affichage local au sac pour garder le fond bleu
+# visible derrière (voir _show_blocking_message).
+func _on_repel_pressed() -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	if not player:
+		return
+	var result: Dictionary = player.apply_repel_effect()
+	await _show_blocking_message(String(result["message"]))
+	if result["consumed"]:
+		item_used.emit()
+		queue_free()
+	else:
+		window_center.visible = true
+		_update_tabs()
+
+# Sélectionner un objet rare ouvre un petit menu "Utiliser"/"Assigner un
 # raccourci" (comme Utiliser/Donner/Enregistrer dans le sac des vrais jeux
 # Pokémon) plutôt que de déclencher l'action directement — nécessaire pour
 # offrir l'assignation de raccourci sans dupliquer un bouton par ligne.
-func _on_item_selected(item_key: String) -> void:
-	var use_label := "Utiliser"
+func _on_key_item_selected(item_key: String) -> void:
+	var use_label: String
 	if item_key == "bike":
 		use_label = "Descendre du vélo" if PlayerData.is_biking else "Monter à vélo"
+	else:
+		use_label = String(KEY_ITEM_USE_LABELS.get(item_key, "Utiliser"))
 	# Le menu du sac reste affiché derrière (pas de root.visible/window_center
 	# masqué ici) : la fenêtre de choix se pose par-dessus, comme les autres
 	# choix qui accompagnent un dialogue ailleurs dans le jeu.
@@ -143,39 +194,34 @@ func _on_item_selected(item_key: String) -> void:
 	picker.queue_free()
 	match action:
 		"use":
-			await _use_item(item_key)
+			await _use_key_item(item_key)
 		"assign":
 			await _assign_item_shortcut(item_key)
 		_:
 			_update_tabs()
 
 # Vélo : bascule monter/descendre (pas de confirmation, contrairement au Surf
-# qui demande "Tu veux surfer ?" — le vélo est réversible et sans risque).
-# Répulsif : consommable, un usage refusé (déjà actif/plus aucun) ne change
-# rien, on reste dans le sac. Dans les deux cas, un vrai usage réussi ferme
-# tout d'un coup (sac + menu pause appelant) — voir item_used, géré par
+# qui demande "Tu veux surfer ?" — le vélo est réversible et sans risque),
+# ferme tout d'un coup comme un objet consommable — voir item_used, géré par
 # pause_menu.gd. Logique réelle partagée avec le raccourci clavier
-# (player.gd::toggle_bike()/apply_repel_effect()).
-func _use_item(item_key: String) -> void:
-	var player := get_tree().get_first_node_in_group("player")
-	if not player:
-		window_center.visible = true
-		_update_tabs()
-		return
-	if item_key == "bike":
-		player.toggle_bike()
-		item_used.emit()
-		queue_free()
-		return
-	# "repel"
-	var result: Dictionary = player.apply_repel_effect()
-	await _show_blocking_message(String(result["message"]))
-	if result["consumed"]:
-		item_used.emit()
-		queue_free()
-	else:
-		window_center.visible = true
-		_update_tabs()
+# (player.gd::toggle_bike()). Pokédex/Carte : rouvrent l'écran existant, on
+# reste dans le sac une fois refermés (comme avant cette fonctionnalité).
+# Surf/Canne : deviennent l'outil actif pour l'eau, on reste dans le sac.
+func _use_key_item(item_key: String) -> void:
+	match item_key:
+		"bike":
+			var player := get_tree().get_first_node_in_group("player")
+			if player:
+				player.toggle_bike()
+			item_used.emit()
+			queue_free()
+		"pokedex":
+			_on_pokedex_pressed()
+		"map":
+			_on_map_pressed()
+		"surf", "rod":
+			PlayerData.preferred_water_tool = item_key
+			_update_tabs()
 
 # Choix de la touche (1-4) à laquelle assigner cet objet — affiche l'objet
 # déjà en place sur chaque touche, le cas échéant (voir KeyBindings.assign_item :
@@ -203,7 +249,7 @@ func _assign_item_shortcut(item_key: String) -> void:
 # Ne masque que la fenêtre (pas tout `root`) : le fond bleu du sac reste
 # visible derrière le message, moins bizarre que de révéler le jeu par
 # transparence — surtout que dans le cas "déjà actif" on revient dessus juste
-# après (voir _use_item()).
+# après (voir _on_repel_pressed()).
 func _show_blocking_message(text: String) -> void:
 	window_center.visible = false
 	var dialogue := DialogueBoxScene.instantiate()

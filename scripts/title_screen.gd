@@ -27,12 +27,21 @@ func _ready() -> void:
 	# inégales, signalé par Gus). Ici la flèche et un espaceur invisible de
 	# même largeur encadrent le Label au sein d'un HBoxContainer, donc le
 	# texte reste centré au milieu du bouton, marges symétriques.
+	# Le survol souris déplace le focus clavier au lieu de gérer sa propre
+	# flèche (même principe que partout ailleurs dans le jeu) : focus par
+	# défaut sur "Nouvelle partie", jouable au clavier direct sans souris.
+	var first_button: Button = null
 	for btn in $Root/Center/Window/Buttons.get_children():
 		if btn is Button:
 			var icon: TextureRect = btn.get_node("Content/Icon")
 			icon.texture = BlankTexture
-			btn.mouse_entered.connect(func(): icon.texture = ArrowTexture)
-			btn.mouse_exited.connect(func(): icon.texture = BlankTexture)
+			btn.mouse_entered.connect(func(): btn.grab_focus())
+			btn.focus_entered.connect(func(): icon.texture = ArrowTexture)
+			btn.focus_exited.connect(func(): icon.texture = BlankTexture)
+			if first_button == null:
+				first_button = btn
+	if first_button:
+		first_button.grab_focus()
 
 func _on_new_game_pressed() -> void:
 	# Pas besoin de faire choisir un slot pour une nouvelle partie : on prend
