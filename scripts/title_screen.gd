@@ -87,4 +87,9 @@ func _on_new_game_chosen(slot: int) -> void:
 	_close_slots()
 	SaveManager.current_slot = slot
 	SaveManager.play_seconds = 0.0
+	# Les raccourcis objets suivent la sauvegarde, pas l'installation (voir
+	# scripts/key_bindings.gd) — une partie qui vient de démarrer n'en garde
+	# aucun, même si PlayerData retient encore ceux d'une partie précédente
+	# chargée plus tôt dans cette session.
+	KeyBindings.reset_to_defaults()
 	get_tree().change_scene_to_file(NEW_GAME_MAP)

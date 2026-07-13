@@ -96,6 +96,8 @@ func save_to_slot(n: int) -> void:
 		"park_handoff_done": PlayerData.park_handoff_done,
 		"repel_count": PlayerData.repel_count,
 		"repel_steps_remaining": PlayerData.repel_steps_remaining,
+		"shortcut_slot_items": PlayerData.shortcut_slot_items,
+		"shortcut_keycodes": PlayerData.shortcut_keycodes,
 		"map_name": map_name,
 		"tile_x": local_tile.x,
 		"tile_y": local_tile.y,
@@ -137,6 +139,17 @@ func load_from_slot(n: int) -> void:
 	PlayerData.park_handoff_done = bool(data.get("park_handoff_done", false))
 	PlayerData.repel_count = int(data.get("repel_count", 0))
 	PlayerData.repel_steps_remaining = int(data.get("repel_steps_remaining", 0))
+	var shortcut_items: Array[String] = ["", "", "", ""]
+	var saved_shortcut_items: Array = data.get("shortcut_slot_items", [])
+	for i in range(mini(shortcut_items.size(), saved_shortcut_items.size())):
+		shortcut_items[i] = String(saved_shortcut_items[i])
+	PlayerData.shortcut_slot_items = shortcut_items
+	var shortcut_codes: Array[int] = KeyBindings.DEFAULT_KEYCODES.duplicate()
+	var saved_shortcut_codes: Array = data.get("shortcut_keycodes", [])
+	for i in range(mini(shortcut_codes.size(), saved_shortcut_codes.size())):
+		shortcut_codes[i] = int(saved_shortcut_codes[i])
+	PlayerData.shortcut_keycodes = shortcut_codes
+	KeyBindings.apply_from_player_data()
 	var seen: Array[String] = []
 	for s in data.get("pokedex_seen", []):
 		seen.append(String(s))

@@ -1,23 +1,25 @@
 extends Node
 
-# Autoload : raccourcis clavier pour utiliser des objets directement depuis
-# le jeu, sans passer par le sac (voir scenes/ui/options_menu.tscn). 4 slots
-# fixes (item_shortcut_1..4, définis dans project.godot avec les touches
-# 1/2/3/4 par défaut) — seul l'objet assigné à chaque slot et la touche
-# elle-même sont reconfigurables, pas les touches de déplacement/validation/
-# annulation (décidé le 13/07/2026, hors scope pour l'instant).
+# Autoload : raccourcis clavier pour utiliser un objet rare directement
+# depuis le jeu, sans passer par le sac (voir scenes/ui/options_menu.tscn).
+# 4 slots fixes (item_shortcut_1..4, définis dans project.godot avec les
+# touches 1/2/3/4 par défaut) — seul l'objet assigné à chaque slot et la
+# touche elle-même sont reconfigurables, pas les touches de déplacement/
+# validation/annulation (décidé le 13/07/2026, hors scope pour l'instant).
 #
-# Persisté à part de SaveManager : une touche assignée est une préférence
-# d'installation, pas une donnée de partie en cours.
+# Fait partie de la sauvegarde (PlayerData.shortcut_slot_items/
+# shortcut_keycodes, voir save_manager.gd) — PAS une préférence
+# d'installation : une nouvelle partie repart sans rien assigné, chaque
+# partie sauvegardée garde les siens (décidé le 13/07/2026, correction d'un
+# premier essai qui persistait tout le temps via un fichier à part).
 
-const SETTINGS_PATH := "user://keybindings.json"
 const SLOT_COUNT := 4
 
 # Objets assignables à un raccourci : clé interne -> libellé affiché dans
 # l'écran Options. "" = aucun objet assigné à ce slot. Uniquement les objets
-# rares (décidé le 13/07/2026) : les consommables (Répulsif...) ne se
-# raccourcissent pas, seulement les objets qu'on garde et ressort souvent.
-# Liste ouverte, à étendre à mesure que de nouveaux objets rares existent.
+# rares : les consommables (Répulsif...) ne se raccourcissent pas, seulement
+# les objets qu'on garde et ressort souvent. Liste ouverte, à étendre à
+# mesure que de nouveaux objets rares existent.
 const ITEMS := {
 	"": "(aucun)",
 	"pokedex": "Pokédex",
@@ -34,19 +36,23 @@ const RESERVED_KEYCODES := [
 	KEY_ENTER, KEY_KP_ENTER, KEY_SPACE, KEY_ESCAPE,
 ]
 
-# Objet assigné à chaque raccourci (index 0-3) — aucun par défaut, c'est au
-# joueur de choisir depuis l'écran Options.
-var slot_items: Array[String] = ["", "", "", ""]
+const DEFAULT_KEYCODES := [KEY_1, KEY_2, KEY_3, KEY_4]
+
+# Lecture seule pour les appelants externes (options_menu.gd, bag.gd) : les
+# Array étant passés par référence, ceci reflète directement
+# PlayerData.shortcut_slot_items sans le dupliquer.
+var slot_items: Array[String]:
+	get:
+		return PlayerData.shortcut_slot_items
 
 func _ready() -> void:
-	_load()
+	apply_from_player_data()
 
 func action_name(slot: int) -> String:
 	return "item_shortcut_%d" % (slot + 1)
 
 # Libellé humain de la touche actuellement assignée à un slot (pour l'écran
-# Options), ex. "1", "F", "Échap"... "(aucune)" si jamais assignée (ne devrait
-# pas arriver en pratique, chaque slot a une touche par défaut).
+# Options), ex. "1", "F", "Échap"...
 func key_label(slot: int) -> String:
 	var events := InputMap.action_get_events(action_name(slot))
 	for event in events:
@@ -74,7 +80,7 @@ func validate_new_key(slot: int, physical_keycode: int) -> String:
 
 func rebind(slot: int, physical_keycode: int) -> void:
 	_apply_binding(slot, physical_keycode)
-	_save()
+	PlayerData.shortcut_keycodes[slot] = physical_keycode
 
 func _apply_binding(slot: int, physical_keycode: int) -> void:
 	var event := InputEventKey.new()
@@ -87,40 +93,28 @@ func _apply_binding(slot: int, physical_keycode: int) -> void:
 func assign_item(slot: int, item_key: String) -> void:
 	if item_key != "":
 		for i in range(SLOT_COUNT):
-			if i != slot and slot_items[i] == item_key:
-				slot_items[i] = ""
-	slot_items[slot] = item_key
-	_save()
+			if i != slot and PlayerData.shortcut_slot_items[i] == item_key:
+				PlayerData.shortcut_slot_items[i] = ""
+	PlayerData.shortcut_slot_items[slot] = item_key
 
-func _load() -> void:
-	if not FileAccess.file_exists(SETTINGS_PATH):
-		return
-	var f := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
-	var parsed = JSON.parse_string(f.get_as_text())
-	f.close()
-	if typeof(parsed) != TYPE_DICTIONARY:
-		return
-	var items: Array = parsed.get("slot_items", [])
-	for i in range(mini(SLOT_COUNT, items.size())):
-		var item_key := String(items[i])
-		# Objet devenu invalide entre-temps (ex. Répulsif, plus assignable
-		# depuis le 13/07/2026) : on libère le slot plutôt que de garder une
-		# clé fantôme.
-		slot_items[i] = item_key if ITEMS.has(item_key) else ""
-	var codes: Array = parsed.get("physical_keycodes", [])
-	for i in range(mini(SLOT_COUNT, codes.size())):
-		var code := int(codes[i])
-		if code != 0:
-			_apply_binding(i, code)
-
-func _save() -> void:
-	var codes := []
+# Réapplique l'InputMap depuis l'état de PlayerData — à appeler après un
+# chargement de partie (voir save_manager.gd) ou au démarrage du jeu.
+# Nettoie au passage un objet devenu invalide entre-temps (ex. un ancien
+# Répulsif persisté avant que les raccourcis ne se limitent aux objets
+# rares) plutôt que de garder une clé fantôme.
+func apply_from_player_data() -> void:
 	for i in range(SLOT_COUNT):
-		codes.append(_physical_keycode(i))
-	var data := {
-		"slot_items": slot_items,
-		"physical_keycodes": codes,
-	}
-	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify(data))
-	f.close()
+		if not ITEMS.has(PlayerData.shortcut_slot_items[i]):
+			PlayerData.shortcut_slot_items[i] = ""
+	for i in range(SLOT_COUNT):
+		var code: int = PlayerData.shortcut_keycodes[i] if i < PlayerData.shortcut_keycodes.size() else 0
+		if code == 0:
+			code = DEFAULT_KEYCODES[i]
+		_apply_binding(i, code)
+
+# Nouvelle partie (voir title_screen.gd::_on_new_game_chosen()) : aucun objet
+# assigné, touches remises à 1/2/3/4.
+func reset_to_defaults() -> void:
+	PlayerData.shortcut_slot_items = ["", "", "", ""]
+	PlayerData.shortcut_keycodes = DEFAULT_KEYCODES.duplicate()
+	apply_from_player_data()

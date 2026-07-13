@@ -70,3 +70,11 @@ var park_handoff_done := false
 const REPEL_DURATION_STEPS := 100   # valeur "Répulsif" classique des jeux d'origine
 var repel_count := 0
 var repel_steps_remaining := 0
+
+# Raccourcis objets (voir scripts/key_bindings.gd) : partie de la sauvegarde,
+# PAS une préférence d'installation — une nouvelle partie repart sans aucun
+# raccourci assigné (voir title_screen.gd::_on_new_game_chosen()), chaque
+# partie sauvegardée garde les siens. "" = aucun objet sur ce slot ; les
+# touches par défaut (1/2/3/4) correspondent à KeyBindings.DEFAULT_KEYCODES.
+var shortcut_slot_items: Array[String] = ["", "", "", ""]
+var shortcut_keycodes: Array[int] = [KEY_1, KEY_2, KEY_3, KEY_4]
