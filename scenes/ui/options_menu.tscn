@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/options_menu.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="2_window"]
@@ -14,6 +14,18 @@ content_margin_left = 20.0
 content_margin_top = 16.0
 content_margin_right = 20.0
 content_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxEmpty" id="RowButton_empty"]
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[sub_resource type="Theme" id="RowButtonTheme"]
+Button/styles/normal = SubResource("RowButton_empty")
+Button/styles/hover = SubResource("RowButton_empty")
+Button/styles/pressed = SubResource("RowButton_empty")
+Button/styles/focus = SubResource("RowButton_empty")
 
 [node name="OptionsMenu" type="CanvasLayer"]
 script = ExtResource("1_script")
@@ -54,7 +66,31 @@ modulate = Color(1, 1, 1, 0.6)
 
 [node name="Rows" type="VBoxContainer" parent="Root/Center/Window/VBox"]
 layout_mode = 2
+theme = SubResource("RowButtonTheme")
 theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = ""
+
+[node name="KeyLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(120, 0)
+text = "Touche"
+modulate = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
+
+[node name="ItemLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Header"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+text = "Objet"
+modulate = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 16
 
 [node name="Row1" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
@@ -62,18 +98,18 @@ theme_override_constants/separation = 10
 
 [node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row1"]
 layout_mode = 2
-custom_minimum_size = Vector2(90, 0)
-text = "Touche 1"
-
-[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "(aucun)"
+custom_minimum_size = Vector2(40, 0)
+text = "1"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
 layout_mode = 2
-custom_minimum_size = Vector2(140, 0)
+custom_minimum_size = Vector2(120, 0)
 text = "1"
+
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row1"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+text = "(aucun)"
 
 [node name="Row2" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
@@ -81,18 +117,18 @@ theme_override_constants/separation = 10
 
 [node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row2"]
 layout_mode = 2
-custom_minimum_size = Vector2(90, 0)
-text = "Touche 2"
-
-[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "(aucun)"
+custom_minimum_size = Vector2(40, 0)
+text = "2"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
 layout_mode = 2
-custom_minimum_size = Vector2(140, 0)
+custom_minimum_size = Vector2(120, 0)
 text = "2"
+
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row2"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+text = "(aucun)"
 
 [node name="Row3" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
@@ -100,18 +136,18 @@ theme_override_constants/separation = 10
 
 [node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row3"]
 layout_mode = 2
-custom_minimum_size = Vector2(90, 0)
-text = "Touche 3"
-
-[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "(aucun)"
+custom_minimum_size = Vector2(40, 0)
+text = "3"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
 layout_mode = 2
-custom_minimum_size = Vector2(140, 0)
+custom_minimum_size = Vector2(120, 0)
 text = "3"
+
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row3"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+text = "(aucun)"
 
 [node name="Row4" type="HBoxContainer" parent="Root/Center/Window/VBox/Rows"]
 layout_mode = 2
@@ -119,18 +155,18 @@ theme_override_constants/separation = 10
 
 [node name="SlotLabel" type="Label" parent="Root/Center/Window/VBox/Rows/Row4"]
 layout_mode = 2
-custom_minimum_size = Vector2(90, 0)
-text = "Touche 4"
-
-[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
-layout_mode = 2
-custom_minimum_size = Vector2(150, 0)
-text = "(aucun)"
+custom_minimum_size = Vector2(40, 0)
+text = "4"
 
 [node name="KeyButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
 layout_mode = 2
-custom_minimum_size = Vector2(140, 0)
+custom_minimum_size = Vector2(120, 0)
 text = "4"
+
+[node name="ItemButton" type="Button" parent="Root/Center/Window/VBox/Rows/Row4"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+text = "(aucun)"
 
 [node name="ErrorLabel" type="Label" parent="Root/Center/Window/VBox"]
 layout_mode = 2
