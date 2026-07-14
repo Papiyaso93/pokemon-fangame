@@ -1145,7 +1145,13 @@ func _start_fishing() -> void:
 	var fish_tile := _tile_under_player() if is_surfing else _tile_under_player() + _facing_offset(facing)
 	var fish_table: Array = SafariEncounters.FISH.get("%s:%d" % [current_map_name, _water_zone_at(fish_tile)], [])
 	if not fish_table.is_empty():
-		_start_encounter(SafariEncounters.pick_species(fish_table))
+		# await essentiel ici : _start_fishing() est elle-même attendue par des
+		# appelants qui remettent is_busy à false une fois "terminée" (voir
+		# _use_shortcut_item()) — sans ce await, _start_fishing() rendait la
+		# main dès le DÉBUT du combat, pas à sa fin, et l'appelant redonnait le
+		# contrôle au joueur pendant que le combat tournait encore (bug remonté
+		# par Gus : prompt Surf apparu en plein combat de pêche).
+		await _start_encounter(SafariEncounters.pick_species(fish_table))
 
 # Range la canne (animation inverse du lancer) avant de rendre la main —
 # seulement si un vrai sprite de pêche est actif (sinon rien à ranger, voir
