@@ -2897,7 +2897,7 @@ const SPECIES := {
 	},
 	"lickitung": {
 		"dex_number": 108,
-		"name": "Lippoutou",
+		"name": "Excelangue",
 		"types": ["NORMAL"],
 		"base_hp": 90,
 		"base_attack": 55,
@@ -3329,7 +3329,7 @@ const SPECIES := {
 	},
 	"jynx": {
 		"dex_number": 124,
-		"name": "Lippouti",
+		"name": "Lippoutou",
 		"types": ["ICE", "PSYCHIC"],
 		"base_hp": 65,
 		"base_attack": 50,
@@ -3950,7 +3950,7 @@ const SPECIES := {
 	},
 	"dratini": {
 		"dex_number": 147,
-		"name": "Dratatin",
+		"name": "Minidraco",
 		"types": ["DRAGON"],
 		"base_hp": 41,
 		"base_attack": 64,

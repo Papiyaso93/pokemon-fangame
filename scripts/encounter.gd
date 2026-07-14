@@ -2,10 +2,10 @@ extends CanvasLayer
 
 signal finished
 
-# Espèce tirée au hasard dans SafariRoster (tous les Pokémon de base de la
-# 1ère gen, sauf légendaires — cf. safari_roster.gd) à chaque rencontre.
-# Niveau fixe 5 pour tous, pour l'instant (pas de vraie donnée de niveau par
-# zone/espèce encore).
+# Espèce imposée par l'appelant (player.gd::_start_encounter(), tirage pondéré
+# par zone — voir scripts/safari_encounters.gd) avant l'ajout à l'arbre, donc
+# déjà présente dès _ready(). Niveau fixe 5 pour tous, pour l'instant (pas de
+# vraie donnée de niveau par zone/espèce encore).
 const SPECIES_LEVEL := 5
 const SAFARI_BALL_MULTIPLIER := 1.5   # bonus Safari Ball (pret sBallCatchBonuses = 15/10)
 
@@ -61,7 +61,6 @@ const ESCAPE_MESSAGES := [
 ]
 
 func _ready() -> void:
-	species_key = SafariRoster.base_species().pick_random()
 	var sp: Dictionary = SpeciesData.SPECIES[species_key]
 	species_name = sp["name"]
 	species_catch_rate = float(sp["catch_rate"])
