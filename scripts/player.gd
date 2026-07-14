@@ -17,6 +17,9 @@ const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
 const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
 const RegionMapScene := preload("res://scenes/ui/region_map.tscn")
 const ENCOUNTER_CHANCE := 0.10   # par pas dans les hautes herbes (valeur ajustable)
+const SURF_ENCOUNTER_CHANCE := 0.02   # par pas en Surf, ~10x plus rare que l'herbe
+										# (fidèle au ratio land/water du vrai jeu, voir
+										# pret src/data/wild_encounters.json)
 
 # Directions opposées, utilisé pour valider la réciprocité d'une connexion
 # avant de charger une carte voisine en mode fluide (voir _load_world()).
@@ -39,8 +42,11 @@ var grass: Array = []
 var warps: Array = []
 var elevation: Array = []
 var water: Array = []
+var grass_zone: Array = []   # id de sous-zone d'herbe (1..N) par tuile, 0 = pas d'herbe
+var water_zone: Array = []   # id de plan d'eau (1..N) par tuile, 0 = pas d'eau
 var is_surfing := false
 var pending_encounter_check := false
+var pending_encounter_kind := "grass"   # "grass" ou "surf" — quelle table utiliser, voir _move_toward_target()
 var pending_repel_expired_notice := false   # voir _consume_repel_step()
 var current_speed := SPEED
 var is_jumping := false
@@ -309,6 +315,10 @@ func _read_map_meta() -> void:
 		elevation = root.get_meta("elevation")
 	if root and root.has_meta("water"):
 		water = root.get_meta("water")
+	if root and root.has_meta("grass_zone"):
+		grass_zone = root.get_meta("grass_zone")
+	if root and root.has_meta("water_zone"):
+		water_zone = root.get_meta("water_zone")
 
 # ── Transitions fluides (voir HANDOFF.md) ──────────────────────────────────
 # Au lieu de recharger la scène en franchissant un bord connecté, on charge
@@ -334,6 +344,8 @@ func _load_world() -> void:
 		"connections": connections,
 		"elevation": elevation,
 		"water": water,
+		"grass_zone": grass_zone,
+		"water_zone": water_zone,
 	}
 	zones = [origin_zone]
 	var queue: Array = [origin_zone]
@@ -532,6 +544,37 @@ func _is_water(tile: Vector2i) -> bool:
 	var arr: Array = zone.get("water", [])
 	return idx >= 0 and idx < arr.size() and bool(arr[idx])
 
+# Id de sous-zone d'herbe (1..N) sur cette case, 0 si pas d'herbe/zone introuvable
+# — voir scripts/safari_encounters.gd (clé "<carte>:<id>") pour la table de
+# rencontre associée. Généré hors-ligne (voir HANDOFF.md) depuis grass[], pas
+# recalculé à la volée.
+func _grass_zone_at(tile: Vector2i) -> int:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
+		return 0
+	var local: Vector2i = res[1]
+	var size: Vector2i = zone.size
+	if local.x < 0 or local.y < 0 or local.x >= size.x or local.y >= size.y:
+		return 0
+	var idx := local.y * size.x + local.x
+	var arr: Array = zone.get("grass_zone", [])
+	return int(arr[idx]) if idx >= 0 and idx < arr.size() else 0
+
+# Id de plan d'eau (1..N), même principe que _grass_zone_at().
+func _water_zone_at(tile: Vector2i) -> int:
+	var res := _zone_and_local_tile(tile)
+	var zone = res[0]
+	if zone == null:
+		return 0
+	var local: Vector2i = res[1]
+	var size: Vector2i = zone.size
+	if local.x < 0 or local.y < 0 or local.x >= size.x or local.y >= size.y:
+		return 0
+	var idx := local.y * size.x + local.x
+	var arr: Array = zone.get("water_zone", [])
+	return int(arr[idx]) if idx >= 0 and idx < arr.size() else 0
+
 # Élévation d'une case (0 si zone/case introuvable ou hors tableau — traité
 # comme "passe-partout", cf. _elevation_blocks()).
 func _elevation_at(tile: Vector2i) -> int:
@@ -595,7 +638,13 @@ func _entry_tile(from_dir: String, cross: int) -> Vector2i:
 		"left": return Vector2i(map_size.x - 1, cross)   # entre à droite
 		_:      return Vector2i(0, cross)                # entre à gauche
 
-var interact_cooldown := 0.0   # évite de ré-ouvrir un dialogue avec la touche qui vient de le fermer
+var interact_cooldown := 0.0   # évite de ré-ouvrir un dialogue avec la touche qui vient de le
+								# fermer, ET (voir _physics_process()) d'enchaîner un pas/demi-tour
+								# avec une touche directionnelle restée enfoncée pendant une
+								# séquence bloquante (dialogue, combat...) — sans ce délai, la
+								# touche tenue est prise en compte à la frame même où is_busy
+								# repasse à false (bug remonté par Gus : le joueur se retrouvait
+								# tourné/déplacé au retour d'une pêche, sans l'avoir demandé).
 
 func _physics_process(delta: float) -> void:
 	if interact_cooldown > 0.0:
@@ -618,7 +667,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if is_moving:
 		_move_toward_target(delta)
-	else:
+	elif interact_cooldown <= 0.0:
 		_check_input()
 
 func _input_dir() -> Vector2:
@@ -717,6 +766,7 @@ func _use_shortcut_item(item_key: String) -> void:
 		"map":
 			await _open_region_map_screen()
 	is_busy = false
+	interact_cooldown = 0.2
 
 # Vrai partout où l'intérieur/l'extérieur compte (Vélo) : même métadonnée que
 # le bandeau de nom de carte (root.get_meta("show_map_name"), voir
@@ -883,7 +933,15 @@ func _check_input() -> void:
 		is_jumping = false
 		move_target = position + motion
 		is_moving = true
-		pending_encounter_check = SafariState.active and SafariState.hunting_unlocked and PlayerData.repel_steps_remaining <= 0 and _is_grass(tgt)
+		var hunting_ready := SafariState.active and SafariState.hunting_unlocked and PlayerData.repel_steps_remaining <= 0
+		if hunting_ready and _is_grass(tgt):
+			pending_encounter_check = true
+			pending_encounter_kind = "grass"
+		elif hunting_ready and is_surfing and _is_water(tgt):
+			pending_encounter_check = true
+			pending_encounter_kind = "surf"
+		else:
+			pending_encounter_check = false
 		_consume_repel_step()
 		_play("walk")
 
@@ -935,8 +993,16 @@ func _move_toward_target(delta: float) -> void:
 			_update_movement_sprite()
 		if pending_encounter_check:
 			pending_encounter_check = false
-			if randf() < ENCOUNTER_CHANCE:
-				_start_encounter()
+			var chance := ENCOUNTER_CHANCE if pending_encounter_kind == "grass" else SURF_ENCOUNTER_CHANCE
+			if randf() < chance:
+				var cur_tile := Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))
+				var table: Array
+				if pending_encounter_kind == "grass":
+					table = SafariEncounters.LAND.get("%s:%d" % [current_map_name, _grass_zone_at(cur_tile)], [])
+				else:
+					table = SafariEncounters.SURF.get("%s:%d" % [current_map_name, _water_zone_at(cur_tile)], [])
+				if not table.is_empty():
+					_start_encounter(SafariEncounters.pick_species(table))
 		if pending_repel_expired_notice:
 			pending_repel_expired_notice = false
 			_notify_repel_expired()
@@ -955,6 +1021,7 @@ func _notify_repel_expired() -> void:
 	_play("face")
 	await _say_line("Le Répulsif a cessé de faire effet !")
 	is_busy = false
+	interact_cooldown = 0.2
 
 # Petite boîte de dialogue à une seule ligne, attend que le joueur la ferme.
 func _say_line(text: String) -> void:
@@ -1075,7 +1142,16 @@ func _start_fishing() -> void:
 		return
 
 	await _end_fishing(animated)
-	_start_encounter()
+	var fish_tile := _tile_under_player() if is_surfing else _tile_under_player() + _facing_offset(facing)
+	var fish_table: Array = SafariEncounters.FISH.get("%s:%d" % [current_map_name, _water_zone_at(fish_tile)], [])
+	if not fish_table.is_empty():
+		# await essentiel ici : _start_fishing() est elle-même attendue par des
+		# appelants qui remettent is_busy à false une fois "terminée" (voir
+		# _use_shortcut_item()) — sans ce await, _start_fishing() rendait la
+		# main dès le DÉBUT du combat, pas à sa fin, et l'appelant redonnait le
+		# contrôle au joueur pendant que le combat tournait encore (bug remonté
+		# par Gus : prompt Surf apparu en plein combat de pêche).
+		await _start_encounter(SafariEncounters.pick_species(fish_table))
 
 # Range la canne (animation inverse du lancer) avant de rendre la main —
 # seulement si un vrai sprite de pêche est actif (sinon rien à ranger, voir
@@ -1088,13 +1164,14 @@ func _end_fishing(animated: bool) -> void:
 	is_busy = false
 	interact_cooldown = 0.2
 
-func _start_encounter() -> void:
+func _start_encounter(species_key: String) -> void:
 	_play("face")
 	is_busy = true
 	var transition := BattleTransitionScene.instantiate()
 	get_tree().current_scene.add_child(transition)
 	await transition.play_close()
 	var encounter := EncounterScene.instantiate()
+	encounter.species_key = species_key
 	get_tree().current_scene.add_child(encounter)
 	await transition.play_open()
 	transition.queue_free()

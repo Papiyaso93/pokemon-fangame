@@ -13,6 +13,11 @@ const MAPS := [
 	"route16", "route17", "route18", "route19", "route2", "route20",
 	"route21_north", "route21_south", "route22", "route23", "route24", "route25",
 	"route3", "route4", "route5", "route6", "route7", "route8", "route9",
+	# safari_zone_center/east/north/west : ces 4 cartes portent aussi
+	# metadata/grass_zone et metadata/water_zone (id de sous-zone d'herbe/plan
+	# d'eau, voir scripts/safari_encounters.gd, tables de rencontre par
+	# sous-zone) — recalculées automatiquement ci-dessous à chaque passage
+	# (voir _compute_tile_zones()), pas besoin d'y penser en relançant ce script.
 	"safari_zone_center", "safari_zone_east", "safari_zone_north", "safari_zone_west",
 	"saffron_city", "saffron_city_connection", "vermilion_city", "viridian_city",
 	"viridian_forest",
@@ -108,6 +113,8 @@ func _build(name: String) -> void:
 	root.set_meta("ledges", ledges)
 	root.set_meta("grass", grass)
 	root.set_meta("water", water)
+	root.set_meta("grass_zone", _compute_tile_zones(grass, W, H))
+	root.set_meta("water_zone", _compute_tile_zones(water, W, H))
 	root.set_meta("warps", warps)
 	root.set_meta("show_map_name", show_map_name)
 	root.set_meta("elevation", elevation)
@@ -181,3 +188,97 @@ func _find_spawn(collision: Array, W: int, H: int) -> Vector2i:
 			if x >= 0 and x < W and collision[y * W + x] == 0:
 				return Vector2i(x, y)
 	return Vector2i(W / 2, H / 2)
+
+# Sous-groupes de tuiles plus petits que ça (buissons/mares décoratifs isolés)
+# fusionnent dans le groupe voisin le plus proche au lieu de former leur propre
+# zone de rencontre — voir _compute_tile_zones().
+const SMALL_ZONE_THRESHOLD := 10
+
+# Segmente un tableau de booléens (grass/water) en zones connexes (4-voisins),
+# fusionne les groupes plus petits que SMALL_ZONE_THRESHOLD dans le plus proche
+# des "grands" groupes, et renvoie un tableau parallèle id de zone (1..N, 0 =
+# hors de ce tableau) — les zones sont numérotées par taille décroissante
+# (H1/E1 = la plus grande), pour rester cohérent avec acte1-parc-safari.md et
+# scripts/safari_encounters.gd (tables de rencontre par sous-zone, clé
+# "<carte>:<id_zone>"). Sans effet sur les cartes hors Parc Safari (grass/water
+# vides → tableau de zéros).
+func _compute_tile_zones(flags: Array, w: int, h: int) -> Array:
+	var zone_of_tile := []
+	zone_of_tile.resize(flags.size())
+	zone_of_tile.fill(0)
+	if flags.is_empty():
+		return zone_of_tile
+
+	var visited := []
+	visited.resize(flags.size())
+	visited.fill(false)
+	var clusters: Array = []
+	for start in range(flags.size()):
+		if not flags[start] or visited[start]:
+			continue
+		var queue: Array = [start]
+		visited[start] = true
+		var tiles: Array = []
+		while not queue.is_empty():
+			var idx: int = queue.pop_front()
+			tiles.append(idx)
+			var x := idx % w
+			var y := idx / w
+			for offset in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var nx := x + offset.x
+				var ny := y + offset.y
+				if nx >= 0 and nx < w and ny >= 0 and ny < h:
+					var nidx := ny * w + nx
+					if flags[nidx] and not visited[nidx]:
+						visited[nidx] = true
+						queue.append(nidx)
+		clusters.append(tiles)
+
+	# Tri par taille décroissante ; à taille égale, par plus petit index de
+	# tuile (= ordre de découverte) — déterministe, pour ne pas dépendre de la
+	# stabilité de sort_custom() et toujours retomber sur la même numérotation
+	# d'une régénération à l'autre.
+	clusters.sort_custom(func(a, b):
+		if a.size() != b.size():
+			return a.size() > b.size()
+		return a[0] < b[0]
+	)
+
+	var big: Array = []
+	var small: Array = []
+	for c in clusters:
+		if c.size() >= SMALL_ZONE_THRESHOLD:
+			big.append(c)
+		else:
+			small.append(c)
+
+	for zid in range(big.size()):
+		for idx in big[zid]:
+			zone_of_tile[idx] = zid + 1
+
+	for s in small:
+		var best_zid := -1
+		var best_dist := -1
+		for zid in range(big.size()):
+			var d: int = _min_tile_distance(s, big[zid], w)
+			if best_dist == -1 or d < best_dist:
+				best_dist = d
+				best_zid = zid
+		if best_zid >= 0:
+			for idx in s:
+				zone_of_tile[idx] = best_zid + 1
+
+	return zone_of_tile
+
+func _min_tile_distance(tiles_a: Array, tiles_b: Array, w: int) -> int:
+	var best := -1
+	for a in tiles_a:
+		var ax := a % w
+		var ay := a / w
+		for b in tiles_b:
+			var bx := b % w
+			var by := b / w
+			var d: int = abs(ax - bx) + abs(ay - by)
+			if best == -1 or d < best:
+				best = d
+	return best
