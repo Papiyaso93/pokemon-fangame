@@ -17,7 +17,7 @@ extends CanvasLayer
 
 signal closed
 
-const CHECK_PREFIX := "✓ "
+const DONE_TAG := "Terminé"
 const DONE_MODULATE := Color(1, 1, 1, 0.55)
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
@@ -28,6 +28,7 @@ const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 # quête existe donc ça n'a pas encore d'effet visible.
 const QUESTS: Array[Dictionary] = [
 	{"id": "minidraco", "category": "main", "order": 1, "title": "Le Pokémon échappé"},
+	{"id": "julien_fragments", "category": "main", "order": 2, "title": "Les fragments des ruines"},
 ]
 
 @onready var main_tab: Button = $Root/Center/Window/VBox/Tabs/MainTab
@@ -43,6 +44,12 @@ const QUESTS: Array[Dictionary] = [
 
 var current_category := "main"
 var tab_buttons: Array[Button] = []
+
+# Bouton de la liste sur lequel on avait le focus juste avant d'ouvrir le
+# détail — Godot retire automatiquement le focus d'un Control qui devient
+# invisible (list_page.visible = false), donc sans ça les flèches ne
+# répondaient plus au retour tant qu'on n'avait pas re-cliqué à la souris.
+var _last_focused_button: Button = null
 
 # Soulignement façon onglet (voir bag.gd) : bordure basse pleine sur l'onglet
 # actif, rien sur les autres — pas le style bouton gris par défaut du moteur.
@@ -89,17 +96,32 @@ func _refresh_list() -> void:
 	empty_label.visible = entries.is_empty()
 	empty_label.text = "Aucune quête."
 	var first_button: Button = null
-	for entry in entries:
+	var previous_done: bool = false
+	var separator_added := false
+	for i in range(entries.size()):
+		var entry: Dictionary = entries[i]
 		var id: String = entry["id"]
 		var done := _quest_done(id)
+
+		# Trait léger entre les quêtes en cours et les terminées (les entrées
+		# sont déjà triées en cours d'abord, voir _sorted_entries) — une seule
+		# fois, seulement s'il y a bien les deux groupes dans la liste.
+		if i > 0 and done and not previous_done and not separator_added:
+			rows_box.add_child(_make_separator())
+			separator_added = true
+		previous_done = done
+
+		var row := HBoxContainer.new()
+		if done:
+			row.modulate = DONE_MODULATE
+
 		var btn := Button.new()
-		btn.custom_minimum_size = Vector2(400, 0)
+		btn.custom_minimum_size = Vector2(300, 0)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.expand_icon = false
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.text = (CHECK_PREFIX if done else "") + String(entry["title"])
-		if done:
-			btn.modulate = DONE_MODULATE
+		btn.text = String(entry["title"])
 		btn.icon = BlankTexture
 		# Même principe que partout ailleurs : le survol souris déplace le
 		# focus clavier, les flèches haut/bas naviguent nativement entre les
@@ -108,19 +130,38 @@ func _refresh_list() -> void:
 		btn.mouse_entered.connect(func(): btn.grab_focus())
 		btn.focus_entered.connect(func(): btn.icon = ArrowTexture)
 		btn.focus_exited.connect(func(): btn.icon = BlankTexture)
-		btn.pressed.connect(_show_detail.bind(id))
-		rows_box.add_child(btn)
+		btn.pressed.connect(_show_detail.bind(id, btn))
+		row.add_child(btn)
+
+		if done:
+			var tag := Label.new()
+			tag.text = DONE_TAG
+			tag.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			row.add_child(tag)
+
+		rows_box.add_child(row)
 		if first_button == null:
 			first_button = btn
 	if first_button:
 		first_button.grab_focus()
 
-func _show_detail(id: String) -> void:
+func _make_separator() -> Control:
+	var wrapper := MarginContainer.new()
+	wrapper.add_theme_constant_override("margin_top", 4)
+	wrapper.add_theme_constant_override("margin_bottom", 4)
+	var line := ColorRect.new()
+	line.color = Color(0, 0, 0, 0.15)   # trait léger, pas un vrai séparateur marqué
+	line.custom_minimum_size = Vector2(0, 1)
+	wrapper.add_child(line)
+	return wrapper
+
+func _show_detail(id: String, source_button: Button) -> void:
+	_last_focused_button = source_button
 	var entry := _quest_by_id(id)
 	var done := _quest_done(id)
 	detail_title.text = String(entry.get("title", ""))
 	detail_status.visible = done
-	detail_status.text = CHECK_PREFIX + "Terminée"
+	detail_status.text = DONE_TAG
 	detail_description.text = _quest_description(id)
 	list_page.visible = false
 	detail_page.visible = true
@@ -132,6 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if detail_page.visible:
 			list_page.visible = true
 			detail_page.visible = false
+			if _last_focused_button != null and is_instance_valid(_last_focused_button):
+				_last_focused_button.grab_focus()
 			hint.text = "Échap : revenir"
 		else:
 			closed.emit()
@@ -168,12 +211,16 @@ func _quest_visible(id: String) -> bool:
 	match id:
 		"minidraco":
 			return PlayerData.camille_zone1_done
+		"julien_fragments":
+			return PlayerData.julien_zone2_intro_done
 	return false
 
 func _quest_done(id: String) -> bool:
 	match id:
 		"minidraco":
 			return PlayerData.minidraco_captured
+		"julien_fragments":
+			return PlayerData.julien_fragments_solved
 	return false
 
 func _quest_description(id: String) -> String:
@@ -185,4 +232,9 @@ func _quest_description(id: String) -> String:
 				return "Il semble se cacher dans un coin isolé du parc. Approche-toi sans le brusquer."
 			else:
 				return "Un Pokémon s'est échappé quelque part dans le parc. Sa fiche dans le Pokédex devrait donner une piste."
+		"julien_fragments":
+			if PlayerData.julien_fragments_solved:
+				return "Les fragments ont été assemblés : il s'agit de Ptéra, une espèce jamais documentée aussi clairement jusqu'ici."
+			else:
+				return "Julien a ramené des fragments de pierre gravés depuis des ruines, mais n'a pas réussi à les remettre dans l'ordre seul. Reparle-lui pour l'aider."
 	return ""

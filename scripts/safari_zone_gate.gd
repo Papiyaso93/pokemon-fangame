@@ -13,7 +13,7 @@ const OPPOSITE := {"south": "north", "north": "south", "east": "west", "west": "
 # target de warp -> (condition remplie ?, PNJ à voir en attendant)
 const REQUIREMENTS := {
 	"safari_zone_east": {"flag": "camille_zone1_done", "npc": "Camille"},
-	"safari_zone_north": {"flag": "camille_zone2_done", "npc": "Camille"},
+	"safari_zone_north": {"flag": "julien_zone2_intro_done", "npc": "Julien"},
 	"safari_zone_west": {"flag": "yohan_zone3_done", "npc": "Yohan"},
 }
 

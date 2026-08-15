@@ -27,7 +27,12 @@ Compétiteur.
 
 - **Yohan** — guide Compétiteur (homme), sprite déjà en place
   (`cooltrainer_m`).
-- **Camille** — guide Chercheur (homme), sprite déjà en place (`scientist`).
+- **Camille** — guide Chercheur (homme), sprite déjà en place (`scientist`),
+  zone 1.
+- **Julien** — second assistant du Pr Chen (homme), distinct de Camille,
+  plutôt tourné vers les ruines/fossiles que vers les Pokémon vivants, zone 2
+  (sprite `scientist` réutilisé pour l'instant, à distinguer visuellement
+  plus tard si besoin).
 - Louise, Anselme — inchangés (voir `FLOW.md` section 4).
 - Rival et allié·e — pas rencontrés pendant le parcours guidé lui-même, ils
   apparaissent à la toute fin de l'acte, au retour dans le bâtiment (voir
@@ -109,23 +114,47 @@ dialogues ci-dessous.
      à la Ligue en acte 4) — idée à creuser plus tard, pas encore
      développée.
 
-3. **Camille — action 2 : piste de cris** (zone ❓)
-   - Un autre Pokémon, plus farouche, ne se montre qu'en réponse à une
-     séquence précise de cris. Camille montre une fonctionnalité du Pokédex
-     permettant d'enregistrer/rejouer des cris.
-     - 🎓 **Moment pédagogique** : approfondissement de l'usage du Pokédex
-       (fonction cris), directement intégré au puzzle lui-même.
-   - Puzzle : le joueur doit sélectionner/rejouer 2-3 cris dans le bon
-     ordre, déduit d'un indice donné par Camille (ex : elle décrit quels
-     Pokémon du coin cohabitent et dans quel ordre ils réagissent les uns
-     aux autres). Une erreur fait juste se recacher la cible un moment — pas
-     d'échec bloquant.
-   - Récompense : **canne à pêche**.
-     - 🎓 **Moment pédagogique** : Camille montre rapidement comment
-       l'utiliser sur une case d'eau proche, dès qu'elle la remet.
+3. **Julien — action 2 : les fragments des ruines** (zone 2,
+   `safari_rest_house_east`) ✅ implémenté (15/08/2026), voir
+   `scripts/npc_julien_zone2.gd` et `scripts/fragments_puzzle.gd`.
+   - **Julien**, un second assistant du Pr Chen distinct de Camille (lui
+     plutôt tourné vers les ruines/fossiles que vers les Pokémon vivants), se
+     présente puis remet le **vélo** (pause réservée au son d'objet obtenu,
+     même pattern que le Pokédex chez Camille) : moyen de transport
+     écologique, utile vu la taille de la région.
+   - Julien présente ensuite le puzzle comme un aperçu volontairement simple
+     du métier de Chercheur (des missions bien plus complexes existent, mais
+     celle-ci lui sert justement d'introduction pour le joueur pendant que
+     lui s'occupe d'autre chose) : des fragments de pierre gravés, ramenés de
+     ruines (hors du parc), qu'il n'a pas réussi à remettre dans l'ordre
+     seul.
+   - À la conversation suivante, Julien propose explicitement de s'y mettre
+     (choix Oui/Non) avant de lancer le puzzle — pas d'enchaînement
+     automatique dès la première conversation.
+   - **Puzzle** : grille 4x5 (20 fragments), les 4 cases du haut forment le
+     nom "PTERA", les 16 du dessous la silhouette gravée (généré depuis
+     `assets/pokemon/aerodactyl/front.png`, voir
+     `assets/ui/julien_fragments_sheet.png`). Mécanique par sélection/échange
+     façon puzzle Zarbi d'Or/Argent (pas de glisser-déposer, cohérent avec le
+     reste du jeu, entièrement clavier/manette) : toutes les cases sont
+     occupées dès le départ, donc un fragment mal placé peut toujours être
+     resélectionné et redéplacé, sans pénalité. Sortie possible à tout moment
+     (Échap), progression sauvegardée (`PlayerData.julien_fragments_order`)
+     pour reprendre plus tard.
+   - À la résolution : petite animation de succès (pulsation en cascade des
+     fragments) puis fondu, retour automatique à la conversation avec Julien
+     qui enchaîne directement sur la révélation, sans repasser par le
+     joueur : *"Un genre de grand reptile ailé... On dirait bien qu'on peut
+     l'appeler Ptéra."*
+   - Pas de récompense objet à ce stade (le vélo couvre déjà la récompense de
+     zone 2) : ce moment reste narratif, et plante une graine claire pour une
+     future quête liée à un vrai fossile/Ambre Ancien (asset
+     `aerodactyl_fossil.png` déjà présent dans le pipeline, pas encore
+     utilisé).
 
-4. Camille redirige vers Yohan : *"Si tu veux voir l'autre facette, il est du
-   côté de [zone]."*
+4. Julien (ou Camille, ❓ à trancher selon qui le joueur voit en dernier)
+   redirige vers Yohan : *"Si tu veux voir l'autre facette, il est du côté de
+   [zone]."*
 
 5. **Yohan — action 1 : combat stratégique météo** (zone ❓)
    - Repris de `tutorial-competiteur.md` (dialogues en brouillon, jugés à
@@ -218,8 +247,8 @@ encore placeholder ("Pouet.") sauf zone 1 :
    sauvages pour l'instant), et réutilisable plus tard une fois les
    rencontres overworld implémentées.
 5. Objet de Surf (Yohan, **zone 4**) ✅ implémenté (mécanique de Surf fonctionnelle, dialogue encore placeholder)
-6. **Vélo (zone 2, Camille)** — décidé le 13/07/2026 ✅ câblé en test
-   (`PlayerData.has_bike`/`is_biking`, voir `scripts/npc_camille_zone2.gd`) :
+6. **Vélo (zone 2, Julien)** — décidé le 13/07/2026 ✅ câblé en test
+   (`PlayerData.has_bike`/`is_biking`, voir `scripts/npc_julien_zone2.gd`) :
    remplace la canne à pêche comme récompense de zone 2 (qui a migré chez
    Anselme, voir point 3). Utile aux deux classes pour se déplacer plus vite
    (x2, `BIKE_SPEED` dans `scripts/player.gd`). Se monte/descend depuis la
@@ -253,8 +282,8 @@ couvre tout sans doublon ni oubli :
 3. Pokédex, usage de base — Camille, en le remettant (action 1).
 4. Capture (appât/pierre) — Camille, pendant la capture du Minidraco
    (action 1).
-5. Pokédex, fonction cris — Camille, pendant le puzzle (action 2).
-6. Canne à pêche, usage — Camille, en la remettant (action 2).
+5. Métier de Chercheur, autre facette (ruines/fossiles, pas seulement le
+   terrain) — Julien, en présentant le puzzle des fragments (action 2).
 7. Combat, bases (types, météo, ciblage duo) — Yohan, pendant les 2 combats
    (actions 1 et 2).
 8. Objet de Surf, à quoi ça sert — Yohan, en le remettant (action 2) ; démo
@@ -295,13 +324,14 @@ tant qu'ils n'ont pas été retravaillés).
 - Dialogues détaillés des 2 combats Compétiteur — brouillons existants jugés
   faibles (voir `tutorial-competiteur.md`), à retravailler, dépend aussi du
   système de combat en cours de développement par l'ami de Gus.
-- Dialogues détaillés des 2 actions Chercheur (Minidraco chromatique, piste
-  de cris) — à écrire.
 - Fil narratif équivalent au Minidraco chromatique côté Compétiteur — à
   imaginer.
-- Indice exact donné par Camille pour déduire l'ordre des cris (texte
-  précis du puzzle).
 - Qui remet la carte de Kanto exactement (Anselme pressenti, à valider).
+- Sprite propre pour Julien (actuellement `scientist`, comme Camille) — à
+  envisager pour les différencier visuellement.
+- Vraie quête de résurrection de fossile (Ambre Ancien → Ptéra) évoquée en
+  graine narrative par le puzzle des fragments — à concevoir plus tard,
+  emplacement dans le scénario pas encore décidé.
 - Ligne de transition finale avant de quitter le bâtiment vers Bourg
   Palette.
 - Répartition des captures pouvant apparaître pendant la session libre
