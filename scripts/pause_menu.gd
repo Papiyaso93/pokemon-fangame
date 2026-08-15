@@ -15,17 +15,24 @@ const YesNoChoiceScene := preload("res://scenes/ui/yes_no_choice.tscn")
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
 const BagScene := preload("res://scenes/ui/bag.tscn")
 const OptionsMenuScene := preload("res://scenes/ui/options_menu.tscn")
+const QuestLogScene := preload("res://scenes/ui/quest_log.tscn")
 
 @onready var window: PanelContainer = $Root/Window
 @onready var quit_button: Button = $Root/Window/Buttons/Quit
+@onready var quests_button: Button = $Root/Window/Buttons/Quests
 
 var slots_screen: Node = null
 var bag: Node = null
 var options_menu: Node = null
+var quest_log: Node = null
 var first_button: Button = null
 
 func _ready() -> void:
 	window.visible = false
+	# Pas de première quête donnée -> pas de journal à consulter. Une fois
+	# apparue, l'entrée reste affichée pour de bon (voir PlayerData.camille_zone1_done,
+	# posé à la fin de la conversation qui lance la quête du Minidraco).
+	quests_button.visible = PlayerData.camille_zone1_done
 	for btn in window.get_node("Buttons").get_children():
 		if btn is Button:
 			btn.icon = BlankTexture
@@ -120,6 +127,19 @@ func _on_bag_closed() -> void:
 func _on_bag_item_used() -> void:
 	bag = null
 	closed.emit()
+
+# Même piège CanvasLayer imbriqué que _on_save_pressed().
+func _on_quests_pressed() -> void:
+	quest_log = QuestLogScene.instantiate()
+	get_tree().root.add_child(quest_log)
+	window.visible = false
+	quest_log.closed.connect(_on_quest_log_closed)
+
+func _on_quest_log_closed() -> void:
+	quest_log = null
+	window.visible = true
+	if first_button:
+		first_button.grab_focus()
 
 # Même piège CanvasLayer imbriqué que _on_save_pressed().
 func _on_options_pressed() -> void:

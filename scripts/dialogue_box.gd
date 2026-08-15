@@ -24,6 +24,16 @@ var active := false
 var pages: Array[String] = []
 var page_idx := 0
 
+# Pause forcée après une ligne précise de la file (ex. remise d'un objet,
+# le temps de laisser jouer un son/une anim) : la flèche de continuation
+# reste masquée et les entrées sont ignorées tant que la pause n'est pas
+# écoulée — même boîte de dialogue du début à la fin, pas de fermeture/
+# réouverture. Index dans la file passée à say(), pas dans les pages.
+var pause_after_index := -1
+var pause_seconds := 0.0
+var current_index := -1
+var is_paused := false
+
 var typewriter: Typewriter
 
 var arrow_frame := 0
@@ -39,10 +49,13 @@ func _ready() -> void:
 	typewriter = Typewriter.new(label)
 	typewriter.completed.connect(_on_page_typed)
 
-func say(lines: Array[String]) -> void:
+func say(lines: Array[String], pause_after: int = -1, pause_for: float = 0.0) -> void:
 	queue = lines.duplicate()
 	active = true
 	visible = true
+	current_index = -1
+	pause_after_index = pause_after
+	pause_seconds = pause_for
 	_show_next()
 
 func _show_next() -> void:
@@ -52,6 +65,7 @@ func _show_next() -> void:
 		visible = false
 		finished.emit()
 		return
+	current_index += 1
 	pages = _paginate(String(queue.pop_front()))
 	page_idx = 0
 	_show_page()
@@ -68,6 +82,11 @@ func _show_page() -> void:
 	typewriter.start(pages[page_idx], prefix_len)
 
 func _on_page_typed() -> void:
+	var is_last_page_of_item := page_idx + 1 >= pages.size()
+	if is_last_page_of_item and current_index == pause_after_index and pause_seconds > 0.0:
+		is_paused = true
+		await get_tree().create_timer(pause_seconds).timeout
+		is_paused = false
 	arrow.visible = page_idx + 1 < pages.size() or not queue.is_empty()
 	page_typed.emit()
 
@@ -118,7 +137,7 @@ func _process(delta: float) -> void:
 			arrow.texture = ARROW_TEXTURES[arrow_frame]
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not active:
+	if not active or is_paused:
 		return
 	if event.is_action_pressed("ui_accept"):
 		if typewriter.typing:

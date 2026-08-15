@@ -24,6 +24,7 @@ MapNames="*res://scripts/map_names.gd"
 ScreenFade="*res://scripts/screen_fade.gd"
 SaveManager="*res://scripts/save_manager.gd"
 KeyBindings="*res://scripts/key_bindings.gd"
+MinidracoQuest="*res://scripts/minidraco_quest.gd"
 
 ; Les 4 actions existent ici (nécessaire pour qu'Input/InputMap les
 ; connaissent dès le boot), mais sans événement par défaut : la vraie touche

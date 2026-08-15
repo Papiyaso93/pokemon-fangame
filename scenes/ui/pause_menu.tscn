@@ -54,6 +54,14 @@ expand_icon = false
 alignment = 0
 text = "Reprendre"
 
+[node name="Quests" type="Button" parent="Root/Window/Buttons"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+icon_alignment = 0
+expand_icon = false
+alignment = 0
+text = "Quêtes"
+
 [node name="Bag" type="Button" parent="Root/Window/Buttons"]
 layout_mode = 2
 custom_minimum_size = Vector2(200, 0)
@@ -88,6 +96,7 @@ text = "Quitter"
 
 [connection signal="pressed" from="Root/Window/Buttons/Resume" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Root/Window/Buttons/Bag" to="." method="_on_bag_pressed"]
+[connection signal="pressed" from="Root/Window/Buttons/Quests" to="." method="_on_quests_pressed"]
 [connection signal="pressed" from="Root/Window/Buttons/Save" to="." method="_on_save_pressed"]
 [connection signal="pressed" from="Root/Window/Buttons/Options" to="." method="_on_options_pressed"]
 [connection signal="pressed" from="Root/Window/Buttons/Quit" to="." method="_on_quit_pressed"]

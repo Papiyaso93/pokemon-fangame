@@ -13,6 +13,11 @@ var species_key := ""
 var species_name := ""
 var species_catch_rate := 45.0
 var species_flee_rate := 30.0
+# Imposé par l'appelant avant l'ajout à l'arbre (comme species_key) : charge
+# assets/pokemon/<espèce>/front_shiny.png à la place de front.png si présent.
+# Utilisé pour l'instant uniquement par la quête du Minidraco (scripts/
+# minidraco_quest.gd) — pas de vrai tirage aléatoire de shiny ailleurs.
+var is_shiny := false
 
 # Fidèle pret src/battle_main.c (HandleAction_ThrowBait/ThrowRock) :
 # l'appât DIMINUE le taux de capture (mais aussi la fuite), le caillou
@@ -21,6 +26,13 @@ var species_flee_rate := 30.0
 var base_catch_factor := 0.0
 var base_escape_factor := 0.0
 
+# Vraie anim shiny FRLG (AnimTask_ShinySparkles, pret src/battle_anim_special.c) :
+# gold_stars.png contient la grande étoile ("wish star", 16x16 en haut) et 2
+# petites (mini étoile + croix, 8x8 chacune, en bas) — mêmes graphismes que le
+# jeu d'origine, animation simplifiée (éclats qui partent du centre du
+# Pokémon en s'écartant et en s'estompant, pas la vraie trajectoire en arc de
+# cercle du code source).
+const GoldStarsTexture := preload("res://assets/effects/gold_stars.png")
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const CONTINUE_ARROW_TEXTURES := [
@@ -29,6 +41,7 @@ const CONTINUE_ARROW_TEXTURES := [
 ]
 const ARROW_BLINK := 0.3   # même vitesse que dialogue_box.gd
 
+@onready var root: Control = $Root
 @onready var sprite: TextureRect = $Root/Sprite
 @onready var shadow: TextureRect = $Root/Shadow
 @onready var player_sprite: TextureRect = $Root/PlayerSprite
@@ -68,7 +81,11 @@ func _ready() -> void:
 	base_catch_factor = species_catch_rate * 100.0 / 1275.0
 	base_escape_factor = maxf(2.0, species_flee_rate * 100.0 / 1275.0)
 	catch_factor = base_catch_factor
-	sprite.texture = load("res://assets/pokemon/%s/front.png" % species_key)
+	var shiny_path := "res://assets/pokemon/%s/front_shiny.png" % species_key
+	if is_shiny and ResourceLoader.exists(shiny_path):
+		sprite.texture = load(shiny_path)
+	else:
+		sprite.texture = load("res://assets/pokemon/%s/front.png" % species_key)
 	if species_key not in PlayerData.pokedex_seen:
 		PlayerData.pokedex_seen.append(species_key)
 
@@ -121,6 +138,9 @@ func play_entrance() -> void:
 	_type_text(intro_message)   # tape pendant que l'animation joue, pas d'attente ici
 	await tw.finished
 
+	if is_shiny:
+		_play_shiny_sparkles()   # pas d'await : joue en parallèle du texte qui suit
+
 	# Le message d'apparition enchaîne seul après un court délai (pas d'appui
 	# requis, cf. plus bas) — mais un appui pendant ce délai fait quand même
 	# passer à la suite immédiatement, avec la même flèche de continuation que
@@ -128,6 +148,41 @@ func play_entrance() -> void:
 	await _wait_or_continue(1.3)
 	await _type_text("Que veux-tu faire ?")
 	_set_buttons_enabled(true)
+
+# Éclats de la grande étoile (haut du sheet) + 4 petites (bas, alternant mini
+# étoile et croix) partant du centre du Pokémon dans des directions réparties
+# en éventail, avec un léger étalement dans le temps — même esprit que la
+# vraie séquence (1 grande étoile puis une salve de petites) sans reproduire
+# l'arc de cercle exact du code source.
+func _play_shiny_sparkles() -> void:
+	var center := sprite.position + sprite.size / 2.0
+	var big_star := AtlasTexture.new()
+	big_star.atlas = GoldStarsTexture
+	big_star.region = Rect2(0, 0, 16, 16)
+	var mini_star := AtlasTexture.new()
+	mini_star.atlas = GoldStarsTexture
+	mini_star.region = Rect2(0, 16, 8, 8)
+	var mini_cross := AtlasTexture.new()
+	mini_cross.atlas = GoldStarsTexture
+	mini_cross.region = Rect2(8, 16, 8, 8)
+
+	var sparkles := [big_star, mini_star, mini_cross, mini_star, mini_cross]
+	for i in sparkles.size():
+		var angle := (float(i) / sparkles.size()) * TAU - PI / 2.0
+		var dir := Vector2(cos(angle), sin(angle))
+		var star := TextureRect.new()
+		star.texture = sparkles[i]
+		star.size = Vector2(sparkles[i].region.size)
+		star.position = center - star.size / 2.0
+		root.add_child(star)
+
+		var tw := create_tween()
+		tw.tween_interval(i * 0.08)
+		tw.set_parallel(true)
+		tw.tween_property(star, "position", star.position + dir * 22.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_property(star, "modulate:a", 0.0, 0.4).set_delay(0.15)
+		tw.set_parallel(false)
+		tw.tween_callback(star.queue_free)
 
 func _set_buttons_enabled(enabled: bool) -> void:
 	ball_button.disabled = not enabled or SafariState.balls <= 0
