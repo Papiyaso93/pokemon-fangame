@@ -85,7 +85,9 @@ func save_to_slot(n: int) -> void:
 		"pokedex_seen": PlayerData.pokedex_seen,
 		"pokedex_caught": PlayerData.pokedex_caught,
 		"camille_zone1_done": PlayerData.camille_zone1_done,
-		"camille_zone2_done": PlayerData.camille_zone2_done,
+		"julien_zone2_intro_done": PlayerData.julien_zone2_intro_done,
+		"julien_fragments_order": PlayerData.julien_fragments_order,
+		"julien_fragments_solved": PlayerData.julien_fragments_solved,
 		"yohan_zone3_done": PlayerData.yohan_zone3_done,
 		"yohan_zone4_done": PlayerData.yohan_zone4_done,
 		"minidraco_spot_found": PlayerData.minidraco_spot_found,
@@ -129,7 +131,12 @@ func load_from_slot(n: int) -> void:
 	PlayerData.intro_complete = bool(data.get("intro_complete", false))
 	PlayerData.starter_species = String(data.get("starter_species", ""))
 	PlayerData.camille_zone1_done = bool(data.get("camille_zone1_done", false))
-	PlayerData.camille_zone2_done = bool(data.get("camille_zone2_done", false))
+	PlayerData.julien_zone2_intro_done = bool(data.get("julien_zone2_intro_done", false))
+	var fragments_order: Array[int] = []
+	for v in data.get("julien_fragments_order", []):
+		fragments_order.append(int(v))
+	PlayerData.julien_fragments_order = fragments_order
+	PlayerData.julien_fragments_solved = bool(data.get("julien_fragments_solved", false))
 	PlayerData.yohan_zone3_done = bool(data.get("yohan_zone3_done", false))
 	PlayerData.yohan_zone4_done = bool(data.get("yohan_zone4_done", false))
 	PlayerData.minidraco_spot_found = bool(data.get("minidraco_spot_found", false))

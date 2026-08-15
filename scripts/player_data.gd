@@ -34,9 +34,18 @@ var pokedex_caught: Array[String] = []
 # la maison de repos correspondante — sert aussi à débloquer l'accès à la
 # zone suivante (voir scripts/safari_zone_gate.gd).
 var camille_zone1_done := false
-var camille_zone2_done := false
+var julien_zone2_intro_done := false
 var yohan_zone3_done := false
 var yohan_zone4_done := false
+
+# Puzzle des fragments de Julien (zone 2, ruines) — voir scripts/npc_julien_zone2.gd
+# et scripts/fragments_puzzle.gd. julien_fragments_order retient l'agencement en
+# cours (index de fragment à chaque case de la grille, 20 cases : 4 pour le nom
+# "PTERA" + 16 pour la silhouette) pour permettre de quitter le puzzle et le
+# reprendre plus tard sans perdre la progression. Tableau vide = puzzle jamais
+# commencé (le script génère un mélange initial dans ce cas).
+var julien_fragments_order: Array[int] = []
+var julien_fragments_solved := false
 
 # Quête du Minidraco (zone 1, coin nord-ouest) — voir scripts/minidraco_quest.gd.
 # Distincts de camille_zone1_done, qui ne marque que "j'ai parlé à Camille /
@@ -50,7 +59,7 @@ var minidraco_captured := false
 # acte1-parc-safari.md — récompenses définitives à retravailler plus tard).
 var has_fishing_rod := false   # Anselme, PARK_HANDOFF (beat 3b)
 var has_surf := false          # Camille, à la fin de la quête du Minidraco (zone 1)
-var has_bike := false          # Camille, zone 2
+var has_bike := false          # Julien, zone 2
 
 # true tant qu'on est effectivement en train de rouler (bascule depuis le
 # sac, voir scripts/bag.gd) — descend automatiquement en entrant dans un

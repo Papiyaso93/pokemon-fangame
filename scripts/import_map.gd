@@ -29,8 +29,8 @@ const MAPS := [
 	# sans avoir prévu de relancer les deux scripts juste après.
 	#
 	# "safari_rest_house_center/east/north/west" retirés le 13/07/2026 : PNJ
-	# Camille/Yohan ajoutés à la main dedans (voir npc_camille_zone1/2.gd,
-	# npc_yohan_zone3/4.gd), perdus une première fois en régénérant sans faire
+	# Camille/Julien/Yohan ajoutés à la main dedans (voir npc_camille_zone1.gd,
+	# npc_julien_zone2.gd, npc_yohan_zone3/4.gd), perdus une première fois en régénérant sans faire
 	# attention. Si un changement de terrain est vraiment nécessaire, il faut
 	# régénérer le JSON (build_godot.py), patcher le .tscn à la main pour n'y
 	# reporter QUE le changement de terrain/warps, puis revérifier que les PNJ
