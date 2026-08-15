@@ -1,11 +1,14 @@
 extends CanvasLayer
 
 # Écran-titre. Remplace intro.tscn comme point d'entrée du jeu (voir
-# project.godot, run/main_scene). "Tests" est un bouton placeholder pour
-# l'instant (voir FLOW.md, section 1) — sa fonction sera définie plus tard.
+# project.godot, run/main_scene). "Tests" ouvre un petit menu de tests
+# techniques (pour l'instant : essayer un sprite custom en jeu, voir
+# _on_tests_pressed()) — sans lien avec une vraie partie/sauvegarde.
 
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
+const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
 const NEW_GAME_MAP := "res://scenes/intro/intro.tscn"
+const TEST_SPRITES_ROOM := "res://scenes/maps/test_sprites_room.tscn"
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 
@@ -58,7 +61,35 @@ func _on_load_game_pressed() -> void:
 	_open_slots("load")
 
 func _on_tests_pressed() -> void:
-	pass   # à définir plus tard (FLOW.md, section 1)
+	var picker := ListPickerScene.instantiate()
+	get_tree().root.add_child(picker)
+	picker.setup([
+		{"label": "Tester des sprites", "value": "sprites"},
+		{"label": "Annuler", "value": null},
+	])
+	var choice = await picker.chosen
+	picker.queue_free()
+	if choice == "sprites":
+		await _open_sprite_test_menu()
+
+# Un item par sprite custom testable (voir assets/characters/custom/) — pas
+# une vraie partie : on saute directement sur la carte de test avec le
+# personnage en apparence Red par défaut (voir Gus, décidé le jour de l'ajout
+# de Cartman), sans passer par la création de perso ni une sauvegarde.
+func _open_sprite_test_menu() -> void:
+	var picker := ListPickerScene.instantiate()
+	get_tree().root.add_child(picker)
+	picker.setup([
+		{"label": "Tester PNJ Cartman", "value": "cartman"},
+		{"label": "Annuler", "value": null},
+	])
+	var choice = await picker.chosen
+	picker.queue_free()
+	if choice != null:
+		PlayerData.appearance = "red_normal"
+		PlayerData.gender = "male"
+		PlayerData.player_name = "Red"
+		get_tree().change_scene_to_file(TEST_SPRITES_ROOM)
 
 func _open_slots(mode: String) -> void:
 	if slots_screen != null:
