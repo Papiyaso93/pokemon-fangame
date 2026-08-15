@@ -105,7 +105,7 @@ custom_minimum_size = Vector2(200, 0)
 icon_alignment = 0
 expand_icon = false
 alignment = 0
-text = "Pokédex (test)"
+text = "Pokédex"
 
 [node name="SurfButton" type="Button" parent="Root/Center/Window/VBox/ContentArea/Center/ItemList"]
 visible = false

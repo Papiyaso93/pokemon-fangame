@@ -808,20 +808,39 @@ func _open_region_map_screen() -> void:
 func _talk_to(npc: Node, player_tile: Vector2i) -> void:
 	if npc.has_method("face_toward"):
 		npc.face_toward(player_tile)
+	# Point d'extension pour les PNJ qui ont besoin de plus qu'un simple
+	# enchaînement de lignes (pause entre 2 boîtes, bandeau de quête, etc.) —
+	# même principe que gate_check()/on_gate_blocked() sur les zones Safari.
+	# Voir npc_camille_zone1.gd pour un exemple.
+	if npc.has_method("custom_talk"):
+		is_busy = true
+		is_moving = false
+		_play("face")
+		await npc.custom_talk(self, player_tile)
+		is_busy = false
+		interact_cooldown = 0.2
+		return
 	var lines: Array[String] = npc.get_lines()
-	if lines.is_empty():
+	# Écran de combat "test" (voir scripts/npc_test_sprite.gd/npc_custom.gd) :
+	# uniquement présent sur les PNJ de test de sprites, jamais sur les vrais
+	# PNJ du jeu. S'il y a aussi un dialogue, il s'affiche d'abord, puis le
+	# combat test s'enchaîne.
+	var test_battle: bool = "test_battle_trainer" in npc and String(npc.test_battle_trainer) != ""
+	if lines.is_empty() and not test_battle:
 		return
 	is_busy = true
 	is_moving = false
 	_play("face")
-	var dialogue := DialogueBoxScene.instantiate()
-	get_tree().current_scene.add_child(dialogue)
-	dialogue.finished.connect(func():
+	if not lines.is_empty():
+		var dialogue := DialogueBoxScene.instantiate()
+		get_tree().current_scene.add_child(dialogue)
+		dialogue.say(lines)
+		await dialogue.finished
 		dialogue.queue_free()
-		is_busy = false
-		interact_cooldown = 0.2
-	)
-	dialogue.say(lines)
+	if test_battle:
+		await npc.start_test_battle()
+	is_busy = false
+	interact_cooldown = 0.2
 
 func _open_pause_menu() -> void:
 	is_busy = true
@@ -991,6 +1010,8 @@ func _move_toward_target(delta: float) -> void:
 		if is_surfing and not _is_water(Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE))):
 			is_surfing = false
 			_update_movement_sprite()
+		if current_map_name == MinidracoQuest.MAP_NAME and not is_busy:
+			MinidracoQuest.check_tile(Vector2i(roundi(position.x / TILE_SIZE), roundi(position.y / TILE_SIZE)), current_map_name, self)
 		if pending_encounter_check:
 			pending_encounter_check = false
 			var chance := ENCOUNTER_CHANCE if pending_encounter_kind == "grass" else SURF_ENCOUNTER_CHANCE
@@ -1164,7 +1185,7 @@ func _end_fishing(animated: bool) -> void:
 	is_busy = false
 	interact_cooldown = 0.2
 
-func _start_encounter(species_key: String) -> void:
+func _start_encounter(species_key: String, forced_shiny := false) -> void:
 	_play("face")
 	is_busy = true
 	var transition := BattleTransitionScene.instantiate()
@@ -1172,6 +1193,7 @@ func _start_encounter(species_key: String) -> void:
 	await transition.play_close()
 	var encounter := EncounterScene.instantiate()
 	encounter.species_key = species_key
+	encounter.is_shiny = forced_shiny
 	get_tree().current_scene.add_child(encounter)
 	await transition.play_open()
 	transition.queue_free()

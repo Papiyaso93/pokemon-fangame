@@ -38,10 +38,18 @@ var camille_zone2_done := false
 var yohan_zone3_done := false
 var yohan_zone4_done := false
 
+# Quête du Minidraco (zone 1, coin nord-ouest) — voir scripts/minidraco_quest.gd.
+# Distincts de camille_zone1_done, qui ne marque que "j'ai parlé à Camille /
+# j'ai le Pokédex" (posé dès la première conversation, pas à la fin de la
+# quête). minidraco_spot_found = message d'arrivée déjà vu une fois pour
+# toutes ; minidraco_captured = quête réellement terminée (capture effective).
+var minidraco_spot_found := false
+var minidraco_captured := false
+
 # Objets clés donnés pendant les zones du Parc Safari (test, voir
 # acte1-parc-safari.md — récompenses définitives à retravailler plus tard).
 var has_fishing_rod := false   # Anselme, PARK_HANDOFF (beat 3b)
-var has_surf := false          # Yohan, zone 4
+var has_surf := false          # Camille, à la fin de la quête du Minidraco (zone 1)
 var has_bike := false          # Camille, zone 2
 
 # true tant qu'on est effectivement en train de rouler (bascule depuis le

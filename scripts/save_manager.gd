@@ -88,6 +88,8 @@ func save_to_slot(n: int) -> void:
 		"camille_zone2_done": PlayerData.camille_zone2_done,
 		"yohan_zone3_done": PlayerData.yohan_zone3_done,
 		"yohan_zone4_done": PlayerData.yohan_zone4_done,
+		"minidraco_spot_found": PlayerData.minidraco_spot_found,
+		"minidraco_captured": PlayerData.minidraco_captured,
 		"has_fishing_rod": PlayerData.has_fishing_rod,
 		"has_surf": PlayerData.has_surf,
 		"has_bike": PlayerData.has_bike,
@@ -130,6 +132,8 @@ func load_from_slot(n: int) -> void:
 	PlayerData.camille_zone2_done = bool(data.get("camille_zone2_done", false))
 	PlayerData.yohan_zone3_done = bool(data.get("yohan_zone3_done", false))
 	PlayerData.yohan_zone4_done = bool(data.get("yohan_zone4_done", false))
+	PlayerData.minidraco_spot_found = bool(data.get("minidraco_spot_found", false))
+	PlayerData.minidraco_captured = bool(data.get("minidraco_captured", false))
 	PlayerData.has_fishing_rod = bool(data.get("has_fishing_rod", false))
 	PlayerData.has_surf = bool(data.get("has_surf", false))
 	PlayerData.has_bike = bool(data.get("has_bike", false))
