@@ -7,6 +7,7 @@ extends CanvasLayer
 
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
 const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
+const TrainerBattleScene := preload("res://scenes/ui/trainer_battle.tscn")
 const NEW_GAME_MAP := "res://scenes/intro/intro.tscn"
 const TEST_SPRITES_ROOM := "res://scenes/maps/test_sprites_room.tscn"
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
@@ -65,12 +66,15 @@ func _on_tests_pressed() -> void:
 	get_tree().root.add_child(picker)
 	picker.setup([
 		{"label": "Tester des sprites", "value": "sprites"},
+		{"label": "Tester un combat contre un dresseur", "value": "battle"},
 		{"label": "Annuler", "value": null},
 	])
 	var choice = await picker.chosen
 	picker.queue_free()
 	if choice == "sprites":
 		await _open_sprite_test_menu()
+	elif choice == "battle":
+		await _open_trainer_battle_test()
 
 # Un item par sprite custom testable (voir assets/characters/custom/) — pas
 # une vraie partie : on saute directement sur la carte de test avec le
@@ -90,6 +94,42 @@ func _open_sprite_test_menu() -> void:
 		PlayerData.gender = "male"
 		PlayerData.player_name = "Red"
 		get_tree().change_scene_to_file(TEST_SPRITES_ROOM)
+
+# Lance directement l'écran de combat dresseur (Yohan zone 3, seul combat
+# scripté à ce jour, voir trainer_data.gd) sans passer par la carte/le PNJ —
+# pour itérer vite sur l'UI de combat elle-même (voir la conversation de
+# conception). "brock" est un portrait de combat provisoire (aucun sprite de
+# combat pour Yohan n'existe encore, voir assets/characters/custom/battle/) :
+# à remplacer dès qu'un vrai sprite existe, `enemy_sprite_key` est fait pour
+# ça.
+func _open_trainer_battle_test() -> void:
+	PlayerData.appearance = "red_normal"
+	PlayerData.gender = "male"
+	PlayerData.player_name = "Red"
+
+	var trainer: Dictionary = TrainerData.TRAINERS["YOHAN_ZONE3"]
+	# Sexe tiré une seule fois ici, transmis tel quel à l'intro ET à l'écran
+	# de combat (voir TrainerData.roll_genders()) — sinon chacun tirerait le
+	# sien indépendamment et pourrait afficher 2 sexes différents pour le
+	# même Pokémon.
+	var enemy_team: Array = TrainerData.roll_genders(trainer["party"])
+	var player_team: Array = TrainerData.roll_genders(TrainerData.PLAYER_LOAN_TEAM)
+
+	var intro := BattleIntro.new()
+	intro.enemy_trainer_name = String(trainer["name"])
+	intro.enemy_sprite_key = "brock"
+	intro.enemy_party = enemy_team
+	intro.player_party = player_team
+	get_tree().root.add_child(intro)
+	await intro.play()
+	intro.queue_free()
+
+	var battle := TrainerBattleScene.instantiate()
+	battle.player_entries = player_team
+	battle.enemy_entries = enemy_team
+	battle.enemy_trainer_name = String(trainer["name"])
+	get_tree().root.add_child(battle)
+	await battle.finished
 
 func _open_slots(mode: String) -> void:
 	if slots_screen != null:
