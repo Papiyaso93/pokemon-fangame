@@ -13,7 +13,9 @@ extends RefCounted
 #
 # Types d'évènements retournés (dict avec "type") :
 # - {"type": "switch", "is_player": bool, "pokemon": String}
-# - {"type": "move_used", "is_player": bool, "pokemon": String, "move": String}
+# - {"type": "move_used", "is_player": bool, "pokemon": String, "move": String, "move_key": String}
+#   (move_key = clé MoveData.MOVES, ex. "WATER_GUN" — trainer_battle.gd s'en
+#   sert pour choisir l'animation d'attaque, "move" reste le nom affiché)
 # - {"type": "message", "text": String}  (esquive, etc.)
 # - {"type": "hp_changed", "is_player": bool, "amount": int, "current_hp": int, "max_hp": int, "residual": bool}
 # - {"type": "status", "status": "burned", "is_player": bool, "pokemon": String}
@@ -115,6 +117,7 @@ func _resolve_attack(side: BattleSide, other: BattleSide, move_key: String, even
 	events.append({
 		"type": "move_used", "is_player": side.is_player,
 		"pokemon": attacker.display_name, "move": String(move["name"]),
+		"move_key": move_key,
 	})
 
 	if String(move["effect"]) == "EFFECT_RAIN_DANCE":
@@ -130,10 +133,15 @@ func _resolve_attack(side: BattleSide, other: BattleSide, move_key: String, even
 	var result: Dictionary = _compute_damage(attacker, defender, move)
 	var dmg: int = int(result["damage"])
 	defender.take_damage(dmg)
-	# Retour explicite sur l'efficacité (voir Gus : le joueur doit savoir si
-	# son attaque a fait mouche), fidèle aux messages du vrai jeu — dans cet
-	# ordre (critique d'abord), et seulement l'un OU l'autre pour
+	# Les PV descendent D'ABORD, les messages d'efficacité/critique ensuite
+	# (voir Gus : fidèle au vrai jeu, où le commentaire arrive après que la
+	# barre a fini de bouger, pas avant) — dans cet ordre pour les messages
+	# eux-mêmes (critique d'abord), et seulement l'un OU l'autre pour
 	# l'efficacité (jamais les deux).
+	events.append({
+		"type": "hp_changed", "is_player": other.is_player, "amount": dmg,
+		"current_hp": defender.current_hp, "max_hp": defender.max_hp, "residual": false,
+	})
 	if bool(result["crit"]):
 		events.append({"type": "message", "text": "Coup critique !"})
 	var type_eff: float = float(result["type_eff"])
@@ -141,10 +149,6 @@ func _resolve_attack(side: BattleSide, other: BattleSide, move_key: String, even
 		events.append({"type": "message", "text": "C'est super efficace !"})
 	elif type_eff < 1.0 and type_eff > 0.0:
 		events.append({"type": "message", "text": "Ce n'est pas très efficace..."})
-	events.append({
-		"type": "hp_changed", "is_player": other.is_player, "amount": dmg,
-		"current_hp": defender.current_hp, "max_hp": defender.max_hp, "residual": false,
-	})
 
 	if String(move["effect"]) == "EFFECT_BURN_HIT" and not defender.burned:
 		if randf() * 100.0 < float(move["secondary_effect_chance"]) and not ("FIRE" in defender.types):
