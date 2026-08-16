@@ -20,11 +20,6 @@ extends CanvasLayer
 #     d'afficher le menu d'action de chaque tour (numéro de tour en argument,
 #     1-indexé) — point d'accroche pour scripts/yohan_zone3_battle.gd qui
 #     injecte les conseils de Yohan sans que ce fichier ne connaisse "Yohan".
-#
-# Pas d'animation d'envoi de Poké Ball ni d'animation d'attaque pour ce
-# premier lot (voir la conversation de conception) — sprites statiques,
-# uniquement les PV/la météo qui s'animent. Facile d'en ajouter plus tard,
-# les évènements de `_play_events()` sont déjà le bon point d'accroche.
 
 signal finished(result: String)
 
@@ -90,6 +85,40 @@ const SPARKLE_SIZE := 14.0
 const SPARKLE_TRAVEL := 46.0
 const SPARKLE_DURATION := 0.45
 
+# Animations d'attaque (voir _play_move_animation()) : une par capacité de
+# ce combat, sourcées depuis les vrais sprites d'effet du jeu (recadrés
+# depuis kanto-pipeline/pokefirered/graphics/battle_anims/sprites/ par
+# kanto-pipeline/build_move_effects.py, voir la conversation de conception
+# avec Gus — pas de formes procédurales, les vrais sprites, juste
+# chorégraphiés en plus simple que le script d'animation d'origine).
+const ImpactTexture := preload("res://assets/effects/moves/impact.png")
+const ScratchTexture1 := preload("res://assets/effects/moves/scratch_1.png")
+const ScratchTexture2 := preload("res://assets/effects/moves/scratch_2.png")
+const ChopFistTexture := preload("res://assets/effects/moves/chop_fist.png")
+const RapidSpinTexture1 := preload("res://assets/effects/moves/rapid_spin_1.png")
+const RapidSpinTexture2 := preload("res://assets/effects/moves/rapid_spin_2.png")
+const EmberTexture1 := preload("res://assets/effects/moves/ember_1.png")
+const EmberTexture2 := preload("res://assets/effects/moves/ember_2.png")
+const EmberTexture3 := preload("res://assets/effects/moves/ember_3.png")
+const WaterDropletTexture := preload("res://assets/effects/moves/water_droplet.png")
+const WaterSplashTexture := preload("res://assets/effects/moves/water_splash.png")
+const VineTexture := preload("res://assets/effects/moves/vine.png")
+const LeafTexture1 := preload("res://assets/effects/moves/leaf_1.png")
+const LeafTexture2 := preload("res://assets/effects/moves/leaf_2.png")
+const LeafTexture3 := preload("res://assets/effects/moves/leaf_3.png")
+const RazorLeafTexture := preload("res://assets/effects/moves/razor_leaf.png")
+const RaindropTexture := preload("res://assets/effects/moves/raindrop.png")
+
+# Teinte de fond pendant qu'il pleut (voir _start_ambient_rain()) : posée
+# tout le temps que dure la météo (5 tours, voir battle_engine.gd::
+# weather_turns_remaining), pas seulement le temps de l'incantation de
+# Danse Pluie — décision de Gus, cohérente avec le vrai jeu qui reteinte
+# tout l'écran tant que la pluie est active.
+const RAIN_OVERLAY_COLOR := Color(0.08, 0.12, 0.32, 0.28)
+const RAIN_OVERLAY_FADE_DURATION := 0.4
+const RAIN_DROP_INTERVAL := 0.12
+const RAIN_DROP_FALL_DURATION := 0.55
+
 var player_entries: Array = []
 var enemy_entries: Array = []
 var enemy_trainer_name := ""
@@ -111,11 +140,13 @@ var _empty_button_style: StyleBoxEmpty
 # signalé par Gus : ça envoyait les sprites en haut à gauche de l'écran).
 var _enemy_sprite_base_y := 0.0
 var _player_sprite_base_y := 0.0
+@onready var _enemy_health_box: PanelContainer = $Root/EnemyHealthBox
 @onready var _enemy_name_label: Label = $Root/EnemyHealthBox/VBox/NameRow/NameLabel
 @onready var _enemy_gender_label: Label = $Root/EnemyHealthBox/VBox/NameRow/GenderLabel
 @onready var _enemy_level_label: Label = $Root/EnemyHealthBox/VBox/NameRow/LevelLabel
 @onready var _enemy_hp_fill: ColorRect = $Root/EnemyHealthBox/VBox/HPBarBg/HPBarFill
 @onready var _enemy_hp_label: Label = $Root/EnemyHealthBox/VBox/HPTextLabel
+@onready var _player_health_box: PanelContainer = $Root/PlayerHealthBox
 @onready var _player_name_label: Label = $Root/PlayerHealthBox/VBox/NameRow/NameLabel
 @onready var _player_gender_label: Label = $Root/PlayerHealthBox/VBox/NameRow/GenderLabel
 @onready var _player_level_label: Label = $Root/PlayerHealthBox/VBox/NameRow/LevelLabel
@@ -136,6 +167,13 @@ var _player_sprite_base_y := 0.0
 var _prompt_dialogue: Node = null
 var _action_layer: CanvasLayer = null
 var _battle_dialogue: Node = null   # voir _say() : une seule instance réutilisée pour tous les messages de combat
+
+# Pluie ambiante (voir _start_ambient_rain()/_stop_ambient_rain()) : actifs
+# tant que battle_engine.gd signale weather == "RAIN", indépendamment de
+# l'animation d'incantation de Danse Pluie elle-même (jouée une fois, voir
+# _play_rain_dance_animation()).
+var _rain_overlay: ColorRect = null
+var _rain_timer: Timer = null
 
 func _ready() -> void:
 	layer = 90
@@ -228,6 +266,12 @@ func _play_faint_animation(is_player: bool) -> void:
 	tw.tween_property(sprite, "position:y", sprite.position.y + 50.0, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_property(sprite, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tw.finished
+	# Carte PV (nom/niveau/barre) du camp mis K.O. cachée jusqu'au prochain
+	# envoi (voir _refresh_player_health()/_refresh_enemy_health(), qui la
+	# rend visible) — sans ça, on voyait encore la carte de l'ancien
+	# Pokémon (à 0 PV) le temps que le suivant apparaisse (signalé par Gus).
+	var health_box: PanelContainer = _player_health_box if is_player else _enemy_health_box
+	health_box.visible = false
 
 # Même animation que l'envoi du tout premier Pokémon (voir battle_intro.gd::
 # _send_out(), reproduite ici en plus simple : Poké Ball qui apparaît/
@@ -355,8 +399,10 @@ func _play_hit_animation(is_player: bool) -> void:
 	tw.tween_property(sprite, "position:x", base_x, 0.06)
 	await tw.finished
 
-# Élan vers l'avant façon vrai jeu, joué sur "move_used" — l'attaquant
-# avance brièvement vers l'adversaire puis revient, avant le message.
+# Élan vers l'avant façon vrai jeu — l'attaquant avance brièvement vers
+# l'adversaire puis revient. Brique de base réutilisée par plusieurs
+# animations de capacité ci-dessous (Charge, Tranchage, Vibraqua), pas
+# jouée seule sur "move_used" (voir _play_move_animation()).
 func _play_lunge_animation(is_player: bool) -> void:
 	var sprite: TextureRect = _player_sprite if is_player else _enemy_sprite
 	var base_x := sprite.position.x
@@ -365,6 +411,263 @@ func _play_lunge_animation(is_player: bool) -> void:
 	tw.tween_property(sprite, "position:x", base_x + dx, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(sprite, "position:x", base_x, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tw.finished
+
+# --- Animations d'attaque par capacité ---
+
+func _sprite_center(is_player: bool) -> Vector2:
+	var sprite: TextureRect = _player_sprite if is_player else _enemy_sprite
+	return sprite.position + sprite.size * 0.5
+
+# Crée un TextureRect d'effet centré sur `center`, ajouté à _root (donc
+# rendu par-dessus les sprites/barres de vie, sous _action_layer/la boîte
+# de dialogue qui ont leurs propres CanvasLayer) — même pattern que
+# _spawn_pokeball_sparkles(), à l'appelant de le tween/faire disparaître.
+func _spawn_effect_sprite(texture: Texture2D, center: Vector2, size: float) -> TextureRect:
+	var fx := TextureRect.new()
+	fx.texture = texture
+	fx.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	fx.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fx.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fx.size = Vector2(size, size)
+	fx.position = center - fx.size * 0.5
+	fx.pivot_offset = fx.size * 0.5
+	_root.add_child(fx)
+	return fx
+
+# Point d'accroche de _play_events() sur "move_used" : une chorégraphie par
+# capacité (voir la conversation de conception avec Gus — sourcées des
+# vrais sprites d'effet du jeu, voir kanto-pipeline/build_move_effects.py),
+# pas une seule animation générique. `_play_lunge_animation` reste le
+# fallback pour toute future capacité pas encore déclinée ici.
+func _play_move_animation(is_player: bool, move_key: String) -> void:
+	match move_key:
+		"TACKLE":
+			await _play_tackle_animation(is_player)
+		"SCRATCH":
+			await _play_scratch_animation(is_player)
+		"KARATE_CHOP":
+			await _play_karate_chop_animation(is_player)
+		"RAPID_SPIN":
+			await _play_rapid_spin_animation(is_player)
+		"EMBER":
+			await _play_ember_animation(is_player)
+		"WATER_GUN":
+			await _play_water_gun_animation(is_player)
+		"VINE_WHIP":
+			await _play_vine_whip_animation(is_player)
+		"RAZOR_LEAF":
+			await _play_razor_leaf_animation(is_player)
+		"RAIN_DANCE":
+			await _play_rain_dance_animation(is_player)
+		_:
+			await _play_lunge_animation(is_player)
+
+# Charge : contact franc, l'attaquant bondit sur la cible (lunge existant)
+# et un éclat d'impact flashe au point de contact.
+func _play_tackle_animation(is_player: bool) -> void:
+	await _play_lunge_animation(is_player)
+	var fx := _spawn_effect_sprite(ImpactTexture, _sprite_center(not is_player), 90.0)
+	fx.scale = Vector2(0.4, 0.4)
+	fx.pivot_offset = fx.size * 0.5
+	var tw := create_tween()
+	tw.tween_property(fx, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(0.06)
+	tw.tween_property(fx, "modulate:a", 0.0, 0.14)
+	await tw.finished
+	fx.queue_free()
+
+# Griffe : pas de lunge, 2 traits de griffure qui flashent sur la cible en
+# séquence rapide (voir Move_SCRATCH côté pokefirered : gScratchSpriteTemplate
+# affiché sur l'attaquant dans le jeu d'origine, mais posé sur la cible ici
+# pour une lisibilité "la cible se fait griffer" plus immédiate).
+func _play_scratch_animation(is_player: bool) -> void:
+	var center := _sprite_center(not is_player)
+	for texture in [ScratchTexture1, ScratchTexture2]:
+		var fx := _spawn_effect_sprite(texture, center, 90.0)
+		fx.modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_property(fx, "modulate:a", 1.0, 0.05)
+		tw.tween_interval(0.1)
+		tw.tween_property(fx, "modulate:a", 0.0, 0.12)
+		await tw.finished
+		fx.queue_free()
+
+# Tranchage : coup de tranche rapide qui traverse la cible (plus sec/rapide
+# que Charge, pas de contact prolongé) + flash blanc bref.
+func _play_karate_chop_animation(is_player: bool) -> void:
+	var start := _sprite_center(not is_player) + Vector2(-38.0 if is_player else 38.0, -14.0)
+	var end := _sprite_center(not is_player) + Vector2(38.0 if is_player else -38.0, 14.0)
+	var fx := _spawn_effect_sprite(ChopFistTexture, start, 64.0)
+	fx.rotation = -0.5 if is_player else 0.5
+	var tw := create_tween()
+	tw.tween_property(fx, "position", end - fx.size * 0.5, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(fx, "modulate:a", 0.0, 0.16).set_delay(0.08)
+	var target: TextureRect = _enemy_sprite if is_player else _player_sprite
+	var flash := create_tween()
+	flash.tween_property(target, "modulate", Color(3.0, 3.0, 3.0), 0.06)
+	flash.tween_property(target, "modulate", Color.WHITE, 0.08)
+	await tw.finished
+	fx.queue_free()
+
+# Vibraqua : l'attaquant tournoie sur lui-même (2 frames de tourbillon
+# alternées) puis un éclat d'impact flashe sur la cible.
+func _play_rapid_spin_animation(is_player: bool) -> void:
+	var center := _sprite_center(is_player)
+	var textures := [RapidSpinTexture1, RapidSpinTexture2]
+	for i in range(5):
+		var fx := _spawn_effect_sprite(textures[i % 2], center, 90.0)
+		fx.rotation = randf_range(-0.3, 0.3)
+		await get_tree().create_timer(0.09).timeout
+		fx.queue_free()
+	var impact := _spawn_effect_sprite(ImpactTexture, _sprite_center(not is_player), 80.0)
+	var tw := create_tween()
+	tw.tween_interval(0.04)
+	tw.tween_property(impact, "modulate:a", 0.0, 0.16)
+	await tw.finished
+	impact.queue_free()
+
+# Flammèche : 2-3 flammes lancées de l'attaquant vers la cible, l'une après
+# l'autre (voir Move_EMBER côté pokefirered), grossissant légèrement en vol.
+func _play_ember_animation(is_player: bool) -> void:
+	var from := _sprite_center(is_player)
+	var to := _sprite_center(not is_player)
+	for texture in [EmberTexture1, EmberTexture2, EmberTexture3]:
+		var fx := _spawn_effect_sprite(texture, from, 40.0)
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(fx, "position", to - fx.size * 0.5, 0.24).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tw.tween_property(fx, "size", Vector2(56.0, 56.0), 0.24)
+		tw.chain().tween_property(fx, "modulate:a", 0.0, 0.1)
+		tw.tween_callback(fx.queue_free)
+		await get_tree().create_timer(0.09).timeout
+	await get_tree().create_timer(0.2).timeout
+
+# Pistolet à O : une goutte voyage de l'attaquant à la cible, puis
+# éclaboussure (dernière frame "couronne" du sprite d'origine) à l'impact.
+func _play_water_gun_animation(is_player: bool) -> void:
+	var from := _sprite_center(is_player)
+	var to := _sprite_center(not is_player)
+	var drop := _spawn_effect_sprite(WaterDropletTexture, from, 40.0)
+	var tw := create_tween()
+	tw.tween_property(drop, "position", to - drop.size * 0.5, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await tw.finished
+	drop.queue_free()
+	var splash := _spawn_effect_sprite(WaterSplashTexture, to, 90.0)
+	splash.scale = Vector2(0.5, 0.5)
+	splash.pivot_offset = splash.size * 0.5
+	var splash_tw := create_tween()
+	splash_tw.tween_property(splash, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	splash_tw.tween_interval(0.05)
+	splash_tw.tween_property(splash, "modulate:a", 0.0, 0.14)
+	await splash_tw.finished
+	splash.queue_free()
+
+# Fouet Lianes : la liane s'étire de l'attaquant vers la cible puis se
+# rétracte (le vrai jeu l'anime en frames, ici simplifié à une seule frame
+# étirée par un tween de position/échelle).
+func _play_vine_whip_animation(is_player: bool) -> void:
+	var from := _sprite_center(is_player)
+	var to := _sprite_center(not is_player)
+	var vine := _spawn_effect_sprite(VineTexture, from, 110.0)
+	vine.scale = Vector2(0.3, 0.3)
+	vine.pivot_offset = vine.size * 0.5
+	var out_tw := create_tween()
+	out_tw.set_parallel(true)
+	out_tw.tween_property(vine, "position", to - vine.size * 0.5, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	out_tw.tween_property(vine, "scale", Vector2.ONE, 0.2)
+	await out_tw.finished
+	var back_tw := create_tween()
+	back_tw.set_parallel(true)
+	back_tw.tween_property(vine, "position", from - vine.size * 0.5, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	back_tw.tween_property(vine, "modulate:a", 0.0, 0.16).set_delay(0.05)
+	await back_tw.finished
+	vine.queue_free()
+
+# Tranch'Herbe : quelques feuilles qui frémissent près de l'attaquant, puis
+# le croissant tranchant qui file vers la cible.
+func _play_razor_leaf_animation(is_player: bool) -> void:
+	var attacker_center := _sprite_center(is_player)
+	for texture in [LeafTexture1, LeafTexture2, LeafTexture3]:
+		var offset := Vector2(randf_range(-30.0, 30.0), randf_range(-38.0, -8.0))
+		var leaf := _spawn_effect_sprite(texture, attacker_center + offset, 34.0)
+		leaf.modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_property(leaf, "modulate:a", 1.0, 0.05)
+		tw.tween_interval(0.09)
+		tw.tween_property(leaf, "modulate:a", 0.0, 0.09)
+		tw.tween_callback(leaf.queue_free)
+		await get_tree().create_timer(0.08).timeout
+
+	var to := _sprite_center(not is_player)
+	var cutter := _spawn_effect_sprite(RazorLeafTexture, attacker_center, 100.0)
+	cutter.rotation = 0.0 if is_player else PI
+	var tw := create_tween()
+	tw.tween_property(cutter, "position", to - cutter.size * 0.5, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(cutter, "rotation", cutter.rotation + (0.6 if is_player else -0.6), 0.2)
+	await tw.finished
+	cutter.queue_free()
+
+# Danse Pluie : capacité de statut, pas de contact avec la cible — quelques
+# gouttes tombent près de l'attaquant pour marquer l'incantation. La pluie
+# ambiante qui persiste ensuite (voir Gus : tout le temps que dure la
+# météo) est gérée séparément par _start_ambient_rain(), déclenchée sur
+# l'évènement "weather_changed" dans _play_events().
+func _play_rain_dance_animation(is_player: bool) -> void:
+	var center := _sprite_center(is_player)
+	for i in range(4):
+		var offset := Vector2(randf_range(-34.0, 34.0), -40.0)
+		var drop := _spawn_effect_sprite(RaindropTexture, center + offset, 20.0)
+		var tw := create_tween()
+		tw.tween_property(drop, "position:y", drop.position.y + 55.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_property(drop, "modulate:a", 0.0, 0.3).set_delay(0.12)
+		tw.tween_callback(drop.queue_free)
+		await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.15).timeout
+
+# --- Pluie ambiante (persiste tant que battle_engine.gd signale RAIN) ---
+
+func _start_ambient_rain() -> void:
+	if _rain_overlay != null:
+		return
+	_rain_overlay = ColorRect.new()
+	_rain_overlay.color = RAIN_OVERLAY_COLOR
+	_rain_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rain_overlay.modulate.a = 0.0
+	_rain_overlay.anchor_right = 1.0
+	_rain_overlay.anchor_bottom = 1.0
+	_root.add_child(_rain_overlay)
+	# Juste au-dessus du fond (index 0), sous les sprites/barres de vie
+	# ajoutés avant lui dans le .tscn, pour teinter la scène sans assombrir
+	# le texte des boîtes de PV.
+	_root.move_child(_rain_overlay, 1)
+	var tw := create_tween()
+	tw.tween_property(_rain_overlay, "modulate:a", 1.0, RAIN_OVERLAY_FADE_DURATION)
+
+	_rain_timer = Timer.new()
+	_rain_timer.wait_time = RAIN_DROP_INTERVAL
+	_root.add_child(_rain_timer)
+	_rain_timer.timeout.connect(_spawn_ambient_raindrop)
+	_rain_timer.start()
+
+func _stop_ambient_rain() -> void:
+	if _rain_timer != null:
+		_rain_timer.queue_free()
+		_rain_timer = null
+	if _rain_overlay != null:
+		var overlay := _rain_overlay
+		_rain_overlay = null
+		var tw := create_tween()
+		tw.tween_property(overlay, "modulate:a", 0.0, RAIN_OVERLAY_FADE_DURATION)
+		tw.tween_callback(overlay.queue_free)
+
+func _spawn_ambient_raindrop() -> void:
+	var bounds := get_viewport().get_visible_rect().size
+	var x := randf_range(8.0, bounds.x - 8.0)
+	var drop := _spawn_effect_sprite(RaindropTexture, Vector2(x, -10.0), 16.0)
+	var tw := create_tween()
+	tw.tween_property(drop, "position:y", bounds.y + 10.0, RAIN_DROP_FALL_DURATION).set_trans(Tween.TRANS_LINEAR)
+	tw.tween_callback(drop.queue_free)
 
 # Symboles ♂/♀ (U+2642/U+2640, déjà dans dialogue_latin.fnt). Couleurs façon
 # vrai jeu — mêmes valeurs que battle_intro.gd (GENDER_MALE_COLOR/
@@ -394,6 +697,7 @@ func _refresh_health_display(animate: bool = false) -> void:
 	_refresh_player_health(animate)
 
 func _refresh_enemy_health(animate: bool = false) -> void:
+	_enemy_health_box.visible = true
 	var enemy: BattlePokemon = enemy_side.active()
 	_enemy_name_label.text = enemy.display_name
 	_set_gender_label(_enemy_gender_label, enemy.gender)
@@ -402,6 +706,7 @@ func _refresh_enemy_health(animate: bool = false) -> void:
 	_set_hp_bar(_enemy_hp_fill, enemy, animate)
 
 func _refresh_player_health(animate: bool = false) -> void:
+	_player_health_box.visible = true
 	var player: BattlePokemon = player_side.active()
 	_player_name_label.text = player.display_name
 	_set_gender_label(_player_gender_label, player.gender)
@@ -473,8 +778,11 @@ func _run_battle_loop() -> void:
 			if enemy_side.active_index >= 0 and not enemy_side.active().is_fainted():
 				await _say(["%s envoie %s !" % [enemy_side.trainer_name, enemy_side.active().display_name]])
 				_refresh_player_sprite()
-				await _play_send_out_animation(false)
+				# Avant l'animation, pas après : la carte PV du nouveau Pokémon
+				# (cachée par _play_faint_animation() à son K.O.) doit réapparaître
+				# dès qu'il sort de sa balle, pas seulement une fois révélé.
 				_refresh_health_display()
+				await _play_send_out_animation(false)
 
 		if player_side.active().is_fainted() and player_side.has_alive():
 			# Pas de prompt "Choisis le prochain Pokémon." (voir Gus, le
@@ -483,12 +791,22 @@ func _run_battle_loop() -> void:
 			# pas un écran qui reste noir pendant tout le choix.
 			await ScreenFade.fade_out()
 			var idx := await _prompt_switch(true, true)
-			engine.resolve_turn({"kind": "switch", "index": idx}, {"kind": "switch", "index": player_side.active_index})
+			# resolve_turn() attend une action pour les 2 camps — l'ennemi n'a
+			# rien à faire ici (seul le joueur switche de force après un K.O.),
+			# donc un switch "sur lui-même" en no-op. Piège déjà rencontré
+			# (signalé par Gus) : passer player_side.active_index par erreur
+			# réassignait enemy_side.active_index à un index de PARTI JOUEUR
+			# au hasard, ce qui pouvait afficher un Pokémon adverse déjà K.O.
+			# (voir _do_switch() côté battle_engine.gd, qui écrase l'index
+			# sans distinguer les 2 camps).
+			engine.resolve_turn({"kind": "switch", "index": idx}, {"kind": "switch", "index": enemy_side.active_index})
 			_refresh_enemy_sprite()
-			await _play_send_out_animation(true)
+			await _say(["Vas-y, %s !" % player_side.active().display_name])
 			_refresh_health_display()
+			await _play_send_out_animation(true)
 
 func _finish(result: String) -> void:
+	_stop_ambient_rain()
 	finished.emit(result)
 	# _action_layer et _battle_dialogue ne sont PAS des enfants de ce
 	# CanvasLayer (ajoutés directement à la racine du Viewport, voir
@@ -512,11 +830,17 @@ func _play_events(events: Array[Dictionary]) -> String:
 				# juste rafraîchi normalement (déjà à jour de toute façon).
 				var switch_is_player: bool = bool(ev["is_player"])
 				if switch_is_player:
+					# Pendant du "X envoie Y !" de l'adversaire (voir
+					# _run_battle_loop() plus bas) — manquait ici (signalé par
+					# Gus), seul ce chemin volontaire (menu POKÉMON) passe par
+					# _play_events(), le switch forcé après K.O. a son propre
+					# _say() séparé (voir plus bas).
+					await _say(["Vas-y, %s !" % player_side.active().display_name])
 					_refresh_enemy_sprite()
 				else:
 					_refresh_player_sprite()
-				await _play_send_out_animation(switch_is_player)
 				_refresh_health_display()
+				await _play_send_out_animation(switch_is_player)
 			"move_used":
 				# "ennemi" pour distinguer le Pokémon adverse du sien (voir
 				# Gus) — uniquement ici, pas sur les autres messages
@@ -525,7 +849,7 @@ func _play_events(events: Array[Dictionary]) -> String:
 				if not bool(ev["is_player"]):
 					attacker_name += " ennemi"
 				await _say(["%s utilise %s !" % [attacker_name, String(ev["move"])]])
-				await _play_lunge_animation(bool(ev["is_player"]))
+				await _play_move_animation(bool(ev["is_player"]), String(ev["move_key"]))
 			"message":
 				await _say([String(ev["text"])])
 			"hp_changed":
@@ -548,8 +872,10 @@ func _play_events(events: Array[Dictionary]) -> String:
 			"weather_changed":
 				if String(ev["weather"]) == "RAIN":
 					await _say(["Le temps se met à changer... il commence à pleuvoir !"])
+					_start_ambient_rain()
 				else:
 					await _say(["La pluie s'arrête."])
+					_stop_ambient_rain()
 			"pokemon_fainted":
 				await _play_faint_animation(bool(ev["is_player"]))
 				var fainted_name: String = String(ev["pokemon"])

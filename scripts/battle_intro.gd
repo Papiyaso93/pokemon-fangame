@@ -129,8 +129,13 @@ const PLAYER_ROW_OFFSET_X := 100.0
 # adverse, celui de son Pokémon (même emplacement, voir ENEMY_SPRITE_RECT
 # réutilisé dans _send_out) et leur plateforme sont jugés parfaits — ne pas
 # les décaler à nouveau sans qu'il ne le redemande explicitement.
+# ENEMY_SHADOW_RECT (uniquement son y) fait exception : remonté de 0.02 le
+# même jour (voir Gus, ellipse trop basse) — garder IDENTIQUE à Shadow dans
+# trainer_battle.tscn (même piège que celui qui vient d'être corrigé : les 2
+# écrans définissent chacun leur propre position, donc un "saut" visuel
+# apparaît à la transition si l'une bouge sans l'autre).
 const ENEMY_SPRITE_RECT := Rect2(0.5833, 0.13, 0.3, 0.4)
-const ENEMY_SHADOW_RECT := Rect2(0.4733, 0.435, 0.52, 0.13)
+const ENEMY_SHADOW_RECT := Rect2(0.4733, 0.415, 0.52, 0.13)
 const PLAYER_SPRITE_RECT := Rect2(0.06, 0.34, 0.4, 0.42)
 const PLAYER_SHADOW_RECT := Rect2(0.06, 0.70, 0.4, 0.11)
 const ENEMY_COUNT_RECT := Rect2(0.03, 0.1225, 0.33, 0.13)
