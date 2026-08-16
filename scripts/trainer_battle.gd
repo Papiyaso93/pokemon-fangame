@@ -67,6 +67,29 @@ const DialogueFont := preload("res://assets/fonts/dialogue_latin.fnt")
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
 
+# Envoi sur le terrain (voir _play_send_out_animation()) : mêmes assets/
+# constantes que battle_intro.gd (même Poké Ball, même rythme), reproduits
+# ici en simplifié — battle_intro.gd anime dans son propre système de rects
+# fractionnaires, alors qu'ici on réutilise directement les TextureRect déjà
+# ancrés de la scène (_player_sprite/_enemy_sprite).
+const PokeballTexture := preload("res://assets/ui/pokeball_thrown.png")
+const PokeballOpenTexture := preload("res://assets/ui/pokeball_thrown_open.png")
+const SparkleTextures := [
+	preload("res://assets/ui/pokeball_sparkle_diag.png"),
+	preload("res://assets/ui/pokeball_sparkle_vert.png"),
+	preload("res://assets/ui/pokeball_sparkle_horiz.png"),
+]
+const POKEBALL_SIZE := 40.0
+const POKEBALL_POP_DURATION := 0.3
+const BALL_CLOSED_HOLD := 0.15
+const POKEMON_APPEAR_DELAY := 0.25
+const SILHOUETTE_FADE_IN_DURATION := 0.2
+const POKEMON_REVEAL_DURATION := 0.35
+const SPARKLE_COUNT := 8
+const SPARKLE_SIZE := 14.0
+const SPARKLE_TRAVEL := 46.0
+const SPARKLE_DURATION := 0.45
+
 var player_entries: Array = []
 var enemy_entries: Array = []
 var enemy_trainer_name := ""
@@ -81,6 +104,13 @@ var _empty_button_style: StyleBoxEmpty
 @onready var _root: Control = $Root
 @onready var _enemy_sprite: TextureRect = $Root/Sprite
 @onready var _player_sprite: TextureRect = $Root/PlayerSprite
+# Position d'origine (voir _play_faint_animation()/_refresh_sprites()) : ces
+# sprites sont positionnés par ancrage sans offset explicite dans le .tscn,
+# donc `.position` vaut déjà ~(anchor_top * hauteur d'écran), PAS 0 — capturée
+# au 1er _ready() plutôt que supposée nulle (erreur faite une 1re fois,
+# signalé par Gus : ça envoyait les sprites en haut à gauche de l'écran).
+var _enemy_sprite_base_y := 0.0
+var _player_sprite_base_y := 0.0
 @onready var _enemy_name_label: Label = $Root/EnemyHealthBox/VBox/NameRow/NameLabel
 @onready var _enemy_gender_label: Label = $Root/EnemyHealthBox/VBox/NameRow/GenderLabel
 @onready var _enemy_level_label: Label = $Root/EnemyHealthBox/VBox/NameRow/LevelLabel
@@ -105,6 +135,7 @@ var _empty_button_style: StyleBoxEmpty
 # rester visible par-dessus — voir _ready(), _action_layer.
 var _prompt_dialogue: Node = null
 var _action_layer: CanvasLayer = null
+var _battle_dialogue: Node = null   # voir _say() : une seule instance réutilisée pour tous les messages de combat
 
 func _ready() -> void:
 	layer = 90
@@ -117,6 +148,9 @@ func _ready() -> void:
 	player_side = _build_side(player_entries, true, "")
 	enemy_side = _build_side(enemy_entries, false, enemy_trainer_name)
 	engine = BattleEngine.new(player_side, enemy_side)
+
+	_enemy_sprite_base_y = _enemy_sprite.position.y
+	_player_sprite_base_y = _player_sprite.position.y
 
 	_refresh_sprites()
 	_refresh_health_display()
@@ -159,11 +193,21 @@ func _build_side(entries: Array, is_player: bool, trainer_name: String) -> Battl
 # --- Rafraîchissement visuel ---
 
 func _refresh_sprites() -> void:
+	_refresh_enemy_sprite()
+	_refresh_player_sprite()
+
+func _refresh_enemy_sprite() -> void:
 	var enemy: BattlePokemon = enemy_side.active()
 	var enemy_path := "res://assets/pokemon/%s/front.png" % enemy.species_key
 	if ResourceLoader.exists(enemy_path):
 		_enemy_sprite.texture = load(enemy_path)
+	# Remet le sprite à son état normal (voir _play_faint_animation()) :
+	# sans ça, un Pokémon envoyé après un K.O. resterait invisible/décalé
+	# vers le bas, dans l'état laissé par l'animation de chute du précédent.
+	_enemy_sprite.modulate.a = 1.0
+	_enemy_sprite.position.y = _enemy_sprite_base_y
 
+func _refresh_player_sprite() -> void:
 	# Dos du Pokémon du joueur (pas le sprite du dresseur, qui n'apparaît pas
 	# en combat) — même dossier que les sprites de face utilisés partout
 	# ailleurs (assets/pokemon/<espèce>/back.png).
@@ -171,6 +215,156 @@ func _refresh_sprites() -> void:
 	var player_path := "res://assets/pokemon/%s/back.png" % player.species_key
 	if ResourceLoader.exists(player_path):
 		_player_sprite.texture = load(player_path)
+	_player_sprite.modulate.a = 1.0
+	_player_sprite.position.y = _player_sprite_base_y
+
+# Chute + disparition (voir Gus : rendre le combat plus dynamique), jouée
+# juste avant le message "X est mis K.O. !" plutôt qu'après — le sprite
+# glisse vers le bas en s'estompant, matchant le rythme du vrai jeu.
+func _play_faint_animation(is_player: bool) -> void:
+	var sprite: TextureRect = _player_sprite if is_player else _enemy_sprite
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(sprite, "position:y", sprite.position.y + 50.0, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(sprite, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tw.finished
+
+# Même animation que l'envoi du tout premier Pokémon (voir battle_intro.gd::
+# _send_out(), reproduite ici en plus simple : Poké Ball qui apparaît/
+# s'ouvre/étincelle, puis le Pokémon en silhouette blanche qui se révèle en
+# couleur) — rejouée à chaque nouveau Pokémon envoyé en cours de combat
+# (switch volontaire ou après K.O.), pas seulement au tout début (voir Gus).
+# Assigne elle-même la texture du sprite au bon moment (silhouette), donc ne
+# PAS appeler _refresh_sprites() pour ce camp juste avant (ça afficherait le
+# nouveau Pokémon en couleur instantanément, avant l'animation).
+func _play_send_out_animation(is_player: bool) -> void:
+	var sprite: TextureRect = _player_sprite if is_player else _enemy_sprite
+	var pkm: BattlePokemon = player_side.active() if is_player else enemy_side.active()
+	var suffix := "back" if is_player else "front"
+	var path := "res://assets/pokemon/%s/%s.png" % [pkm.species_key, suffix]
+	var texture: Texture2D = load(path) if ResourceLoader.exists(path) else null
+
+	sprite.visible = false
+	sprite.modulate.a = 1.0
+	sprite.position.y = _player_sprite_base_y if is_player else _enemy_sprite_base_y
+
+	var center := sprite.position + sprite.size * 0.5
+
+	var ball := TextureRect.new()
+	ball.texture = PokeballTexture
+	ball.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ball.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ball.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_root.add_child(ball)
+	ball.anchor_left = 0.0
+	ball.anchor_top = 0.0
+	ball.offset_left = center.x - POKEBALL_SIZE * 0.5
+	ball.offset_top = center.y - POKEBALL_SIZE * 0.5
+	ball.offset_right = ball.offset_left + POKEBALL_SIZE
+	ball.offset_bottom = ball.offset_top + POKEBALL_SIZE
+	ball.pivot_offset = Vector2(POKEBALL_SIZE, POKEBALL_SIZE) * 0.5
+	ball.scale = Vector2.ZERO
+
+	var ball_in := create_tween()
+	ball_in.tween_property(ball, "scale", Vector2.ONE, POKEBALL_POP_DURATION).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await ball_in.finished
+	await get_tree().create_timer(BALL_CLOSED_HOLD).timeout
+
+	ball.texture = PokeballOpenTexture
+	_spawn_pokeball_sparkles(center)
+	var ball_out := create_tween()
+	ball_out.tween_property(ball, "scale", Vector2.ZERO, POKEBALL_POP_DURATION)
+	await get_tree().create_timer(POKEMON_APPEAR_DELAY).timeout
+	ball.queue_free()
+
+	sprite.texture = texture
+	sprite.modulate = Color.WHITE
+	sprite.visible = true
+
+	var silhouette := TextureRect.new()
+	silhouette.texture = texture
+	silhouette.expand_mode = sprite.expand_mode
+	silhouette.stretch_mode = sprite.stretch_mode
+	silhouette.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	silhouette.material = _make_silhouette_material()
+	silhouette.modulate.a = 0.0
+	_root.add_child(silhouette)
+	silhouette.anchor_left = 0.0
+	silhouette.anchor_top = 0.0
+	silhouette.offset_left = sprite.position.x
+	silhouette.offset_top = sprite.position.y
+	silhouette.offset_right = sprite.position.x + sprite.size.x
+	silhouette.offset_bottom = sprite.position.y + sprite.size.y
+
+	var appear := create_tween()
+	appear.tween_property(silhouette, "modulate:a", 1.0, SILHOUETTE_FADE_IN_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await appear.finished
+	var reveal := create_tween()
+	reveal.tween_property(silhouette, "modulate:a", 0.0, POKEMON_REVEAL_DURATION).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await reveal.finished
+	silhouette.queue_free()
+
+func _spawn_pokeball_sparkles(center: Vector2) -> void:
+	for i in range(SPARKLE_COUNT):
+		var angle: float = TAU * float(i) / float(SPARKLE_COUNT)
+		var spark := TextureRect.new()
+		spark.texture = SparkleTextures[i % SparkleTextures.size()]
+		spark.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		spark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		spark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_root.add_child(spark)
+		spark.anchor_left = 0.0
+		spark.anchor_top = 0.0
+		spark.offset_left = center.x - SPARKLE_SIZE * 0.5
+		spark.offset_top = center.y - SPARKLE_SIZE * 0.5
+		spark.offset_right = spark.offset_left + SPARKLE_SIZE
+		spark.offset_bottom = spark.offset_top + SPARKLE_SIZE
+		spark.pivot_offset = Vector2(SPARKLE_SIZE, SPARKLE_SIZE) * 0.5
+		spark.rotation = angle
+
+		var target := Vector2(cos(angle), sin(angle)) * SPARKLE_TRAVEL
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(spark, "offset_left", spark.offset_left + target.x, SPARKLE_DURATION)
+		tw.tween_property(spark, "offset_right", spark.offset_right + target.x, SPARKLE_DURATION)
+		tw.tween_property(spark, "offset_top", spark.offset_top + target.y, SPARKLE_DURATION)
+		tw.tween_property(spark, "offset_bottom", spark.offset_bottom + target.y, SPARKLE_DURATION)
+		tw.tween_property(spark, "modulate:a", 0.0, SPARKLE_DURATION).set_delay(SPARKLE_DURATION * 0.4)
+		tw.chain().tween_callback(spark.queue_free)
+
+func _make_silhouette_material() -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = "shader_type canvas_item;\nvoid fragment() {\n\tCOLOR = vec4(1.0, 1.0, 1.0, texture(TEXTURE, UV).a);\n}\n"
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	return mat
+
+# Coup encaissé façon vrai jeu (voir Gus : animer aussi les attaques) :
+# flash blanc + petite secousse du défenseur, joué sur "hp_changed" (pas sur
+# les dégâts résiduels de brûlure, moins marqués dans le vrai jeu).
+func _play_hit_animation(is_player: bool) -> void:
+	var sprite: TextureRect = _player_sprite if is_player else _enemy_sprite
+	var base_x := sprite.position.x
+	var tw := create_tween()
+	tw.tween_property(sprite, "modulate", Color(4.0, 4.0, 4.0), 0.06)
+	tw.tween_property(sprite, "modulate", Color.WHITE, 0.06)
+	tw.tween_property(sprite, "modulate", Color(4.0, 4.0, 4.0), 0.06)
+	tw.tween_property(sprite, "modulate", Color.WHITE, 0.06)
+	tw.parallel().tween_property(sprite, "position:x", base_x - 8.0, 0.05)
+	tw.tween_property(sprite, "position:x", base_x + 8.0, 0.08)
+	tw.tween_property(sprite, "position:x", base_x, 0.06)
+	await tw.finished
+
+# Élan vers l'avant façon vrai jeu, joué sur "move_used" — l'attaquant
+# avance brièvement vers l'adversaire puis revient, avant le message.
+func _play_lunge_animation(is_player: bool) -> void:
+	var sprite: TextureRect = _player_sprite if is_player else _enemy_sprite
+	var base_x := sprite.position.x
+	var dx := 24.0 if is_player else -24.0   # le joueur avance vers la droite (l'adversaire), l'inverse pour lui
+	var tw := create_tween()
+	tw.tween_property(sprite, "position:x", base_x + dx, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(sprite, "position:x", base_x, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tw.finished
 
 # Symboles ♂/♀ (U+2642/U+2640, déjà dans dialogue_latin.fnt). Couleurs façon
 # vrai jeu — mêmes valeurs que battle_intro.gd (GENDER_MALE_COLOR/
@@ -196,17 +390,23 @@ func _set_gender_label(label: Label, gender: String) -> void:
 		label.text = ""
 
 func _refresh_health_display(animate: bool = false) -> void:
+	_refresh_enemy_health(animate)
+	_refresh_player_health(animate)
+
+func _refresh_enemy_health(animate: bool = false) -> void:
 	var enemy: BattlePokemon = enemy_side.active()
-	var player: BattlePokemon = player_side.active()
 	_enemy_name_label.text = enemy.display_name
 	_set_gender_label(_enemy_gender_label, enemy.gender)
 	_enemy_level_label.text = "N.%d" % enemy.level
+	_enemy_hp_label.text = "%d/%d" % [enemy.current_hp, enemy.max_hp]
+	_set_hp_bar(_enemy_hp_fill, enemy, animate)
+
+func _refresh_player_health(animate: bool = false) -> void:
+	var player: BattlePokemon = player_side.active()
 	_player_name_label.text = player.display_name
 	_set_gender_label(_player_gender_label, player.gender)
 	_player_level_label.text = "N.%d" % player.level
 	_player_hp_label.text = "%d/%d" % [player.current_hp, player.max_hp]
-	_enemy_hp_label.text = "%d/%d" % [enemy.current_hp, enemy.max_hp]
-	_set_hp_bar(_enemy_hp_fill, enemy, animate)
 	_set_hp_bar(_player_hp_fill, player, animate)
 
 func _set_hp_bar(fill: ColorRect, pkm: BattlePokemon, animate: bool) -> void:
@@ -224,6 +424,14 @@ func _set_hp_bar(fill: ColorRect, pkm: BattlePokemon, animate: bool) -> void:
 # plan et affiche le menu d'action par-dessus.
 func _open_prompt(text: String) -> void:
 	_close_prompt()
+	# _battle_dialogue (voir _say()) reste maintenant affichée en permanence
+	# pendant la résolution du tour au lieu d'être détruite après chaque
+	# message — mais une fois revenu au menu d'action, elle n'a plus rien à
+	# faire là : sans ce masquage, elle restait visible derrière (un bout
+	# passait dans l'interstice entre les boîtes d'action, même piège que
+	# celui déjà rencontré avec battle_intro.gd, signalé par Gus).
+	if _battle_dialogue != null:
+		_battle_dialogue.visible = false
 	_prompt_dialogue = DialogueBoxScene.instantiate()
 	_prompt_dialogue.style = "battle"
 	# Racine du Viewport, pas current_scene : ce dernier peut lui-même être un
@@ -264,24 +472,32 @@ func _run_battle_loop() -> void:
 			engine.auto_switch_enemy_if_fainted()
 			if enemy_side.active_index >= 0 and not enemy_side.active().is_fainted():
 				await _say(["%s envoie %s !" % [enemy_side.trainer_name, enemy_side.active().display_name]])
-				_refresh_sprites()
+				_refresh_player_sprite()
+				await _play_send_out_animation(false)
 				_refresh_health_display()
 
 		if player_side.active().is_fainted() and player_side.has_alive():
-			await _open_prompt("Choisis le prochain Pokémon.")
-			var idx := await _prompt_switch(true)
-			_close_prompt()
+			# Pas de prompt "Choisis le prochain Pokémon." (voir Gus, le
+			# message "K.O." l'annonce déjà) : juste un fondu rapide
+			# noir -> écran de sélection (voir _prompt_switch(and_fade_in)),
+			# pas un écran qui reste noir pendant tout le choix.
+			await ScreenFade.fade_out()
+			var idx := await _prompt_switch(true, true)
 			engine.resolve_turn({"kind": "switch", "index": idx}, {"kind": "switch", "index": player_side.active_index})
-			_refresh_sprites()
+			_refresh_enemy_sprite()
+			await _play_send_out_animation(true)
 			_refresh_health_display()
 
 func _finish(result: String) -> void:
 	finished.emit(result)
-	# _action_layer n'est PAS un enfant de ce CanvasLayer (ajouté directement
-	# à la racine du Viewport, voir _ready()) : il ne serait donc jamais
-	# libéré automatiquement par le queue_free() ci-dessous.
+	# _action_layer et _battle_dialogue ne sont PAS des enfants de ce
+	# CanvasLayer (ajoutés directement à la racine du Viewport, voir
+	# _ready()/_say()) : ils ne seraient donc jamais libérés automatiquement
+	# par le queue_free() ci-dessous.
 	if _action_layer != null:
 		_action_layer.queue_free()
+	if _battle_dialogue != null:
+		_battle_dialogue.queue_free()
 	queue_free()
 
 # Rejoue les évènements un par un ; retourne "win"/"lose" si le combat vient
@@ -290,14 +506,42 @@ func _play_events(events: Array[Dictionary]) -> String:
 	for ev in events:
 		match String(ev["type"]):
 			"switch":
-				_refresh_sprites()
+				# Même animation d'envoi que le tout premier Pokémon du combat
+				# (voir Gus), pas juste un changement instantané de texture —
+				# seul le camp qui switche réellement est animé, l'autre est
+				# juste rafraîchi normalement (déjà à jour de toute façon).
+				var switch_is_player: bool = bool(ev["is_player"])
+				if switch_is_player:
+					_refresh_enemy_sprite()
+				else:
+					_refresh_player_sprite()
+				await _play_send_out_animation(switch_is_player)
 				_refresh_health_display()
 			"move_used":
-				await _say(["%s utilise %s !" % [String(ev["pokemon"]), String(ev["move"])]])
+				# "ennemi" pour distinguer le Pokémon adverse du sien (voir
+				# Gus) — uniquement ici, pas sur les autres messages
+				# ("K.O.", "brûlé"...), pas demandé pour ceux-là.
+				var attacker_name: String = String(ev["pokemon"])
+				if not bool(ev["is_player"]):
+					attacker_name += " ennemi"
+				await _say(["%s utilise %s !" % [attacker_name, String(ev["move"])]])
+				await _play_lunge_animation(bool(ev["is_player"]))
 			"message":
 				await _say([String(ev["text"])])
 			"hp_changed":
-				_refresh_health_display(true)
+				# Seul le camp concerné (voir ev["is_player"]) — resolve_turn()
+				# calcule déjà les 2 attaques du tour d'un coup, donc l'autre
+				# camp peut avoir une hp_changed pas encore "affichée" dans la
+				# file : rafraîchir les 2 barres ici animerait la sienne en
+				# avance, avant même le message qui l'annonce (signalé par Gus).
+				if bool(ev["is_player"]):
+					_refresh_player_health(true)
+				else:
+					_refresh_enemy_health(true)
+				# Pas de secousse sur les dégâts résiduels de brûlure (plus
+				# discrets dans le vrai jeu, pas un vrai "coup encaissé").
+				if not bool(ev["residual"]):
+					_play_hit_animation(bool(ev["is_player"]))
 				await get_tree().create_timer(0.3).timeout
 			"status":
 				await _say(["%s est brûlé !" % String(ev["pokemon"])])
@@ -307,23 +551,40 @@ func _play_events(events: Array[Dictionary]) -> String:
 				else:
 					await _say(["La pluie s'arrête."])
 			"pokemon_fainted":
-				await _say(["%s est mis K.O. !" % String(ev["pokemon"])])
+				await _play_faint_animation(bool(ev["is_player"]))
+				var fainted_name: String = String(ev["pokemon"])
+				if not bool(ev["is_player"]):
+					fainted_name += " ennemi"
+				await _say(["%s est mis K.O. !" % fainted_name])
 			"battle_ended":
 				return String(ev["result"])
 	return ""
 
+# Une seule boîte de dialogue de combat (_battle_dialogue), créée au premier
+# appel et réutilisée pour tous les messages du combat plutôt que détruite/
+# recréée à chaque fois : sinon le cadre de la boîte disparaissait
+# entièrement de l'écran entre deux messages (ex. entre "X utilise Y !" et
+# les dégâts), pas seulement le texte — signalé par Gus, qui voulait la
+# boîte visible en permanence pendant le combat.
 func _say(lines: Array[String]) -> void:
-	var dialogue := DialogueBoxScene.instantiate()
-	dialogue.style = "battle"
-	get_tree().root.add_child(dialogue)
+	if _battle_dialogue == null:
+		_battle_dialogue = DialogueBoxScene.instantiate()
+		_battle_dialogue.style = "battle"
+		get_tree().root.add_child(_battle_dialogue)
 	# force_arrow=true : un message de combat n'est jamais vraiment "la fin"
 	# (le tour continue, ou le menu réapparaît juste après) — sans ça la
 	# flèche de continuation ne s'affiche pas sur un message d'une seule
 	# ligne, alors qu'une action du joueur est bien attendue (signalé par
 	# Gus). Voir dialogue_box.gd::say().
-	dialogue.say(lines, -1, 0.0, true)
-	await dialogue.finished
-	dialogue.queue_free()
+	_battle_dialogue.say(lines, -1, 0.0, true)
+	await _battle_dialogue.finished
+	# dialogue_box.gd::_show_next() cache le panneau (visible=false) une fois
+	# la file vidée par le dernier appui — correct pour une boîte ponctuelle
+	# (PNJ, objet...), mais pendant un combat elle doit rester affichée en
+	# permanence (voir Gus) entre deux messages (ex. pendant l'animation de
+	# la barre de PV, qui ne passe pas par _say()). On la rouvre donc à vide
+	# juste après : le prochain _say() la remplira avec le message suivant.
+	_battle_dialogue.visible = true
 
 # --- Menus ---
 
@@ -382,6 +643,7 @@ func _prompt_player_action() -> Dictionary:
 				var idx := await _prompt_switch(false)
 				if idx >= 0:
 					return {"kind": "switch", "index": idx}
+				need_new_prompt = false
 			3:
 				_close_prompt()
 				await _say(["Tu ne peux pas fuir un combat de dresseur !"])
@@ -462,7 +724,11 @@ func _prompt_move_choice() -> String:
 	_clear_menu()
 	if _prompt_dialogue != null:
 		_prompt_dialogue.visible = true
-	return "" if chosen == -1 else String(chosen)
+	# `chosen` vaut soit -1 (int, annulation), soit la clé de la capacité
+	# (String) — comparer directement "chosen == -1" plante en Godot 4.7
+	# quand chosen est une String ("Invalid operands 'String' and 'int' in
+	# operator '=='."), il faut vérifier le type avant.
+	return "" if chosen is int and chosen == -1 else String(chosen)
 
 # Même fenêtre/style que _action_window (même StyleBox, même thème), même
 # hauteur qu'elle (lue dynamiquement plutôt que dupliquée en constante — si
@@ -504,7 +770,14 @@ func _info_label(font_size: int = 20) -> Label:
 # (maquette validée par Gus, voir la conversation de conception) plutôt que
 # les anciens boutons texte empilés : carte du Pokémon actif à gauche, les
 # autres emplacements de l'équipe à droite.
-func _prompt_switch(forced: bool) -> int:
+# `and_fade_in` : utilisé par le switch forcé après K.O. (voir
+# _run_battle_loop()) — l'appelant a déjà fait ScreenFade.fade_out() juste
+# avant, le fondu n'est là que comme TRANSITION (retour rapide au noir puis
+# réapparition), pas pour garder l'écran noir pendant tout le choix (sinon
+# le joueur ne voit jamais la liste, seulement le noir qui "s'en va" une
+# fois le choix résolu à l'aveugle — signalé par Gus). Donc on refond dès
+# que l'écran de sélection est construit, AVANT d'attendre le choix.
+func _prompt_switch(forced: bool, and_fade_in: bool = false) -> int:
 	_clear_menu()
 	if _prompt_dialogue != null:
 		_prompt_dialogue.visible = false
@@ -514,6 +787,8 @@ func _prompt_switch(forced: bool) -> int:
 	sel.active_index = player_side.active_index
 	sel.forced = forced
 	get_tree().root.add_child(sel)
+	if and_fade_in:
+		await ScreenFade.fade_in()
 	var idx: int = await sel.pick()
 	sel.queue_free()
 
