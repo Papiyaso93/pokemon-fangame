@@ -1,0 +1,227 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/trainer_battle.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui/battle_bg_neutral.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/ui/platform.png" id="3_platform"]
+[ext_resource type="FontFile" path="res://assets/fonts/dialogue_latin.fnt" id="4_font"]
+[ext_resource type="Texture2D" path="res://assets/ui/square_window.png" id="5_window"]
+[ext_resource type="Theme" path="res://assets/ui/game_theme.tres" id="6_theme"]
+
+[sub_resource type="StyleBoxFlat" id="CreamBoxStyle"]
+bg_color = Color(1, 1, 0.870588, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.12549, 0.223529, 0, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="ActionWindowStyle"]
+texture = ExtResource("5_window")
+texture_margin_left = 12.0
+texture_margin_top = 12.0
+texture_margin_right = 12.0
+texture_margin_bottom = 12.0
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[node name="TrainerBattle" type="CanvasLayer"]
+script = ExtResource("1_script")
+
+[node name="Root" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Background" type="TextureRect" parent="Root"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="PlayerShadow" type="TextureRect" parent="Root"]
+anchor_left = 0.06
+anchor_top = 0.70
+anchor_right = 0.46
+anchor_bottom = 0.81
+texture = ExtResource("3_platform")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="PlayerSprite" type="TextureRect" parent="Root"]
+anchor_left = 0.06
+anchor_top = 0.42
+anchor_right = 0.46
+anchor_bottom = 0.84
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="Shadow" type="TextureRect" parent="Root"]
+anchor_left = 0.4733
+anchor_top = 0.435
+anchor_right = 0.9933
+anchor_bottom = 0.565
+texture = ExtResource("3_platform")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Sprite" type="TextureRect" parent="Root"]
+anchor_left = 0.5833
+anchor_top = 0.13
+anchor_right = 0.8833
+anchor_bottom = 0.53
+expand_mode = 1
+stretch_mode = 5
+texture_filter = 1
+
+[node name="EnemyHealthBox" type="PanelContainer" parent="Root"]
+anchor_left = 0.03
+anchor_top = 0.1225
+anchor_right = 0.36
+anchor_bottom = 0.2525
+theme_override_styles/panel = SubResource("CreamBoxStyle")
+
+[node name="VBox" type="VBoxContainer" parent="Root/EnemyHealthBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameRow" type="HBoxContainer" parent="Root/EnemyHealthBox/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="Root/EnemyHealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="GenderLabel" type="Label" parent="Root/EnemyHealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="Spacer" type="Control" parent="Root/EnemyHealthBox/VBox/NameRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LevelLabel" type="Label" parent="Root/EnemyHealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="HPBarBg" type="ColorRect" parent="Root/EnemyHealthBox/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+color = Color(0.321569, 0.415686, 0.352941, 1)
+
+[node name="HPBarFill" type="ColorRect" parent="Root/EnemyHealthBox/VBox/HPBarBg"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+color = Color(0.45098, 1, 0.67451, 1)
+
+[node name="HPTextLabel" type="Label" parent="Root/EnemyHealthBox/VBox"]
+layout_mode = 2
+horizontal_alignment = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="PlayerHealthBox" type="PanelContainer" parent="Root"]
+anchor_left = 0.65
+anchor_top = 0.56
+anchor_right = 0.97
+anchor_bottom = 0.69
+theme_override_styles/panel = SubResource("CreamBoxStyle")
+
+[node name="VBox" type="VBoxContainer" parent="Root/PlayerHealthBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameRow" type="HBoxContainer" parent="Root/PlayerHealthBox/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="Label" parent="Root/PlayerHealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="GenderLabel" type="Label" parent="Root/PlayerHealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="Spacer" type="Control" parent="Root/PlayerHealthBox/VBox/NameRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LevelLabel" type="Label" parent="Root/PlayerHealthBox/VBox/NameRow"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="HPBarBg" type="ColorRect" parent="Root/PlayerHealthBox/VBox"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+color = Color(0.321569, 0.415686, 0.352941, 1)
+
+[node name="HPBarFill" type="ColorRect" parent="Root/PlayerHealthBox/VBox/HPBarBg"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = -2.0
+color = Color(0.45098, 1, 0.67451, 1)
+
+[node name="HPTextLabel" type="Label" parent="Root/PlayerHealthBox/VBox"]
+layout_mode = 2
+horizontal_alignment = 2
+theme_override_fonts/font = ExtResource("4_font")
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+
+[node name="ExpBarBg" type="ColorRect" parent="Root/PlayerHealthBox/VBox"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+color = Color(0.321569, 0.415686, 0.352941, 1)
+
+[node name="ExpBarFill" type="ColorRect" parent="Root/PlayerHealthBox/VBox/ExpBarBg"]
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 2.0
+offset_top = 1.0
+offset_bottom = -1.0
+color = Color(0.286275, 0.784314, 0.882353, 1)
+
+[node name="ActionWindow" type="PanelContainer" parent="Root"]
+anchor_left = 0.65
+anchor_top = 0.74
+anchor_right = 0.98
+anchor_bottom = 0.96
+theme = ExtResource("6_theme")
+theme_override_styles/panel = SubResource("ActionWindowStyle")
+
+[node name="MenuBox" type="Control" parent="Root/ActionWindow"]
+layout_mode = 2
