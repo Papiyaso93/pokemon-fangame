@@ -127,8 +127,20 @@ func _resolve_attack(side: BattleSide, other: BattleSide, move_key: String, even
 		events.append({"type": "message", "text": "%s évite l'attaque." % defender.display_name})
 		return
 
-	var dmg := _compute_damage(attacker, defender, move)
+	var result: Dictionary = _compute_damage(attacker, defender, move)
+	var dmg: int = int(result["damage"])
 	defender.take_damage(dmg)
+	# Retour explicite sur l'efficacité (voir Gus : le joueur doit savoir si
+	# son attaque a fait mouche), fidèle aux messages du vrai jeu — dans cet
+	# ordre (critique d'abord), et seulement l'un OU l'autre pour
+	# l'efficacité (jamais les deux).
+	if bool(result["crit"]):
+		events.append({"type": "message", "text": "Coup critique !"})
+	var type_eff: float = float(result["type_eff"])
+	if type_eff > 1.0:
+		events.append({"type": "message", "text": "C'est super efficace !"})
+	elif type_eff < 1.0 and type_eff > 0.0:
+		events.append({"type": "message", "text": "Ce n'est pas très efficace..."})
 	events.append({
 		"type": "hp_changed", "is_player": other.is_player, "amount": dmg,
 		"current_hp": defender.current_hp, "max_hp": defender.max_hp, "residual": false,
@@ -143,8 +155,10 @@ func _resolve_attack(side: BattleSide, other: BattleSide, move_key: String, even
 		events.append({"type": "pokemon_fainted", "is_player": other.is_player, "pokemon": defender.display_name})
 
 # Formule Gen 3 : ((2*Level/5+2) * Power * Atk/Def / 50 + 2) * STAB * Efficacité
-# * Météo * Critique(x2, 1/16) * Aléa(0.85-1.0).
-func _compute_damage(attacker: BattlePokemon, defender: BattlePokemon, move: Dictionary) -> int:
+# * Météo * Critique(x2, 1/16) * Aléa(0.85-1.0). Retourne aussi type_eff/crit
+# (pas seulement les dégâts) : _resolve_attack() s'en sert pour les messages
+# "Coup critique !"/"C'est super efficace !" (voir Gus).
+func _compute_damage(attacker: BattlePokemon, defender: BattlePokemon, move: Dictionary) -> Dictionary:
 	var power: int = int(move["power"])
 	var category: String = String(move["category"])
 	var atk_stat: int = attacker.sp_attack if category == "SPECIAL" else attacker.attack
@@ -157,10 +171,12 @@ func _compute_damage(attacker: BattlePokemon, defender: BattlePokemon, move: Dic
 	var stab: float = 1.5 if String(move["type"]) in attacker.types else 1.0
 	var type_eff: float = TypeChart.effectiveness(String(move["type"]), defender.types)
 	var weather_mult: float = _weather_multiplier(String(move["type"]))
-	var crit: float = 2.0 if randf() < (1.0 / 16.0) else 1.0
+	var is_crit: bool = randf() < (1.0 / 16.0)
+	var crit: float = 2.0 if is_crit else 1.0
 	var rand_factor: float = randf_range(0.85, 1.0)
 
-	return maxi(1, int(base * stab * type_eff * weather_mult * crit * rand_factor))
+	var dmg := maxi(1, int(base * stab * type_eff * weather_mult * crit * rand_factor))
+	return {"damage": dmg, "type_eff": type_eff, "crit": is_crit}
 
 func _weather_multiplier(move_type: String) -> float:
 	if weather == "RAIN":

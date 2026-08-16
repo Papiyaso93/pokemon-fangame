@@ -8,15 +8,14 @@ extends CanvasLayer
 # _build_ui().
 #
 # Layout : carte du Pokémon ACTIF à gauche (contenu fixe, simple référence —
-# on ne peut pas se "switcher" sur soi-même), liste des 5 AUTRES emplacements
+# on ne peut pas se "switcher" sur soi-même), liste des AUTRES emplacements
 # d'équipe à droite (nom/sexe/niveau + barre de PV), boîte de dialogue
 # standard en bas ("Choisir un Pokémon."). Un seul curseur (une flèche) se
-# déplace entre les 6 emplacements (carte de gauche comprise, pour pouvoir
-# s'y arrêter sans que ça ne soit un choix confirmable) — jamais deux flèches
-# affichées à la fois (voir Gus). Haut/bas navigue dans la liste de droite
-# uniquement (sans jamais atteindre la carte de gauche), gauche/droite bascule
-# entre la carte de gauche et la liste — navigation en grille 2 colonnes,
-# pas une liste linéaire de 6. Souris : survoler une carte y déplace le
+# déplace entre la carte de gauche et la liste — jamais deux flèches
+# affichées à la fois (voir Gus). Haut/bas parcourt une boucle unique : carte
+# de gauche -> 1er candidat -> ... -> dernier candidat -> retour à la carte
+# de gauche (et inversement avec la flèche du haut) — voir Gus, ce n'est PAS
+# une grille à 2 colonnes séparées. Souris : survoler une carte y déplace le
 # curseur, cliquer confirme (comme un bouton). Confirmation ferme l'écran et
 # émet chosen(party_index), Échap/ui_cancel émet cancelled (désactivé si
 # forced=true, K.O.) — pas de bouton "Sortir" visible (voir Gus).
@@ -28,6 +27,7 @@ extends CanvasLayer
 
 signal chosen(index: int)
 signal cancelled
+signal _menu_choice(value: String)   # local au sous-menu Échanger/Résumé/Revenir, voir _open_action_menu()
 
 @export var party: Array = []   # Array[BattlePokemon] (voir player_side.party) — non typé ici : Array[BattlePokemon] combiné à @export fait échouer la résolution du membre côté appelant (Godot 4.7)
 @export var active_index := 0
@@ -39,8 +39,15 @@ const SlotMainTexture := preload("res://assets/ui/party_slot_main_no_hp_cropped.
 const SlotWideTexture := preload("res://assets/ui/party_slot_wide_no_hp.png")
 const HpBarTexture := preload("res://assets/ui/party_hp_bar.png")
 const CursorTexture := preload("res://assets/ui/choice_arrow.png")
+const BlankCursorTexture := preload("res://assets/ui/choice_arrow_blank.png")
 const FontWhite := preload("res://assets/fonts/dialogue_latin_white.fnt")
+# Même police que le reste des menus de combat (ATTAQUE/SAC/POKÉMON/FUITE,
+# choix d'attaque) — voir trainer_battle.gd::DialogueFont. FontWhite (ci-
+# dessus) reste réservé aux cartes (maquette validée), pas au sous-menu.
+const DialogueFont := preload("res://assets/fonts/dialogue_latin.fnt")
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
+const PokedexScreenScene := preload("res://scenes/ui/pokedex_screen.tscn")
+const MenuWindowTexture := preload("res://assets/ui/square_window.png")
 
 # Couleurs du symbole de sexe — voir battle_intro.gd/trainer_battle.gd
 # (Gus a signalé que ce n'est pas encore la même méthode d'affichage qu'en
@@ -101,6 +108,8 @@ var _candidate_party_indices: Array = []   # index dans `party` pour chaque lign
 var _dialogue: Node
 var _selected := 0   # 0 = carte de gauche, 1.._list_rows.size() = liste
 var _active := false
+var _menu_active := false   # sous-menu Échanger/Résumé/Revenir ouvert — voir _open_action_menu()
+var _menu_buttons: Dictionary = {}   # "echanger"/"resume"/"revenir" -> Button, voir _build_action_menu()
 
 func _ready() -> void:
 	# Au-dessus de tout le reste de l'écran de combat, y compris
@@ -113,10 +122,9 @@ func _ready() -> void:
 
 func pick() -> int:
 	# Curseur unique : 0 = carte de gauche (Pokémon actif, jamais un choix
-	# valide), 1.._list_rows.size() = la liste. Démarre sur le premier
-	# candidat réel plutôt que sur la carte de gauche (voir Gus : un seul
-	# curseur visible à la fois, pas de flèche fixe en plus).
-	_selected = 1 if not _list_rows.is_empty() else 0
+	# valide), 1.._list_rows.size() = la liste. Démarre sur la carte de
+	# gauche (le Pokémon actuellement au combat) — voir Gus.
+	_selected = 0
 	_refresh_cursors()
 	visible = true
 	_active = true
@@ -125,65 +133,72 @@ func pick() -> int:
 	get_tree().root.add_child(_dialogue)
 	_dialogue.layer = 98   # au-dessus de ce composant lui-même (97), sinon son propre fond plein écran la masquerait
 	var lines: Array[String] = [prompt_text]
-	_dialogue.say(lines, -1, 0.0, true)
+	_dialogue.say(lines)   # pas de force_arrow : "Choisir un Pokémon." reste affiché sans rien à continuer, la flèche n'a pas de sens ici (voir Gus)
+	# `active = false` : sinon dialogue_box.gd garde l'écoute de ui_accept
+	# (queue vide après ce say(), donc prêt à se fermer sur le prochain appui)
+	# et peut intercepter l'appui destiné à ouvrir le sous-menu de la carte
+	# sélectionnée avant que PartySelect ne le reçoive — même piège que
+	# battle_intro.gd::_send_out(), voir _show_message() pour la réactivation
+	# ponctuelle le temps d'un message bloquant.
+	_dialogue.active = false
 
 	var result: int = await chosen
 	return result
 
-# Les candidats de la liste = toute l'équipe SAUF le Pokémon actif et les
-# K.O. (comme l'ancien _prompt_switch), dans l'ordre de party — pas de
-# padding : si l'équipe n'a que 3 Pokémon, la liste n'a que 2 cartes (voir
-# Gus, aucune carte "---" vide affichée).
+# Les candidats de la liste = toute l'équipe SAUF le Pokémon actif (déjà
+# représenté par la carte de gauche), dans l'ordre de party — pas de padding
+# (voir Gus, aucune carte "---" vide affichée). Les K.O. restent dans la
+# liste (contrairement à avant) : on peut cliquer dessus, "Échanger" répond
+# juste par un message au lieu de switcher, voir _try_switch().
 func _compute_candidates() -> Array:
 	var out: Array = []
 	for i in range(party.size()):
-		if i == active_index:
-			continue
-		var pkm: BattlePokemon = party[i]
-		if pkm != null and pkm.is_fainted():
-			continue
-		out.append(i)
+		if i != active_index:
+			out.append(i)
 	return out
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _menu_active:
+		if event.is_action_pressed("ui_cancel"):
+			_menu_choice.emit("revenir")
+			get_viewport().set_input_as_handled()
+		return
 	if not _active:
 		return
 	if event.is_action_pressed("ui_up"):
-		_move_in_list(-1)
+		_move_cursor(-1)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_down"):
-		_move_in_list(1)
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_left"):
-		_select(0)
+		_move_cursor(1)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_right"):
-		if _selected == 0:
-			_move_in_list(0)   # revient au premier candidat valide, voir _move_in_list()
+		if _selected == 0 and not _list_rows.is_empty():
+			_select(1)   # carte de gauche -> 1re carte de la liste (voir Gus)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_left"):
+		if _selected != 0:
+			_select(0)   # n'importe quelle carte de la liste -> carte de gauche (voir Gus)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_accept"):
-		_confirm_if_valid()
+		_open_action_menu(_selected_party_index())
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_cancel"):
 		if not forced:
 			_cancel()
 		get_viewport().set_input_as_handled()
 
-# Navigation en grille 2 colonnes (voir l'en-tête du fichier) : haut/bas ne
-# déplace le curseur QUE dans la liste de droite (jamais vers la carte de
-# gauche, contrairement à une ancienne version) ; gauche/droite bascule entre
-# les 2 colonnes (_select(0) / ceci). direction=0 depuis la carte de gauche
-# revient simplement au premier candidat de la liste. Plus d'emplacements
-# vides à sauter (voir _compute_candidates()) : chaque ligne construite est
-# un choix valide.
-func _move_in_list(direction: int) -> void:
+func _selected_party_index() -> int:
+	return active_index if _selected == 0 else _candidate_party_indices[_selected - 1]
+
+# Boucle unique (voir l'en-tête du fichier) : 0 = carte de gauche,
+# 1.._list_rows.size() = liste, et ça boucle d'un bout à l'autre (dernier
+# candidat + bas -> carte de gauche ; carte de gauche + haut -> dernier
+# candidat) — voir Gus.
+func _move_cursor(direction: int) -> void:
 	if _list_rows.is_empty():
 		return
-	if direction == 0:
-		_select(1)
-		return
-	var start := _selected if _selected != 0 else 1
-	_select(wrapi(start - 1 + direction, 0, _list_rows.size()) + 1)
+	var total := _list_rows.size() + 1
+	_select(wrapi(_selected + direction, 0, total))
 
 func _select(index: int) -> void:
 	if index == _selected:
@@ -191,12 +206,8 @@ func _select(index: int) -> void:
 	_selected = index
 	_refresh_cursors()
 
-func _confirm_if_valid() -> void:
-	if _selected != 0:
-		_confirm()
-
-# --- souris : survoler une carte déplace le curseur, cliquer confirme
-# (comme un bouton) — voir Gus, la navigation clavier ne suffisait pas.
+# --- souris : survoler une carte déplace le curseur, cliquer ouvre le
+# sous-menu Échanger/Résumé/Revenir (comme un appui sur ui_accept) — voir Gus.
 func _on_row_hovered(slot_index: int) -> void:
 	if _active:
 		_select(slot_index)
@@ -206,14 +217,24 @@ func _on_row_gui_input(slot_index: int, event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_select(slot_index)
-		_confirm()
+		_open_action_menu(_selected_party_index())
 
-func _confirm() -> void:
+func _on_main_card_gui_input(event: InputEvent) -> void:
+	if not _active:
+		return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_select(0)
+		_open_action_menu(active_index)
+
+# Ferme tout l'écran de sélection sur un switch confirmé (voir _try_switch()) —
+# distinct de _cancel() : ici party_index vient d'être validé comme cible
+# valide (ni actif, ni K.O.).
+func _confirm_switch(party_index: int) -> void:
 	_active = false
 	if _dialogue != null:
 		_dialogue.queue_free()
 		_dialogue = null
-	chosen.emit(_candidate_party_indices[_selected - 1])
+	chosen.emit(party_index)
 
 func _cancel() -> void:
 	_active = false
@@ -222,6 +243,190 @@ func _cancel() -> void:
 		_dialogue = null
 	cancelled.emit()
 	chosen.emit(-1)
+
+# ---------------------------------------------------------------- sous-menu Échanger/Résumé/Revenir
+# Ouvert au clic ou à ui_accept sur n'importe quelle carte (gauche ou liste),
+# voir Gus. Reste ouvert (revient à lui-même) tant que "Échanger" se heurte à
+# un message (actif ou K.O.) ou que "Résumé" est consulté ; seul un switch
+# réellement effectué ou "Revenir" le referme.
+func _open_action_menu(party_index: int) -> void:
+	_menu_active = true
+	_active = false
+	var menu := _build_action_menu()
+
+	while true:
+		var choice: String = await _menu_choice
+		match choice:
+			"echanger":
+				if await _try_switch(party_index):
+					break   # écran entier fermé par _confirm_switch(), rien d'autre à faire
+			"resume":
+				await _open_summary(party[party_index].species_key)
+				# La fiche Pokédex prend le focus pour elle-même en s'ouvrant ;
+				# une fois refermée, rien ne le rend automatiquement au bouton
+				# du sous-menu (signalé par Gus) — on le refait nous-mêmes.
+				if _menu_buttons.has("resume"):
+					_menu_buttons["resume"].grab_focus()
+			"revenir":
+				break
+
+	menu.queue_free()
+	_menu_buttons.clear()
+	_menu_active = false
+	_active = true
+
+# true si le switch a bien eu lieu (et donc fermé tout l'écran) ; false si un
+# message a juste été affiché (actif ou K.O.) et qu'il faut rouvrir le
+# sous-menu. Pas encore d'animation de switch ici (voir Gus, à ajouter plus
+# tard) : le remplacement effectif est géré par l'appelant (trainer_battle.gd)
+# une fois chosen(party_index) émis, comme pour un switch normal.
+func _try_switch(party_index: int) -> bool:
+	var pkm: BattlePokemon = party[party_index]
+	if party_index == active_index:
+		await _show_message("%s est déjà en combat !" % pkm.display_name)
+		return false
+	if pkm.is_fainted():
+		await _show_message("%s n'a plus d'énergie pour combattre !" % pkm.display_name)
+		return false
+	_confirm_switch(party_index)
+	return true
+
+# Affiche un message bloquant dans la boîte de dialogue existante (celle de
+# "Choisir un Pokémon.") — attend un appui du joueur pour continuer (say()
+# réactive active=true le temps du message), puis restaure le texte
+# d'origine derrière le sous-menu qui reste ouvert et redevient passive.
+func _show_message(text: String) -> void:
+	# Perd le focus le temps du message : sinon le bouton "Échanger" (celui
+	# qui a mené ici) garde le focus, et l'appui sur la touche d'action qui
+	# fait avancer/fermer le message active AUSSI ce bouton via la
+	# navigation clavier native de Godot, ce qui relance "Échanger" en
+	# boucle (signalé par Gus).
+	var echanger_btn: Button = _menu_buttons.get("echanger")
+	if echanger_btn != null:
+		echanger_btn.release_focus()
+
+	var lines: Array[String] = [text]
+	# force_arrow=true : une seule ligne, donc pas de flèche par défaut (voir
+	# dialogue_box.gd), alors qu'une action du joueur est bien attendue pour
+	# continuer — même besoin déjà rencontré pour les messages de combat
+	# (trainer_battle.gd::_say()) et de l'intro (battle_intro.gd).
+	_dialogue.say(lines, -1, 0.0, true)
+	await _dialogue.finished
+	var restore: Array[String] = [prompt_text]
+	_dialogue.say(restore)
+	_dialogue.active = false
+
+	if echanger_btn != null:
+		echanger_btn.grab_focus()
+
+# Fiche Pokédex de l'espèce (voir Gus : "Résumé" amène sur cette fiche, pas
+# un écran de résumé de combat dédié — rien de tel n'existe encore). Saute
+# directement au détail plutôt que d'ouvrir la liste complète.
+func _open_summary(species_key: String) -> void:
+	_active = false   # PartySelect ignore les entrées pendant que la fiche est ouverte (elle a son propre _unhandled_input)
+	var screen := PokedexScreenScene.instantiate()
+	get_tree().root.add_child(screen)
+	# layer=1 par défaut (rien de précisé dans pokedex_screen.tscn) : restait
+	# sous le fond plein écran de ce composant (layer 97) et du sous-menu
+	# (99), donc invisible — même piège rencontré plusieurs fois déjà.
+	screen.layer = 100
+	screen._show_detail(species_key)
+	await screen.closed
+	_active = true
+
+# Même fenêtre/style que le menu d'action de trainer_battle.gd (StyleBoxTexture
+# square_window.png, boutons à fond transparent avec flèche sur celui
+# survolé/focus au lieu d'un fond gris, même police) — voir Gus, il ne faut
+# pas réinventer un style différent pour ce sous-menu. Positionnée en bas à
+# droite comme les autres fenêtres d'action du combat (mêmes proportions que
+# _action_window dans trainer_battle.tscn : left=0.65 top=0.74 right=0.98
+# bottom=0.96, converties en pixels ici car ce composant positionne tout en
+# absolu plutôt qu'en anchors fractionnaires).
+func _build_action_menu() -> CanvasLayer:
+	# CanvasLayer dédié au-dessus de _dialogue (98) : même piège/pattern que
+	# trainer_battle.gd::_action_layer (96, au-dessus de _prompt_dialogue à
+	# 95) — un Control simplement ajouté à _root (calque 97, celui de ce
+	# composant) resterait SOUS la boîte de dialogue plutôt qu'au-dessus.
+	var menu_layer := CanvasLayer.new()
+	menu_layer.layer = 99
+	get_tree().root.add_child(menu_layer)
+
+	var overlay := Control.new()
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP   # absorbe les clics sur les cartes derrière tant que le sous-menu est ouvert
+	menu_layer.add_child(overlay)
+
+	var style := StyleBoxTexture.new()
+	style.texture = MenuWindowTexture
+	style.texture_margin_left = 12.0
+	style.texture_margin_top = 12.0
+	style.texture_margin_right = 12.0
+	style.texture_margin_bottom = 12.0
+	style.content_margin_left = 18.0
+	style.content_margin_top = 12.0
+	style.content_margin_right = 18.0
+	style.content_margin_bottom = 12.0
+
+	# Ne doit PAS chevaucher la boîte de dialogue (top=648-168=480, voir
+	# dialogue_box.tscn) : flotte au-dessus, avec une marge, comme l'exemple
+	# fourni par Gus (choix garçon/fille) — ni collée ni superposée. Largeur
+	# resserrée au contenu plutôt qu'étirée sur toute la largeur habituelle
+	# d'une fenêtre d'action (inutile ici, seulement 3 lignes de texte court).
+	const MENU_W := 210.0
+	const MENU_H := 130.0
+	const DIALOGUE_TOP := 480.0
+	const MENU_MARGIN := 30.0
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", style)
+	panel.anchor_left = 0.0
+	panel.anchor_top = 0.0
+	panel.anchor_right = 0.0
+	panel.anchor_bottom = 0.0
+	panel.offset_right = 1152.0 - 24.0
+	panel.offset_left = panel.offset_right - MENU_W
+	panel.offset_bottom = DIALOGUE_TOP - MENU_MARGIN
+	panel.offset_top = panel.offset_bottom - MENU_H
+	overlay.add_child(panel)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	panel.add_child(box)
+
+	var empty_style := StyleBoxEmpty.new()
+	empty_style.content_margin_left = 8.0
+	empty_style.content_margin_top = 4.0
+	empty_style.content_margin_right = 8.0
+	empty_style.content_margin_bottom = 4.0
+
+	var first: Button = null
+	for entry in [["Échanger", "echanger"], ["Résumé", "resume"], ["Revenir", "revenir"]]:
+		var value: String = String(entry[1])
+		var btn := _menu_action_button(String(entry[0]), empty_style)
+		btn.pressed.connect(func(): _menu_choice.emit(value))
+		box.add_child(btn)
+		_menu_buttons[value] = btn
+		if first == null:
+			first = btn
+	if first:
+		first.grab_focus()
+
+	return menu_layer
+
+func _menu_action_button(text: String, empty_style: StyleBoxEmpty) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	btn.add_theme_font_override("font", DialogueFont)
+	btn.add_theme_font_size_override("font_size", 22)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		btn.add_theme_stylebox_override(state, empty_style)
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.icon = BlankCursorTexture
+	btn.mouse_entered.connect(func(): btn.grab_focus())
+	btn.focus_entered.connect(func(): btn.icon = CursorTexture)
+	btn.focus_exited.connect(func(): btn.icon = BlankCursorTexture)
+	return btn
 
 # ---------------------------------------------------------------- UI build
 
@@ -298,6 +503,7 @@ func _build_main_card() -> void:
 	var main_card := _rect_control(MAIN_X, MAIN_Y, MAIN_CARD_W, MAIN_CARD_H)
 	main_card.mouse_filter = Control.MOUSE_FILTER_STOP
 	main_card.mouse_entered.connect(func(): _select(0))
+	main_card.gui_input.connect(_on_main_card_gui_input)
 	_root.add_child(main_card)
 
 	var bg := _tex_rect(SlotMainTexture, 0, 0, MAIN_CARD_W, MAIN_CARD_H)
