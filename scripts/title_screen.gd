@@ -8,6 +8,7 @@ extends CanvasLayer
 const SaveSlotsScene := preload("res://scenes/ui/save_slots.tscn")
 const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
 const TrainerBattleScene := preload("res://scenes/ui/trainer_battle.tscn")
+const DuoBattleScene := preload("res://scenes/ui/duo_battle.tscn")
 const NEW_GAME_MAP := "res://scenes/intro/intro.tscn"
 const TEST_SPRITES_ROOM := "res://scenes/maps/test_sprites_room.tscn"
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
@@ -67,6 +68,7 @@ func _on_tests_pressed() -> void:
 	picker.setup([
 		{"label": "Tester des sprites", "value": "sprites"},
 		{"label": "Tester un combat contre un dresseur", "value": "battle"},
+		{"label": "Tester un combat duo", "value": "duo_battle"},
 		{"label": "Annuler", "value": null},
 	])
 	var choice = await picker.chosen
@@ -75,6 +77,8 @@ func _on_tests_pressed() -> void:
 		await _open_sprite_test_menu()
 	elif choice == "battle":
 		await _open_trainer_battle_test()
+	elif choice == "duo_battle":
+		await _open_duo_battle_test()
 
 # Un item par sprite custom testable (voir assets/characters/custom/) — pas
 # une vraie partie : on saute directement sur la carte de test avec le
@@ -128,6 +132,48 @@ func _open_trainer_battle_test() -> void:
 	battle.player_entries = player_team
 	battle.enemy_entries = enemy_team
 	battle.enemy_trainer_name = String(trainer["name"])
+	get_tree().root.add_child(battle)
+	await battle.finished
+
+# Lance directement l'écran de combat duo (2v2, 4 dresseurs — voir la
+# conversation de conception, futur contenu zone 4 Parc Safari) sur des
+# données PROVISOIRES (TrainerData.DUO_TEST, voir son en-tête) : un banc
+# d'essai pour valider le moteur/l'écran avant de construire le vrai contenu
+# (noms/équipes réels de l'allié et du rival pas encore décidés).
+func _open_duo_battle_test() -> void:
+	PlayerData.appearance = "red_normal"
+	PlayerData.gender = "male"
+	PlayerData.player_name = "Red"
+
+	var duo: Dictionary = TrainerData.DUO_TEST
+	var player_team: Array = TrainerData.roll_genders(TrainerData.PLAYER_LOAN_TEAM)
+	var ally_team: Array = TrainerData.roll_genders(duo["ally_party"])
+	var enemy1_team: Array = TrainerData.roll_genders(duo["enemy1_party"])
+	var enemy2_team: Array = TrainerData.roll_genders(duo["enemy2_party"])
+
+	var intro := BattleIntroDuo.new()
+	intro.player_party = player_team
+	intro.ally_party = ally_team
+	intro.ally_trainer_name = String(duo["ally_name"])
+	intro.ally_sprite_key = String(duo["ally_sprite_key"])
+	intro.enemy1_party = enemy1_team
+	intro.enemy1_trainer_name = String(duo["enemy1_name"])
+	intro.enemy1_sprite_key = String(duo["enemy1_sprite_key"])
+	intro.enemy2_party = enemy2_team
+	intro.enemy2_trainer_name = String(duo["enemy2_name"])
+	intro.enemy2_sprite_key = String(duo["enemy2_sprite_key"])
+	get_tree().root.add_child(intro)
+	await intro.play()
+	intro.queue_free()
+
+	var battle := DuoBattleScene.instantiate()
+	battle.player_entries = player_team
+	battle.ally_entries = ally_team
+	battle.ally_trainer_name = String(duo["ally_name"])
+	battle.enemy1_entries = enemy1_team
+	battle.enemy1_trainer_name = String(duo["enemy1_name"])
+	battle.enemy2_entries = enemy2_team
+	battle.enemy2_trainer_name = String(duo["enemy2_name"])
 	get_tree().root.add_child(battle)
 	await battle.finished
 

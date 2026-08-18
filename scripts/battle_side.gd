@@ -10,6 +10,11 @@ var party: Array[BattlePokemon] = []
 var active_index := 0
 var is_player := false
 var trainer_name := ""
+# Camp au sens large (0 = allié/joueur, 1 = adverse) — ignoré par
+# battle_engine.gd (1v1, qui distingue déjà tout via player_side/enemy_side),
+# utilisé uniquement par battle_engine_duo.gd pour savoir qui affronte qui
+# parmi les 4 BattleSide du combat duo.
+var team := 0
 
 func active() -> BattlePokemon:
 	return party[active_index]
