@@ -109,10 +109,10 @@ const SHADOW_RECTS := [
 # (distinct de la rangée de Poké Ball partagée, voir ROW_RECTS ci-dessous) —
 # reprend les 4 emplacements de scenes/ui/duo_battle.tscn.
 const CARD_RECTS := [
-	Rect2(0.54, 0.44, 0.30, 0.105),
-	Rect2(0.54, 0.565, 0.30, 0.105),
-	Rect2(0.02, 0.05, 0.30, 0.105),
-	Rect2(0.02, 0.175, 0.30, 0.105),
+	Rect2(0.62, 0.445, 0.30, 0.13),
+	Rect2(0.66, 0.59, 0.30, 0.13),
+	Rect2(0.02, 0.05, 0.30, 0.13),
+	Rect2(0.06, 0.195, 0.30, 0.13),
 ]
 # Rangée de Poké Ball : UNE SEULE par camp (pas 4), au même emplacement que
 # battle_intro.gd::ENEMY_COUNT_RECT/PLAYER_COUNT_RECT — vérifié dans
