@@ -101,8 +101,8 @@ const PLAYER_ROW_OFFSET_X := 100.0
 # bas (top/bottom +0.05) pour recoller au bord de la boîte de dialogue comme
 # en solo (signalé par Gus), l'ombre reste à sa position d'origine.
 const SPRITE_RECTS := [
-	Rect2(0.02, 0.39, 0.24, 0.42),
-	Rect2(0.26, 0.39, 0.24, 0.42),
+	Rect2(0.02, 0.42, 0.24, 0.42),
+	Rect2(0.26, 0.42, 0.24, 0.42),
 	Rect2(0.48, 0.10, 0.24, 0.40),
 	Rect2(0.72, 0.10, 0.24, 0.40),
 ]
