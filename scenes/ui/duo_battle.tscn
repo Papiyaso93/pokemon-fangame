@@ -182,9 +182,9 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="Enemy2HealthBox" type="PanelContainer" parent="Root"]
 anchor_left = 0.06
-anchor_top = 0.21
+anchor_top = 0.165
 anchor_right = 0.36
-anchor_bottom = 0.315
+anchor_bottom = 0.27
 theme_override_styles/panel = SubResource("CreamBoxStyle")
 
 [node name="VBox" type="VBoxContainer" parent="Root/Enemy2HealthBox"]
@@ -239,10 +239,10 @@ theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="PlayerHealthBox" type="PanelContainer" parent="Root"]
-anchor_left = 0.54
-anchor_top = 0.44
-anchor_right = 0.84
-anchor_bottom = 0.545
+anchor_left = 0.62
+anchor_top = 0.50
+anchor_right = 0.92
+anchor_bottom = 0.605
 theme_override_styles/panel = SubResource("CreamBoxStyle")
 
 [node name="VBox" type="VBoxContainer" parent="Root/PlayerHealthBox"]
@@ -297,10 +297,10 @@ theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="AllyHealthBox" type="PanelContainer" parent="Root"]
-anchor_left = 0.58
-anchor_top = 0.595
-anchor_right = 0.88
-anchor_bottom = 0.70
+anchor_left = 0.66
+anchor_top = 0.615
+anchor_right = 0.96
+anchor_bottom = 0.72
 theme_override_styles/panel = SubResource("CreamBoxStyle")
 
 [node name="VBox" type="VBoxContainer" parent="Root/AllyHealthBox"]
