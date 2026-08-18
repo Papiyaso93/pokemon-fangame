@@ -82,17 +82,28 @@ const PLAYER_ROW_OFFSET_X := 100.0
 # pour que le passage entre l'intro et l'écran de combat soit invisible
 # (même principe que battle_intro.gd/trainer_battle.tscn en 1v1). Index 0-3 :
 # joueur, allié, ennemi 1, ennemi 2.
+#
+# Hauteurs/Y IDENTIQUES à battle_intro.gd (PLAYER_SPRITE_RECT/
+# PLAYER_SHADOW_RECT/ENEMY_SPRITE_RECT/ENEMY_SHADOW_RECT) — voir Gus : les
+# Pokémon/dresseurs duo doivent avoir la MÊME taille qu'en combat solo, pas
+# rapetissés pour tenir 2 par côté. Seule la largeur est divisée en 2
+# créneaux (le rendu d'un sprite à peu près carré est contraint par la
+# hauteur de la boîte, pas sa largeur, tant que celle-ci reste suffisante —
+# diviser la largeur par 2 ne réduit donc pas la taille apparente). Le haut
+# de l'ellipse joueur/allié doit dépasser du haut de la boîte de dialogue
+# (layer 95, ~0.74) comme en solo (shadow top=0.70) — sans ce dépassement,
+# l'ellipse est entièrement cachée derrière la boîte (bug corrigé ici).
 const SPRITE_RECTS := [
-	Rect2(0.04, 0.46, 0.22, 0.28),
-	Rect2(0.28, 0.46, 0.22, 0.28),
-	Rect2(0.50, 0.06, 0.22, 0.28),
-	Rect2(0.74, 0.06, 0.22, 0.28),
+	Rect2(0.02, 0.34, 0.24, 0.42),
+	Rect2(0.26, 0.34, 0.24, 0.42),
+	Rect2(0.48, 0.10, 0.24, 0.40),
+	Rect2(0.72, 0.10, 0.24, 0.40),
 ]
 const SHADOW_RECTS := [
-	Rect2(0.02, 0.74, 0.26, 0.06),
-	Rect2(0.26, 0.74, 0.26, 0.06),
-	Rect2(0.48, 0.34, 0.26, 0.06),
-	Rect2(0.72, 0.34, 0.26, 0.06),
+	Rect2(0.00, 0.70, 0.28, 0.11),
+	Rect2(0.24, 0.70, 0.28, 0.11),
+	Rect2(0.46, 0.385, 0.28, 0.13),
+	Rect2(0.70, 0.385, 0.28, 0.13),
 ]
 # Emplacement final de la carte nom/niveau/PV de chaque Pokémon envoyé
 # (distinct de la rangée de Poké Ball partagée, voir ROW_RECTS ci-dessous) —
