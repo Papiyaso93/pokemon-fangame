@@ -218,6 +218,12 @@ func _make_tex_rect(tex: Texture2D, rect: Rect2) -> TextureRect:
 	t.texture = tex
 	t.expand_mode = 1
 	t.stretch_mode = 0
+	# z_index explicite (voir Gus : un dresseur semblait parfois passer
+	# derrière l'ellipse d'un adversaire) — l'ordre d'ajout à _root
+	# garantissait déjà ce plan, mais un z_index posé sans ambiguïté sur
+	# CHAQUE calque (0=ombre, 1=sprite dresseur, 2=Poké Ball/silhouette,
+	# voir plus bas) ne dépend plus de l'ordre de création, plus robuste.
+	t.z_index = 0
 	_root.add_child(t)
 	_set_rect(t, rect)
 	return t
@@ -227,6 +233,7 @@ func _make_sprite_rect(rect: Rect2) -> TextureRect:
 	t.expand_mode = 1
 	t.stretch_mode = 5
 	t.texture_filter = 1
+	t.z_index = 1
 	_root.add_child(t)
 	_set_rect(t, rect)
 	return t
@@ -454,6 +461,7 @@ func _send_out(idx: int) -> void:
 	ball.texture_filter = 1
 	ball.expand_mode = 1
 	ball.stretch_mode = 5
+	ball.z_index = 2
 	_root.add_child(ball)
 	_place_centered(ball, pokemon_rect, POKEBALL_SIZE)
 	ball.pivot_offset = Vector2(POKEBALL_SIZE, POKEBALL_SIZE) * 0.5
@@ -482,6 +490,7 @@ func _send_out(idx: int) -> void:
 	silhouette.texture_filter = 1
 	silhouette.material = _make_silhouette_material()
 	silhouette.modulate.a = 0.0
+	silhouette.z_index = 2
 	_root.add_child(silhouette)
 	_set_rect(silhouette, pokemon_rect)
 
@@ -511,6 +520,7 @@ func _spawn_pokeball_sparkles(rect: Rect2) -> void:
 		spark.texture_filter = 1
 		spark.expand_mode = 1
 		spark.stretch_mode = 5
+		spark.z_index = 2
 		_root.add_child(spark)
 		spark.anchor_left = cx
 		spark.anchor_right = cx
