@@ -93,9 +93,16 @@ const PLAYER_ROW_OFFSET_X := 100.0
 # de l'ellipse joueur/allié doit dépasser du haut de la boîte de dialogue
 # (layer 95, ~0.74) comme en solo (shadow top=0.70) — sans ce dépassement,
 # l'ellipse est entièrement cachée derrière la boîte (bug corrigé ici).
+#
+# Joueur/allié décalés plus bas que le calcul Y "identique au solo" ci-dessus
+# ne le suggérait : avec une boîte 2x plus étroite qu'en solo, le rendu du
+# sprite (centré par STRETCH_KEEP_ASPECT_CENTERED) touchait moins la boîte
+# de dialogue qu'en solo malgré la même hauteur de rect — décalés vers le
+# bas (top/bottom +0.05) pour recoller au bord de la boîte de dialogue comme
+# en solo (signalé par Gus), l'ombre reste à sa position d'origine.
 const SPRITE_RECTS := [
-	Rect2(0.02, 0.34, 0.24, 0.42),
-	Rect2(0.26, 0.34, 0.24, 0.42),
+	Rect2(0.02, 0.39, 0.24, 0.42),
+	Rect2(0.26, 0.39, 0.24, 0.42),
 	Rect2(0.48, 0.10, 0.24, 0.40),
 	Rect2(0.72, 0.10, 0.24, 0.40),
 ]
