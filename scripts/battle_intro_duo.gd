@@ -93,19 +93,21 @@ const PLAYER_ROW_OFFSET_X := 100.0
 # de l'ellipse joueur/allié doit dépasser du haut de la boîte de dialogue
 # (layer 95, ~0.74) comme en solo (shadow top=0.70) — sans ce dépassement,
 # l'ellipse est entièrement cachée derrière la boîte (bug corrigé ici).
-#
-# Joueur/allié décalés plus bas que le calcul Y "identique au solo" ci-dessus
-# ne le suggérait : avec une boîte 2x plus étroite qu'en solo, le rendu du
-# sprite (centré par STRETCH_KEEP_ASPECT_CENTERED) touchait moins la boîte
-# de dialogue qu'en solo malgré la même hauteur de rect — décalés vers le
-# bas (top/bottom +0.05) pour recoller au bord de la boîte de dialogue comme
-# en solo (signalé par Gus), l'ombre reste à sa position d'origine.
 const SPRITE_RECTS := [
-	Rect2(0.02, 0.42, 0.24, 0.42),
-	Rect2(0.26, 0.42, 0.24, 0.42),
+	Rect2(0.02, 0.34, 0.24, 0.42),
+	Rect2(0.26, 0.34, 0.24, 0.42),
 	Rect2(0.48, 0.10, 0.24, 0.40),
 	Rect2(0.72, 0.10, 0.24, 0.40),
 ]
+# Emplacement du Pokémon joueur/allié une fois envoyé (phase 2) — DISTINCT de
+# SPRITE_RECTS (phase 1, dresseur) : même principe que battle_intro.gd
+# (PLAYER_POKEMON_RECT vs PLAYER_SPRITE_RECT), raté à la 1re passe de ce
+# fichier — décaler SPRITE_RECTS directement cassait la position du
+# dresseur, qui était déjà bonne (signalé par Gus). Rien d'équivalent côté
+# ennemi (comme en solo) : le Pokémon adverse réutilise SPRITE_RECTS tel
+# quel, voir _pokemon_rect_for().
+const PLAYER_POKEMON_RECT := Rect2(0.02, 0.42, 0.24, 0.42)
+const ALLY_POKEMON_RECT := Rect2(0.26, 0.42, 0.24, 0.42)
 const SHADOW_RECTS := [
 	Rect2(0.00, 0.70, 0.28, 0.11),
 	Rect2(0.24, 0.70, 0.28, 0.11),
@@ -412,6 +414,15 @@ func _trainer_name_for(idx: int) -> String:
 		_:
 			return ""
 
+func _pokemon_rect_for(idx: int) -> Rect2:
+	match idx:
+		0:
+			return PLAYER_POKEMON_RECT
+		1:
+			return ALLY_POKEMON_RECT
+		_:
+			return SPRITE_RECTS[idx]
+
 func _send_out(idx: int) -> void:
 	var party: Array = _party_for(idx)
 	if party.is_empty():
@@ -424,7 +435,7 @@ func _send_out(idx: int) -> void:
 	var max_hp: int = BattlePokemon.create(species_key, level, [], gender).max_hp
 
 	var trainer_sprite: TextureRect = _sprites[idx]
-	var pokemon_rect: Rect2 = SPRITE_RECTS[idx]
+	var pokemon_rect: Rect2 = _pokemon_rect_for(idx)
 	var card_rect: Rect2 = CARD_RECTS[idx]
 	var is_ally_camp: bool = idx < 2
 
