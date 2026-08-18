@@ -39,7 +39,6 @@ const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 const DialogueFont := preload("res://assets/fonts/dialogue_latin.fnt")
 const ArrowTexture := preload("res://assets/ui/choice_arrow.png")
 const BlankTexture := preload("res://assets/ui/choice_arrow_blank.png")
-const ListPickerScene := preload("res://scenes/ui/list_picker.tscn")
 
 const PokeballTexture := preload("res://assets/ui/pokeball_thrown.png")
 const PokeballOpenTexture := preload("res://assets/ui/pokeball_thrown_open.png")
@@ -775,7 +774,7 @@ func _clear_menu() -> void:
 # Retourne {"kind": "attack", "move_key": ..., "target": int} ou
 # {"kind": "switch", "index": ...}. `target` = index dans sides[] de
 # l'adversaire visé — choisi automatiquement s'il n'en reste qu'un vivant,
-# sinon via un sous-menu de ciblage (voir _prompt_target()).
+# sinon via un sous-menu de ciblage (voir _prompt_attack_action()).
 func _prompt_player_action() -> Dictionary:
 	var need_new_prompt := true
 	while true:
@@ -806,22 +805,9 @@ func _prompt_player_action() -> Dictionary:
 
 		match choice:
 			0:
-				var move_key := await _prompt_move_choice()
-				if move_key != "":
-					var move: Dictionary = MoveData.MOVES[move_key]
-					if String(move["effect"]) == "EFFECT_RAIN_DANCE":
-						return {"kind": "attack", "move_key": move_key, "target": 0}
-					var alive_targets: Array[int] = []
-					for idx in engine.opposing_indices(0):
-						if not sides[idx].active().is_fainted():
-							alive_targets.append(idx)
-					if alive_targets.size() == 1:
-						return {"kind": "attack", "move_key": move_key, "target": alive_targets[0]}
-					var picked := await _prompt_target(alive_targets)
-					if picked != -1:
-						return {"kind": "attack", "move_key": move_key, "target": picked}
-					# Ciblage annulé -> retombe au menu principal, comme une
-					# annulation du choix de capacité (voir plus bas).
+				var action := await _prompt_attack_action()
+				if action.size() > 0:
+					return action
 				need_new_prompt = false
 			1:
 				_close_prompt()
@@ -837,34 +823,35 @@ func _prompt_player_action() -> Dictionary:
 		# Sous-menu annulé, ou Sac/Fuite refusés : on reboucle et réaffiche le menu.
 	return {}   # inatteignable (while true ne sort que par un return ci-dessus), pour l'analyseur statique
 
-# Sous-menu de ciblage (2 options : les 2 adversaires vivants), affiché via
-# ListPickerScene (déjà utilisé ailleurs dans le jeu, voir title_screen.gd)
-# plutôt qu'un écran dédié — layer explicite car ListPickerScene est à son
-# layer par défaut (1), qui serait masqué sous celui de ce combat (90) et de
-# sa fenêtre d'action (96) sans ça. Retourne -1 si annulé (Échap).
-func _prompt_target(candidates: Array[int]) -> int:
-	_action_window.visible = false
-	var options: Array = []
-	for idx in candidates:
-		var pkm: BattlePokemon = sides[idx].active()
-		options.append({"label": "%s  PV %d/%d" % [pkm.display_name, pkm.current_hp, pkm.max_hp], "value": idx})
-	var picker := ListPickerScene.instantiate()
-	picker.layer = 97
-	get_tree().root.add_child(picker)
-	picker.setup(options)
-	var chosen = await picker.chosen
-	picker.queue_free()
-	_action_window.visible = true
-	return -1 if chosen == null else int(chosen)
-
-func _prompt_move_choice() -> String:
+# Choix de la capacité PUIS, si besoin, de la cible — les 2 dans la même
+# fenêtre d'action plutôt qu'un ListPicker séparé plus loin sur l'écran
+# (voir Gus) : le pavé des capacités (move_box) reste affiché pendant le
+# ciblage (capacité choisie visible, sans flèche puisque le focus est sur la
+# cible — déjà le comportement de _menu_button() une fois le focus parti),
+# et _menu_container (qui affichait PP/Type) est réutilisé pour la liste des
+# cibles au lieu d'un popup à part. Échap sur le ciblage revient au choix de
+# capacité avec le focus remis sur celle précédemment choisie (pas le menu
+# principal) ; Échap sur le choix de capacité annule vers le menu principal.
+# Retourne {} si annulé jusqu'au menu principal.
+func _prompt_attack_action() -> Dictionary:
 	if _prompt_dialogue != null:
 		_prompt_dialogue.visible = false
+	_clear_menu()
 
 	var move_box := _make_move_list_box()
 	var grid: GridContainer = move_box.get_child(0)
+	var moves: Array[Dictionary] = sides[0].active().moves
+	var move_buttons: Dictionary = {}   # move_key -> Button, pour retrouver le focus après annulation du ciblage
 
-	_clear_menu()
+	# pp_label/type_category_label/info_box créés UNE SEULE FOIS pour tout
+	# l'appel (pas reconstruits à chaque tour de boucle) : les reconstruire à
+	# chaque itération replaçait pp_label/type_category_label dans un
+	# NOUVEAU VBoxContainer sans les retirer de l'ancien d'abord — or
+	# l'ancien venait d'être queue_free() par _clear_menu() de
+	# _prompt_target_inline(), ce qui plantait (reparentage sous un nœud en
+	# cours de libération). info_box est retiré (pas libéré) de
+	# _menu_container avant le ciblage, puis réajouté si le ciblage est
+	# annulé — jamais reconstruit.
 	var pp_label := _info_label(28)
 	var type_category_label := _info_label(28)
 	var info_box := VBoxContainer.new()
@@ -872,10 +859,7 @@ func _prompt_move_choice() -> String:
 	info_box.add_theme_constant_override("separation", 8)
 	info_box.add_child(pp_label)
 	info_box.add_child(type_category_label)
-	_menu_container.add_child(info_box)
 
-	var moves: Array[Dictionary] = sides[0].active().moves
-	var first: Button = null
 	for i in range(4):
 		if i < moves.size():
 			var mv: Dictionary = moves[i]
@@ -892,26 +876,88 @@ func _prompt_move_choice() -> String:
 			)
 			btn.pressed.connect(func(): _choice_made.emit(key))
 			grid.add_child(btn)
-			if first == null:
-				first = btn
-				pp_label.text = pp_text
-				type_category_label.text = type_category_text
+			move_buttons[key] = btn
 		else:
 			var empty_btn := _menu_button("-", 28)
 			empty_btn.disabled = true
 			empty_btn.focus_mode = Control.FOCUS_NONE
 			grid.add_child(empty_btn)
 
+	var focus_key := ""   # dernière capacité choisie, pour y revenir après annulation du ciblage
+	while true:
+		# info_box est toujours orphelin ici (jamais ajouté encore, ou retiré
+		# juste avant _prompt_target_inline() plus bas, qui ne le remet
+		# jamais lui-même) — sûr à ajouter sans le reconstruire.
+		_menu_container.add_child(info_box)
+
+		_switch_cancel_enabled = true
+		if focus_key != "" and move_buttons.has(focus_key):
+			move_buttons[focus_key].grab_focus()
+		elif not move_buttons.is_empty():
+			move_buttons.values()[0].grab_focus()
+		var chosen: Variant = await _choice_made
+		_switch_cancel_enabled = false
+
+		if chosen is int and chosen == -1:
+			move_box.queue_free()
+			info_box.queue_free()
+			if _prompt_dialogue != null:
+				_prompt_dialogue.visible = true
+			return {}
+
+		var move_key := String(chosen)
+		focus_key = move_key
+		var move: Dictionary = MoveData.MOVES[move_key]
+		var target := 0
+		if String(move["effect"]) != "EFFECT_RAIN_DANCE":
+			var alive_targets: Array[int] = []
+			for idx in engine.opposing_indices(0):
+				if not sides[idx].active().is_fainted():
+					alive_targets.append(idx)
+			if alive_targets.size() > 1:
+				_menu_container.remove_child(info_box)   # retiré, PAS libéré : réutilisé si le ciblage est annulé
+				var picked := await _prompt_target_inline(alive_targets)
+				if picked == -1:
+					continue   # ciblage annulé -> retour au choix de capacité, focus sur move_key
+				target = picked
+			else:
+				target = alive_targets[0]
+
+		move_box.queue_free()
+		info_box.queue_free()
+		if _prompt_dialogue != null:
+			_prompt_dialogue.visible = true
+		return {"kind": "attack", "move_key": move_key, "target": target}
+	return {}   # inatteignable, pour l'analyseur statique
+
+# Remplace le contenu de _menu_container (PP/Type, retiré par l'appelant
+# avant d'appeler cette fonction) par la liste des adversaires vivants à
+# cibler — même fenêtre, pas un popup séparé. Nettoie sa propre liste avant
+# de rendre la main (confirmé ou annulé), pour que _menu_container soit à
+# nouveau vide et prêt à réaccueillir info_box côté appelant. Retourne -1 si
+# annulé (Échap).
+func _prompt_target_inline(candidates: Array[int]) -> int:
+	var list_box := VBoxContainer.new()
+	list_box.set_anchors_preset(Control.PRESET_FULL_RECT)
+	list_box.add_theme_constant_override("separation", 4)
+	_menu_container.add_child(list_box)
+
+	var first: Button = null
+	for idx in candidates:
+		var pkm: BattlePokemon = sides[idx].active()
+		var btn := _menu_button("%s  PV %d/%d" % [pkm.display_name, pkm.current_hp, pkm.max_hp], 24)
+		btn.pressed.connect(func(): _choice_made.emit(idx))
+		list_box.add_child(btn)
+		if first == null:
+			first = btn
+
 	_switch_cancel_enabled = true
 	if first:
 		first.grab_focus()
 	var chosen: Variant = await _choice_made
 	_switch_cancel_enabled = false
-	move_box.queue_free()
-	_clear_menu()
-	if _prompt_dialogue != null:
-		_prompt_dialogue.visible = true
-	return "" if chosen is int and chosen == -1 else String(chosen)
+	list_box.queue_free()
+	return -1 if chosen is int and chosen == -1 else int(chosen)
 
 func _make_move_list_box() -> PanelContainer:
 	var box := PanelContainer.new()
