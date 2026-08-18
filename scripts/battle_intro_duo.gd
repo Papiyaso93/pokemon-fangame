@@ -66,11 +66,17 @@ const GENDER_FEMALE_COLOR := Color(0.976471, 0.211765, 0.501961)
 const DialogueBoxScene := preload("res://scenes/ui/dialogue_box.tscn")
 
 const PARTY_SLOTS := 6
-const BALL_SIZE := 22.0
-const BALL_PITCH := 25.0
-const ROW_PADDING := Vector2(6.0, 6.0)
-const BAR_WIDTH := 200.0
-const BAR_HEIGHT := 20.0
+# Même graphismes/tailles que battle_intro.gd (voir Gus : la rangée de
+# Poké Ball doit être au même endroit qu'en solo, pas une taille/position
+# inventée pour le duo).
+const BALL_SIZE := 30.0
+const BALL_PITCH := 34.0
+const ROW_PADDING := Vector2(8.0, 8.0)
+const BAR_WIDTH := 280.0
+const BAR_HEIGHT := 26.0
+const ENEMY_BAR_OFFSET_X := -60.0
+const PLAYER_BAR_OFFSET_X := -30.0
+const PLAYER_ROW_OFFSET_X := 100.0
 
 # Rects (fractions d'écran) — repris tels quels de scenes/ui/duo_battle.tscn
 # pour que le passage entre l'intro et l'écran de combat soit invisible
@@ -88,14 +94,24 @@ const SHADOW_RECTS := [
 	Rect2(0.48, 0.34, 0.26, 0.06),
 	Rect2(0.72, 0.34, 0.26, 0.06),
 ]
-# Emplacement du compteur de Pokémon ET carte finale nom/niveau/PV (pas de
-# distinction équivalente à PLAYER_CARD_RECT en 1v1 pour ce premier lot —
-# à revoir visuellement si besoin, voir la conversation de conception).
+# Emplacement final de la carte nom/niveau/PV de chaque Pokémon envoyé
+# (distinct de la rangée de Poké Ball partagée, voir ROW_RECTS ci-dessous) —
+# reprend les 4 emplacements de scenes/ui/duo_battle.tscn.
 const CARD_RECTS := [
 	Rect2(0.54, 0.44, 0.30, 0.105),
 	Rect2(0.54, 0.565, 0.30, 0.105),
 	Rect2(0.02, 0.05, 0.30, 0.105),
 	Rect2(0.02, 0.175, 0.30, 0.105),
+]
+# Rangée de Poké Ball : UNE SEULE par camp (pas 4), au même emplacement que
+# battle_intro.gd::ENEMY_COUNT_RECT/PLAYER_COUNT_RECT — vérifié dans
+# pokefirered (battle_interface.c::CreatePartyStatusSummarySprites) : en
+# combat multi, c'est une rangée de 6 emplacements partagée par les 2
+# dresseurs d'un même camp, PAS une rangée de 6 par dresseur (voir Gus).
+# [0] = camp allié (joueur+allié), [1] = camp adverse (ennemi1+ennemi2).
+const ROW_RECTS := [
+	Rect2(0.65, 0.63, 0.32, 0.13),
+	Rect2(0.03, 0.1225, 0.33, 0.13),
 ]
 
 var _root: Control
@@ -103,7 +119,10 @@ var _black_top: ColorRect
 var _black_bottom: ColorRect
 var _sprites: Array[TextureRect] = []
 var _shadows: Array[TextureRect] = []
-var _counts: Array[Control] = []
+var _ally_row: Control
+var _enemy_row: Control
+var _ally_row_exited := false
+var _enemy_row_exited := false
 var _dialogue: Node
 
 func _ready() -> void:
@@ -129,12 +148,18 @@ func _build_ui() -> void:
 	var player_path := "res://assets/characters/%s_back.png" % PlayerData.appearance
 	if ResourceLoader.exists(player_path):
 		_sprites[0].texture = load(player_path)
-	_set_trainer_sprite(1, ally_sprite_key)
+	# ally_sprite_key est un chemin res:// complet vers un sprite de DOS
+	# (ex. "res://assets/characters/rs_may_back.png"), pas une clé composée
+	# avec assets/characters/custom/battle/ comme les 2 ennemis — l'allié se
+	# tient du même côté que le joueur, il doit être vu de dos comme lui, pas
+	# de face comme un portrait de dresseur adverse (signalé par Gus).
+	if ally_sprite_key != "" and ResourceLoader.exists(ally_sprite_key):
+		_sprites[1].texture = load(ally_sprite_key)
 	_set_trainer_sprite(2, enemy1_sprite_key)
 	_set_trainer_sprite(3, enemy2_sprite_key)
 
-	for i in range(4):
-		_counts.append(_make_count_row(CARD_RECTS[i]))
+	_ally_row = _make_count_row(ROW_RECTS[0])
+	_enemy_row = _make_count_row(ROW_RECTS[1])
 
 	_dialogue = DialogueBoxScene.instantiate()
 	_dialogue.style = "battle"
@@ -157,7 +182,8 @@ func _build_ui() -> void:
 	for i in range(4):
 		_sprites[i].visible = false
 		_shadows[i].visible = false
-		_counts[i].visible = false
+	_ally_row.visible = false
+	_enemy_row.visible = false
 
 func _set_trainer_sprite(idx: int, sprite_key: String) -> void:
 	if sprite_key == "":
@@ -212,30 +238,40 @@ func _make_count_row(rect: Rect2) -> Control:
 	_set_rect(box, rect)
 	return box
 
-# Rangée de 6 emplacements, même graphismes que battle_intro.gd — pas de
-# distinction gauche/droite par côté pour ce premier lot (voir la
-# conversation de conception, positions à affiner visuellement plus tard).
-func _add_count_dots(row: Control, party_size: int) -> void:
-	var empty_slots: int = PARTY_SLOTS - party_size
-	for i in range(PARTY_SLOTS):
-		var is_full: bool = i < party_size
-		var dot := TextureRect.new()
-		dot.texture = PartyBallTexture if is_full else PartyBallEmptyTexture
-		dot.texture_filter = 1
-		dot.expand_mode = 1
-		dot.stretch_mode = 5
-		dot.position = ROW_PADDING + Vector2(i * BALL_PITCH, 0.0)
-		dot.size = Vector2(BALL_SIZE, BALL_SIZE)
-		dot.pivot_offset = Vector2(BALL_SIZE, BALL_SIZE) * 0.5
-		dot.scale = Vector2.ZERO
-		row.add_child(dot)
+# Rangée de 6 emplacements PARTAGÉE par les 2 dresseurs d'un même camp,
+# divisée en 2 blocs de 3 (un par dresseur) — vérifié dans pokefirered
+# (battle_interface.c) : chaque bloc reflète directement l'équipe de son
+# dresseur (2 Pokémon + 1 vide, PUIS 1 Pokémon + 2 vides), les Poké Ball
+# pleines ne sont PAS regroupées entre les 2 dresseurs. `slots_from_right`
+# (voir Gus, demandé pour l'adversaire uniquement comme en 1v1) inverse
+# l'ordre plein/vide À L'INTÉRIEUR de chaque bloc de 3.
+func _add_count_dots(row: Control, party_a: int, party_b: int, slots_from_right: bool = false) -> void:
+	var row_shift_x: float = 0.0 if slots_from_right else PLAYER_ROW_OFFSET_X
+	var block_sizes := [party_a, party_b]
+	for block in range(2):
+		var size: int = block_sizes[block]
+		for j in range(3):
+			var i: int = block * 3 + j
+			var is_full: bool = (j >= 3 - size) if slots_from_right else (j < size)
+			var dot := TextureRect.new()
+			dot.texture = PartyBallTexture if is_full else PartyBallEmptyTexture
+			dot.texture_filter = 1
+			dot.expand_mode = 1
+			dot.stretch_mode = 5
+			dot.position = ROW_PADDING + Vector2(row_shift_x + i * BALL_PITCH, 0.0)
+			dot.size = Vector2(BALL_SIZE, BALL_SIZE)
+			dot.pivot_offset = Vector2(BALL_SIZE, BALL_SIZE) * 0.5
+			dot.scale = Vector2.ZERO
+			row.add_child(dot)
 
 	var bar := TextureRect.new()
 	bar.texture = PartyBarTexture
 	bar.texture_filter = 1
 	bar.expand_mode = 1
 	bar.stretch_mode = 5
-	bar.position = ROW_PADDING + Vector2(0.0, BALL_SIZE)
+	bar.flip_h = slots_from_right
+	var bar_offset_x: float = ENEMY_BAR_OFFSET_X if slots_from_right else PLAYER_BAR_OFFSET_X
+	bar.position = ROW_PADDING + Vector2(row_shift_x + bar_offset_x, BALL_SIZE)
 	bar.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
 	row.add_child(bar)
 
@@ -300,16 +336,16 @@ func _tween_horizontal(tw: Tween, c: Control, target: Rect2, duration: float = S
 	tw.tween_property(c, "anchor_right", target.position.x + target.size.x, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 func _animate_counts() -> void:
-	var parties := [player_party, ally_party, enemy1_party, enemy2_party]
-	for i in range(4):
-		_counts[i].visible = true
-		_add_count_dots(_counts[i], parties[i].size())
+	_ally_row.visible = true
+	_enemy_row.visible = true
+	_add_count_dots(_ally_row, player_party.size(), ally_party.size())
+	_add_count_dots(_enemy_row, enemy1_party.size(), enemy2_party.size(), true)
 
 	for i in range(PARTY_SLOTS):
 		var tw := create_tween()
 		tw.set_parallel(true)
-		for side in range(4):
-			tw.tween_property(_counts[side].get_child(i), "scale", Vector2.ONE, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_ally_row.get_child(i), "scale", Vector2.ONE, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_enemy_row.get_child(PARTY_SLOTS - 1 - i), "scale", Vector2.ONE, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		await tw.finished
 
 func _show_intro_text() -> void:
@@ -353,13 +389,11 @@ func _send_out(idx: int) -> void:
 	var max_hp: int = BattlePokemon.create(species_key, level, [], gender).max_hp
 
 	var trainer_sprite: TextureRect = _sprites[idx]
-	var count_row: Control = _counts[idx]
 	var pokemon_rect: Rect2 = SPRITE_RECTS[idx]
 	var card_rect: Rect2 = CARD_RECTS[idx]
 	var is_ally_camp: bool = idx < 2
 
 	var sprite_exit_dx: float = -1.0 if is_ally_camp else 1.0
-	var card_exit_dx: float = 1.0 if _rect_center_x(card_rect) > 0.5 else -1.0
 
 	var text: String
 	if idx == 0:
@@ -371,13 +405,28 @@ func _send_out(idx: int) -> void:
 	await _dialogue.page_typed
 	_dialogue.active = false
 
+	# La rangée de Poké Ball est PARTAGÉE par les 2 dresseurs d'un même camp
+	# (voir _add_count_dots()) : elle ne quitte le terrain qu'une seule fois,
+	# au premier envoi de ce camp (ennemi 1 ou joueur, voir play()) — pas à
+	# chaque envoi individuel, sinon elle réapparaîtrait/disparaîtrait 2 fois.
+	var row: Control = _ally_row if is_ally_camp else _enemy_row
+	var row_rect: Rect2 = ROW_RECTS[0] if is_ally_camp else ROW_RECTS[1]
+	var row_already_exited: bool = _ally_row_exited if is_ally_camp else _enemy_row_exited
+
 	var exit_tw := create_tween()
 	exit_tw.set_parallel(true)
 	_tween_horizontal(exit_tw, trainer_sprite, _shifted(pokemon_rect, sprite_exit_dx), SEND_OUT_SLIDE_DURATION)
-	_tween_horizontal(exit_tw, count_row, _shifted(card_rect, card_exit_dx), SEND_OUT_SLIDE_DURATION)
+	if not row_already_exited:
+		var row_exit_dx: float = 1.0 if _rect_center_x(row_rect) > 0.5 else -1.0
+		_tween_horizontal(exit_tw, row, _shifted(row_rect, row_exit_dx), SEND_OUT_SLIDE_DURATION)
 	await exit_tw.finished
 	trainer_sprite.visible = false
-	count_row.visible = false
+	if not row_already_exited:
+		row.visible = false
+		if is_ally_camp:
+			_ally_row_exited = true
+		else:
+			_enemy_row_exited = true
 
 	var ball := TextureRect.new()
 	ball.texture = PokeballTexture

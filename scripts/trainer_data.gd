@@ -36,7 +36,11 @@ const PLAYER_LOAN_TEAM := [
 # le nom définitif du futur rival.
 const DUO_TEST := {
 	"ally_name": "Allié",
-	"ally_sprite_key": "goku",
+	# Chemin res:// complet vers un sprite de DOS (l'allié se tient du même
+	# côté que le joueur, il doit être vu de dos comme lui) — PAS une clé
+	# composée avec assets/characters/custom/battle/ comme les 2 ennemis
+	# ci-dessous (portraits de face). Voir battle_intro_duo.gd::_build_ui().
+	"ally_sprite_key": "res://assets/characters/rs_may_back.png",
 	"ally_party": [
 		{"species": "meowth", "level": 29, "moves": ["TACKLE", "SCRATCH"]},
 	],
