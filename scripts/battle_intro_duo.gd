@@ -151,10 +151,20 @@ func _build_ui() -> void:
 	bg.expand_mode = 1
 	_root.add_child(bg)
 
-	for i in range(4):
-		_shadows.append(_make_tex_rect(PlatformTexture, SHADOW_RECTS[i]))
-	for i in range(4):
-		_sprites.append(_make_sprite_rect(SPRITE_RECTS[i]))
+	# Ordre de plan voulu par Gus, du plus au fond au plus proche de la
+	# caméra : ennemi 1, ennemi 2, joueur, allié — le joueur doit apparaître
+	# DEVANT les 2 adversaires en glissant en place, et l'allié devant tout
+	# le reste. L'ordre d'ajout à _root (dernier ajouté = dessiné par-
+	# dessus) fixe ce plan ; _shadows/_sprites restent indexés par côté
+	# (0=joueur, 1=allié, 2=ennemi1, 3=ennemi2) pour le reste du fichier,
+	# seul l'ORDRE de création change.
+	const Z_ORDER := [2, 3, 0, 1]
+	_shadows.resize(4)
+	_sprites.resize(4)
+	for i in Z_ORDER:
+		_shadows[i] = _make_tex_rect(PlatformTexture, SHADOW_RECTS[i])
+	for i in Z_ORDER:
+		_sprites[i] = _make_sprite_rect(SPRITE_RECTS[i])
 
 	var player_path := "res://assets/characters/%s_back.png" % PlayerData.appearance
 	if ResourceLoader.exists(player_path):
